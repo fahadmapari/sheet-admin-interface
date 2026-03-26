@@ -1,4 +1,15 @@
+import 'server-only';
 import { google, sheets_v4 } from 'googleapis';
+
+// ---------------------------------------------------------------------------
+// Env var helper
+// ---------------------------------------------------------------------------
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
+}
 
 // ---------------------------------------------------------------------------
 // Singleton client
@@ -11,8 +22,8 @@ export function getSheetsClient(): sheets_v4.Sheets {
 
   const auth = new google.auth.GoogleAuth({
     credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      client_email: requireEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL'),
+      private_key: requireEnv('GOOGLE_PRIVATE_KEY').replace(/\\n/g, '\n'),
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
@@ -25,8 +36,9 @@ export function getSheetsClient(): sheets_v4.Sheets {
 // Constants
 // ---------------------------------------------------------------------------
 
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID as string;
-const NET_RATES_RANGE = "'NET RATES'!A:BR";
+const SPREADSHEET_ID = requireEnv('SPREADSHEET_ID');
+const NET_RATES_SHEET = 'NET RATES';
+const NET_RATES_RANGE = `'${NET_RATES_SHEET}'!A:BR`;
 const INVENTORY_UPDATE_RANGE = "'Inventory Update'!A:Z";
 
 // ---------------------------------------------------------------------------
@@ -35,6 +47,7 @@ const INVENTORY_UPDATE_RANGE = "'Inventory Update'!A:Z";
 // ---------------------------------------------------------------------------
 
 function colIndexToLetter(colIndex: number): string {
+  if (colIndex < 0) throw new Error('colIndexToLetter: colIndex must be >= 0, received ' + colIndex);
   let letter = '';
   let n = colIndex;
   while (n >= 0) {
@@ -45,37 +58,39 @@ function colIndexToLetter(colIndex: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: sheet ID cache + lookup
+// Helper: sheet ID cache + lookup (with promise deduplication)
 // ---------------------------------------------------------------------------
 
 const sheetIdCache = new Map<string, number>();
+const sheetIdInflight = new Map<string, Promise<number>>();
 
 async function getSheetId(sheetName: string): Promise<number> {
-  if (sheetIdCache.has(sheetName)) {
-    return sheetIdCache.get(sheetName)!;
-  }
+  if (sheetIdCache.has(sheetName)) return sheetIdCache.get(sheetName)!;
+  if (sheetIdInflight.has(sheetName)) return sheetIdInflight.get(sheetName)!;
 
-  const sheets = getSheetsClient();
-  try {
+  const promise = (async () => {
+    const sheets = getSheetsClient();
     const response = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
     const sheetsData = response.data.sheets ?? [];
     for (const sheet of sheetsData) {
-      const title = sheet.properties?.title;
       const id = sheet.properties?.sheetId;
-      if (title !== undefined && title !== null && id !== undefined && id !== null) {
+      const title = sheet.properties?.title;
+      if (id !== undefined && id !== null && title) {
         sheetIdCache.set(title, id);
       }
     }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to get sheet ID for "${sheetName}": ${message}`);
-  }
+    const result = sheetIdCache.get(sheetName);
+    if (result === undefined) throw new Error(`Sheet not found: ${sheetName}`);
+    return result;
+  })();
 
-  if (!sheetIdCache.has(sheetName)) {
-    throw new Error(`Sheet "${sheetName}" not found in spreadsheet`);
+  sheetIdInflight.set(sheetName, promise);
+  try {
+    const result = await promise;
+    return result;
+  } finally {
+    sheetIdInflight.delete(sheetName);
   }
-
-  return sheetIdCache.get(sheetName)!;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,11 +121,12 @@ export async function fetchAllRows(): Promise<string[][]> {
  * Row 1 = header, Row 2 = first data row.
  */
 export async function fetchRow(rowIndex: number): Promise<string[]> {
+  if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
   const sheets = getSheetsClient();
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `'NET RATES'!A${rowIndex}:BR${rowIndex}`,
+      range: `'${NET_RATES_SHEET}'!A${rowIndex}:BR${rowIndex}`,
     });
     const values = response.data.values;
     return (values && values[0] ? values[0] : []) as string[];
@@ -125,12 +141,14 @@ export async function fetchRow(rowIndex: number): Promise<string[]> {
  * values must be an array of 70 cell values (full row replacement).
  */
 export async function updateRow(rowIndex: number, values: string[]): Promise<void> {
+  if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
+  if (values.length > 70) throw new Error('updateRow: values array must not exceed 70 elements; received ' + values.length);
   const sheets = getSheetsClient();
   try {
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `'NET RATES'!A${rowIndex}:BR${rowIndex}`,
-      valueInputOption: 'USER_ENTERED',
+      range: `'${NET_RATES_SHEET}'!A${rowIndex}:BR${rowIndex}`,
+      valueInputOption: 'RAW',
       requestBody: { values: [values] },
     });
   } catch (err: unknown) {
@@ -148,13 +166,14 @@ export async function updateCell(
   colIndex: number,
   value: string,
 ): Promise<void> {
+  if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
   const sheets = getSheetsClient();
   const colLetter = colIndexToLetter(colIndex);
   try {
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `'NET RATES'!${colLetter}${rowIndex}`,
-      valueInputOption: 'USER_ENTERED',
+      range: `'${NET_RATES_SHEET}'!${colLetter}${rowIndex}`,
+      valueInputOption: 'RAW',
       requestBody: { values: [[value]] },
     });
   } catch (err: unknown) {
@@ -173,7 +192,7 @@ export async function appendRow(values: string[]): Promise<void> {
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: NET_RATES_RANGE,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [values] },
     });
@@ -188,9 +207,10 @@ export async function appendRow(values: string[]): Promise<void> {
  * Shifts all subsequent rows up.
  */
 export async function deleteRow(rowIndex: number): Promise<void> {
+  if (rowIndex < 2) throw new Error('deleteRow: rowIndex must be >= 2 (row 1 is the header); received ' + rowIndex);
   const sheets = getSheetsClient();
-  const sheetId = await getSheetId('NET RATES');
   try {
+    const sheetId = await getSheetId(NET_RATES_SHEET);
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       requestBody: {
@@ -226,14 +246,14 @@ export async function batchUpdateRows(
   const sheets = getSheetsClient();
   try {
     const data: sheets_v4.Schema$ValueRange[] = updates.map(({ rowIndex, values }) => ({
-      range: `'NET RATES'!A${rowIndex}:BR${rowIndex}`,
+      range: `'${NET_RATES_SHEET}'!A${rowIndex}:BR${rowIndex}`,
       values: [values],
     }));
 
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       requestBody: {
-        valueInputOption: 'USER_ENTERED',
+        valueInputOption: 'RAW',
         data,
       },
     });
