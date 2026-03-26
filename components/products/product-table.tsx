@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
   useReactTable,
@@ -10,13 +10,13 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { useState } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COLUMN_GROUPS, STATUS_COLORS, FIELD_LABELS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) =>
+  fetch(url).then((r) => { if (!r.ok) throw new Error(r.statusText); return r.json(); });
 
 // Column width map
 const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
