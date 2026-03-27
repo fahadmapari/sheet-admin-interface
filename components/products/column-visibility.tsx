@@ -7,13 +7,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { COLUMN_GROUPS, FIELD_LABELS, VIEW_PRESETS } from '@/lib/constants';
+import { ALWAYS_VISIBLE_COLUMNS, COLUMN_GROUPS, FIELD_LABELS, VIEW_PRESETS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
 
 // All fields across all groups (in order)
 const ALL_FIELDS = COLUMN_GROUPS.flatMap((g) => g.fields as readonly string[]);
-
-const ALWAYS_VISIBLE = new Set(['country', 'city']);
 
 const PRESET_LABELS: Record<string, string> = {
   overview: 'Overview',
@@ -45,13 +43,13 @@ export function ColumnVisibilityPanel({
     const presetFields = new Set<string>(VIEW_PRESETS[presetKey] ?? []);
     const next: VisibilityState = {};
     for (const field of ALL_FIELDS) {
-      next[field] = ALWAYS_VISIBLE.has(field) || presetFields.has(field);
+      next[field] = ALWAYS_VISIBLE_COLUMNS.has(field) || presetFields.has(field);
     }
     onColumnVisibilityChange(next);
   }
 
   function toggleColumn(fieldId: string) {
-    if (ALWAYS_VISIBLE.has(fieldId)) return;
+    if (ALWAYS_VISIBLE_COLUMNS.has(fieldId)) return;
     const current = columnVisibility[fieldId] !== false; // default is visible
     onColumnVisibilityChange({ ...columnVisibility, [fieldId]: !current });
   }
@@ -106,7 +104,7 @@ export function ColumnVisibilityPanel({
                 <div className="space-y-1">
                   {(group.fields as readonly string[]).map((field) => {
                     const isVisible = columnVisibility[field] !== false; // default is visible
-                    const isSticky = ALWAYS_VISIBLE.has(field);
+                    const isSticky = ALWAYS_VISIBLE_COLUMNS.has(field);
                     const label = FIELD_LABELS[field as keyof Omit<TourProduct, 'rowIndex'>] ?? field;
 
                     return (

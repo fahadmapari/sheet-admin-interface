@@ -14,7 +14,7 @@ import {
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { COLUMN_GROUPS, STATUS_COLORS, FIELD_LABELS } from '@/lib/constants';
+import { ALWAYS_VISIBLE_COLUMNS, COLUMN_GROUPS, STATUS_COLORS, FIELD_LABELS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
 
 const fetcher = (url: string) =>
@@ -52,8 +52,6 @@ const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
   pic: 80,
 };
 
-// Fields that always remain visible even when their group is collapsed
-const ALWAYS_VISIBLE = new Set(['country', 'city']);
 
 function BooleanCell({ value }: { value: boolean }) {
   return (
@@ -127,7 +125,7 @@ function SkeletonTable() {
 
 interface ProductTableProps {
   columnVisibility: VisibilityState;
-  onColumnVisibilityChange: (v: VisibilityState) => void;
+  onColumnVisibilityChange: (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => void;
 }
 
 export function ProductTable({ columnVisibility, onColumnVisibilityChange }: ProductTableProps) {
@@ -156,17 +154,15 @@ export function ProductTable({ columnVisibility, onColumnVisibilityChange }: Pro
     if (!group) return;
     const isCurrentlyCollapsed = !!collapsedGroups[groupId];
     setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
-    onColumnVisibilityChange(
-      (() => {
-        const next = { ...columnVisibility };
-        for (const field of group.fields) {
-          if (!ALWAYS_VISIBLE.has(field)) {
-            next[field] = isCurrentlyCollapsed; // true = show (expanding), false = hide (collapsing)
-          }
+    onColumnVisibilityChange((prev: VisibilityState) => {
+      const next = { ...prev };
+      for (const field of group.fields) {
+        if (!ALWAYS_VISIBLE_COLUMNS.has(field)) {
+          next[field] = isCurrentlyCollapsed; // true = expanding, false = collapsing
         }
-        return next;
-      })()
-    );
+      }
+      return next;
+    });
   };
 
   // Memoized visible column counts per group
