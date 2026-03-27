@@ -9,8 +9,9 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
+  type VisibilityState,
 } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { COLUMN_GROUPS, STATUS_COLORS, FIELD_LABELS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
@@ -49,6 +50,9 @@ const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
   vatPercent: 70,
   pic: 80,
 };
+
+// Fields that always remain visible even when their group is collapsed
+const ALWAYS_VISIBLE = new Set(['country', 'city']);
 
 function BooleanCell({ value }: { value: boolean }) {
   return (
@@ -126,16 +130,41 @@ export function ProductTable() {
   });
 
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const columns = useMemo(() => buildColumns(), []);
+
+  // Derive columnVisibility from collapsedGroups
+  const columnVisibility = useMemo<VisibilityState>(() => {
+    const vis: VisibilityState = {};
+    for (const group of COLUMN_GROUPS) {
+      if (collapsedGroups[group.id]) {
+        for (const field of group.fields) {
+          if (!ALWAYS_VISIBLE.has(field)) {
+            vis[field] = false;
+          }
+        }
+      }
+    }
+    return vis;
+  }, [collapsedGroups]);
 
   const table = useReactTable({
     data: data ?? [],
     columns,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: () => {}, // controlled externally via collapsedGroups
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
+
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+  };
+
+  // Returns how many columns in a group are currently visible
+  const visibleCountForGroup = (group: typeof COLUMN_GROUPS[number]) =>
+    group.fields.filter((f) => table.getColumn(f)?.getIsVisible() !== false).length;
 
   if (isLoading) return <SkeletonTable />;
 
@@ -150,55 +179,80 @@ export function ProductTable() {
     );
   }
 
-  const headerGroups = table.getHeaderGroups();
+  // All visible columns except rowNum (which is in a rowSpan=2 header)
+  const visibleDataHeaders = table
+    .getAllColumns()
+    .filter((col) => col.id !== 'rowNum' && col.getIsVisible());
 
   return (
     <div className="h-full overflow-auto">
       <table className="border-collapse text-sm">
         <thead className="sticky top-0 z-10">
-          {/* Group row */}
+          {/* Group header row */}
           <tr className="bg-muted/80 backdrop-blur">
-            {/* rowNum cell spanning the # column */}
+            {/* rowNum spanning both header rows */}
             <th
               className="border border-border px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/80"
               rowSpan={2}
             >
               #
             </th>
-            {COLUMN_GROUPS.map((group) => (
-              <th
-                key={group.id}
-                colSpan={group.fields.length}
-                className="border border-border px-2 py-1.5 text-center text-xs font-semibold text-foreground whitespace-nowrap"
-              >
-                {group.label}
-              </th>
-            ))}
+            {COLUMN_GROUPS.map((group) => {
+              const visCount = visibleCountForGroup(group);
+              const isCollapsed = !!collapsedGroups[group.id];
+              const colSpan = Math.max(visCount, 1);
+
+              return (
+                <th
+                  key={group.id}
+                  colSpan={colSpan}
+                  className="border border-border px-2 py-1.5 text-center text-xs font-bold text-foreground whitespace-nowrap bg-muted cursor-pointer select-none hover:bg-muted/70"
+                  onClick={() => toggleGroup(group.id)}
+                >
+                  <span className="inline-flex items-center gap-1 justify-center">
+                    {group.label}
+                    <ChevronRight
+                      className={cn(
+                        'h-3 w-3 transition-transform duration-150',
+                        !isCollapsed && 'rotate-90'
+                      )}
+                    />
+                  </span>
+                </th>
+              );
+            })}
           </tr>
-          {/* Column header row — skip first header (rowNum, already rowSpan=2) */}
+          {/* Column header row */}
           <tr className="bg-muted/60 backdrop-blur">
-            {headerGroups[0]?.headers.slice(1).map((header) => (
-              <th
-                key={header.id}
-                className={cn(
-                  'border border-border px-2 py-1.5 text-left text-xs font-medium whitespace-nowrap cursor-pointer select-none',
-                  'hover:bg-accent/50'
-                )}
-                style={{ width: header.getSize(), minWidth: header.getSize() }}
-                onClick={header.column.getToggleSortingHandler()}
-              >
-                <span className="flex items-center gap-1">
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                  {header.column.getCanSort() && (
-                    <>
-                      {header.column.getIsSorted() === 'asc' && <ChevronUp className="h-3 w-3" />}
-                      {header.column.getIsSorted() === 'desc' && <ChevronDown className="h-3 w-3" />}
-                      {!header.column.getIsSorted() && <ChevronsUpDown className="h-3 w-3 opacity-30" />}
-                    </>
+            {visibleDataHeaders.map((col) => {
+              // Get size from the column
+              const size = col.getSize();
+              const header = table.getFlatHeaders().find((h) => h.id === col.id);
+              return (
+                <th
+                  key={col.id}
+                  className={cn(
+                    'border border-border px-2 py-1.5 text-left text-xs font-medium whitespace-nowrap cursor-pointer select-none',
+                    'hover:bg-accent/50'
                   )}
-                </span>
-              </th>
-            ))}
+                  style={{ width: size, minWidth: size }}
+                  onClick={col.getToggleSortingHandler()}
+                >
+                  <span className="flex items-center gap-1">
+                    {header
+                      ? flexRender(col.columnDef.header, header.getContext())
+                      : col.id}
+                    {col.getCanSort() && (
+                      <>
+                        {col.getIsSorted() === 'asc' && <ChevronUp className="h-3 w-3" />}
+                        {col.getIsSorted() === 'desc' && <ChevronDown className="h-3 w-3" />}
+                        {!col.getIsSorted() && <ChevronsUpDown className="h-3 w-3 opacity-30" />}
+                      </>
+                    )}
+                  </span>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
