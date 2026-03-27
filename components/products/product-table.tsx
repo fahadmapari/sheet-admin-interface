@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import useSWR from 'swr';
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,9 +16,6 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-rea
 import { cn } from '@/lib/utils';
 import { ALWAYS_VISIBLE_COLUMNS, COLUMN_GROUPS, STATUS_COLORS, FIELD_LABELS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
-
-const fetcher = (url: string) =>
-  fetch(url).then((r) => { if (!r.ok) throw new Error(r.statusText); return r.json(); });
 
 // Column width map
 const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
@@ -125,15 +121,14 @@ function SkeletonTable() {
 }
 
 interface ProductTableProps {
+  data: TourProduct[];
+  isLoading: boolean;
+  error: unknown;
   columnVisibility: VisibilityState;
   onColumnVisibilityChange: (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => void;
 }
 
-export function ProductTable({ columnVisibility, onColumnVisibilityChange }: ProductTableProps) {
-  const { data, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
-    dedupingInterval: 60_000,
-  });
-
+export function ProductTable({ data, isLoading, error, columnVisibility, onColumnVisibilityChange }: ProductTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
