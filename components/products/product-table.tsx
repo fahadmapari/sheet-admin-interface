@@ -131,40 +131,46 @@ export function ProductTable() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const columns = useMemo(() => buildColumns(), []);
-
-  // Derive columnVisibility from collapsedGroups
-  const columnVisibility = useMemo<VisibilityState>(() => {
-    const vis: VisibilityState = {};
-    for (const group of COLUMN_GROUPS) {
-      if (collapsedGroups[group.id]) {
-        for (const field of group.fields) {
-          if (!ALWAYS_VISIBLE.has(field)) {
-            vis[field] = false;
-          }
-        }
-      }
-    }
-    return vis;
-  }, [collapsedGroups]);
 
   const table = useReactTable({
     data: data ?? [],
     columns,
     state: { sorting, columnVisibility },
     onSortingChange: setSorting,
-    onColumnVisibilityChange: () => {}, // controlled externally via collapsedGroups
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
 
   const toggleGroup = (groupId: string) => {
+    const group = COLUMN_GROUPS.find((g) => g.id === groupId);
+    if (!group) return;
+    const isCurrentlyCollapsed = !!collapsedGroups[groupId];
     setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+    setColumnVisibility((prev) => {
+      const next = { ...prev };
+      for (const field of group.fields) {
+        if (!ALWAYS_VISIBLE.has(field)) {
+          next[field] = isCurrentlyCollapsed; // true = show (expanding), false = hide (collapsing)
+        }
+      }
+      return next;
+    });
   };
 
-  // Returns how many columns in a group are currently visible
-  const visibleCountForGroup = (group: typeof COLUMN_GROUPS[number]) =>
-    group.fields.filter((f) => table.getColumn(f)?.getIsVisible() !== false).length;
+  // Memoized visible column counts per group
+  const groupVisibleCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    for (const group of COLUMN_GROUPS) {
+      counts[group.id] = group.fields.filter(
+        (f) => table.getColumn(f)?.getIsVisible() !== false
+      ).length;
+    }
+    return counts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnVisibility]); // columnVisibility changes when groups collapse
 
   if (isLoading) return <SkeletonTable />;
 
@@ -198,7 +204,7 @@ export function ProductTable() {
               #
             </th>
             {COLUMN_GROUPS.map((group) => {
-              const visCount = visibleCountForGroup(group);
+              const visCount = groupVisibleCounts[group.id];
               const isCollapsed = !!collapsedGroups[group.id];
               const colSpan = Math.max(visCount, 1);
 
@@ -264,14 +270,14 @@ export function ProductTable() {
                 rowIdx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
               )}
             >
-              {row.getVisibleCells().map((cell, cellIdx) => (
+              {row.getVisibleCells().map((cell) => (
                 <td
                   key={cell.id}
                   className={cn(
                     'border border-border px-2 py-1 text-xs',
-                    cellIdx === 0 && 'sticky left-0 bg-inherit font-mono text-muted-foreground',
-                    cellIdx === 1 && 'sticky left-[60px] bg-inherit font-medium',
-                    cellIdx === 2 && 'sticky left-[180px] bg-inherit'
+                    cell.column.id === 'rowNum' && 'sticky left-0 bg-inherit font-mono text-muted-foreground',
+                    cell.column.id === 'country' && 'sticky left-[60px] bg-inherit font-medium',
+                    cell.column.id === 'city' && 'sticky left-[180px] bg-inherit'
                   )}
                   style={{ width: cell.column.getSize(), minWidth: cell.column.getSize() }}
                 >
