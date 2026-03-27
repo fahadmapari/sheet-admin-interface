@@ -277,40 +277,56 @@ export function ProductTable({ columnVisibility, onColumnVisibilityChange }: Pro
             })}
           </tr>
         </thead>
-        <tbody style={{ position: 'relative', height: `${rowVirtualizer.getTotalSize()}px` }}>
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const row = rows[virtualRow.index];
+        <tbody>
+          {(() => {
+            const virtualItems = rowVirtualizer.getVirtualItems();
+            const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+            const paddingBottom =
+              virtualItems.length > 0
+                ? rowVirtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+                : 0;
             return (
-              <tr
-                key={row.id}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  transform: `translateY(${virtualRow.start}px)`,
-                  width: '100%',
-                }}
-                className={cn(
-                  'hover:bg-accent/30 transition-colors',
-                  virtualRow.index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+              <>
+                {paddingTop > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingTop}px` }} colSpan={999} />
+                  </tr>
                 )}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={cn(
-                      'border border-border px-2 py-1 text-xs',
-                      cell.column.id === 'rowNum' && 'sticky left-0 bg-inherit font-mono text-muted-foreground',
-                      cell.column.id === 'country' && 'sticky left-[60px] bg-inherit font-medium',
-                      cell.column.id === 'city' && 'sticky left-[180px] bg-inherit'
-                    )}
-                    style={{ width: cell.column.getSize(), minWidth: cell.column.getSize() }}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
+                {virtualItems.map((virtualRow) => {
+                  const row = rows[virtualRow.index];
+                  return (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        'hover:bg-accent/30 transition-colors',
+                        virtualRow.index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                      )}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className={cn(
+                            'border border-border px-2 py-1 text-xs',
+                            cell.column.id === 'rowNum' && 'sticky left-0 bg-inherit font-mono text-muted-foreground',
+                            cell.column.id === 'country' && 'sticky left-[60px] bg-inherit font-medium',
+                            cell.column.id === 'city' && 'sticky left-[180px] bg-inherit'
+                          )}
+                          style={{ width: cell.column.getSize(), minWidth: cell.column.getSize() }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingBottom}px` }} colSpan={999} />
+                  </tr>
+                )}
+              </>
             );
-          })}
+          })()}
         </tbody>
       </table>
     </div>
