@@ -144,6 +144,7 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    enableMultiSort: false,
   });
 
   const rows = table.getRowModel().rows;

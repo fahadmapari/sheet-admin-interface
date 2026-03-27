@@ -229,7 +229,7 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
                 : 'hover:bg-accent'
             } ${idx > 0 ? 'border-l' : ''}`}
           >
-            {val === 'all' ? 'All' : val === 'yes' ? 'Ready' : 'Not Ready'}
+            {val === 'all' ? 'All' : val === 'yes' ? 'Yes' : 'No'}
           </button>
         ))}
       </div>
