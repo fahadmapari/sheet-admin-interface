@@ -7,6 +7,7 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
+  functionalUpdate,
   type ColumnDef,
   type SortingState,
   type VisibilityState,
@@ -124,14 +125,18 @@ function SkeletonTable() {
   );
 }
 
-export function ProductTable() {
+interface ProductTableProps {
+  columnVisibility: VisibilityState;
+  onColumnVisibilityChange: (v: VisibilityState) => void;
+}
+
+export function ProductTable({ columnVisibility, onColumnVisibilityChange }: ProductTableProps) {
   const { data, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
   });
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const columns = useMemo(() => buildColumns(), []);
 
   const table = useReactTable({
@@ -139,7 +144,9 @@ export function ProductTable() {
     columns,
     state: { sorting, columnVisibility },
     onSortingChange: setSorting,
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: (updater) => {
+      onColumnVisibilityChange(functionalUpdate(updater, columnVisibility));
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -149,15 +156,17 @@ export function ProductTable() {
     if (!group) return;
     const isCurrentlyCollapsed = !!collapsedGroups[groupId];
     setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
-    setColumnVisibility((prev) => {
-      const next = { ...prev };
-      for (const field of group.fields) {
-        if (!ALWAYS_VISIBLE.has(field)) {
-          next[field] = isCurrentlyCollapsed; // true = show (expanding), false = hide (collapsing)
+    onColumnVisibilityChange(
+      (() => {
+        const next = { ...columnVisibility };
+        for (const field of group.fields) {
+          if (!ALWAYS_VISIBLE.has(field)) {
+            next[field] = isCurrentlyCollapsed; // true = show (expanding), false = hide (collapsing)
+          }
         }
-      }
-      return next;
-    });
+        return next;
+      })()
+    );
   };
 
   // Memoized visible column counts per group
