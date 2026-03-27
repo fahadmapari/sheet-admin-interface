@@ -16,12 +16,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { PRODUCT_STATUSES, PIC_VALUES } from '@/lib/constants';
 import type { FiltersResponse } from '@/lib/types';
-
-const fetcher = (url: string) =>
-  fetch(url).then((r) => {
-    if (!r.ok) throw new Error(r.statusText);
-    return r.json();
-  });
+import { fetcher } from '@/lib/fetcher';
 
 export interface Filters {
   country: string;

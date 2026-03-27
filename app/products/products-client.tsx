@@ -7,12 +7,7 @@ import { ProductTable } from '@/components/products/product-table';
 import { ColumnVisibilityPanel } from '@/components/products/column-visibility';
 import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
 import type { TourProduct } from '@/lib/types';
-
-const fetcher = (url: string) =>
-  fetch(url).then((r) => {
-    if (!r.ok) throw new Error(r.statusText);
-    return r.json();
-  });
+import { fetcher } from '@/lib/fetcher';
 
 export function ProductsClient() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
