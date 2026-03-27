@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import useSWR from 'swr';
 import {
   useReactTable,
@@ -133,6 +134,7 @@ export function ProductTable({ columnVisibility, onColumnVisibilityChange }: Pro
     dedupingInterval: 60_000,
   });
 
+  const parentRef = useRef<HTMLDivElement>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const columns = useMemo(() => buildColumns(), []);
@@ -147,6 +149,15 @@ export function ProductTable({ columnVisibility, onColumnVisibilityChange }: Pro
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+  });
+
+  const rows = table.getRowModel().rows;
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 36,
+    overscan: 20,
   });
 
   const toggleGroup = (groupId: string) => {
@@ -196,7 +207,7 @@ export function ProductTable({ columnVisibility, onColumnVisibilityChange }: Pro
     .filter((col) => col.id !== 'rowNum' && col.getIsVisible());
 
   return (
-    <div className="h-full overflow-auto">
+    <div ref={parentRef} style={{ height: '100%', overflow: 'auto' }}>
       <table className="border-collapse text-sm">
         <thead className="sticky top-0 z-10">
           {/* Group header row */}
@@ -266,31 +277,40 @@ export function ProductTable({ columnVisibility, onColumnVisibilityChange }: Pro
             })}
           </tr>
         </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row, rowIdx) => (
-            <tr
-              key={row.id}
-              className={cn(
-                'hover:bg-accent/30 transition-colors',
-                rowIdx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-              )}
-            >
-              {row.getVisibleCells().map((cell) => (
-                <td
-                  key={cell.id}
-                  className={cn(
-                    'border border-border px-2 py-1 text-xs',
-                    cell.column.id === 'rowNum' && 'sticky left-0 bg-inherit font-mono text-muted-foreground',
-                    cell.column.id === 'country' && 'sticky left-[60px] bg-inherit font-medium',
-                    cell.column.id === 'city' && 'sticky left-[180px] bg-inherit'
-                  )}
-                  style={{ width: cell.column.getSize(), minWidth: cell.column.getSize() }}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
+        <tbody style={{ position: 'relative', height: `${rowVirtualizer.getTotalSize()}px` }}>
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const row = rows[virtualRow.index];
+            return (
+              <tr
+                key={row.id}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  transform: `translateY(${virtualRow.start}px)`,
+                  width: '100%',
+                }}
+                className={cn(
+                  'hover:bg-accent/30 transition-colors',
+                  virtualRow.index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                )}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className={cn(
+                      'border border-border px-2 py-1 text-xs',
+                      cell.column.id === 'rowNum' && 'sticky left-0 bg-inherit font-mono text-muted-foreground',
+                      cell.column.id === 'country' && 'sticky left-[60px] bg-inherit font-medium',
+                      cell.column.id === 'city' && 'sticky left-[180px] bg-inherit'
+                    )}
+                    style={{ width: cell.column.getSize(), minWidth: cell.column.getSize() }}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
