@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import type { VisibilityState } from '@tanstack/react-table';
-import { Search, X } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import { ProductTable } from '@/components/products/product-table';
 import { ColumnVisibilityPanel } from '@/components/products/column-visibility';
 import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
+import { ProductForm } from '@/components/products/product-form';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { TourProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
@@ -16,6 +18,7 @@ export function ProductsClient() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState('');
   const [globalSearch, setGlobalSearch] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
 
   const { data: products, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
@@ -86,6 +89,10 @@ export function ProductsClient() {
             columnVisibility={columnVisibility}
             onColumnVisibilityChange={setColumnVisibility}
           />
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Product
+          </Button>
         </div>
       </div>
       <FilterBar filters={filters} onFiltersChange={setFilters} />
@@ -98,6 +105,7 @@ export function ProductsClient() {
           onColumnVisibilityChange={setColumnVisibility}
         />
       </div>
+      <ProductForm open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }
