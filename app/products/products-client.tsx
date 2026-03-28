@@ -66,6 +66,17 @@ export function ProductsClient() {
   const totalCount = products?.length ?? 0;
   const filteredCount = searchedProducts.length;
 
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-destructive text-sm flex items-center justify-between">
+          <span>Failed to load products: {error.message ?? 'Unknown error'}</span>
+          <button onClick={() => mutate('/api/products')} className="underline text-sm">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
   const handleSingleDelete = async () => {
     if (!deleteTarget) return;
     const res = await fetch(`/api/products/${deleteTarget.rowIndex}`, { method: 'DELETE' });

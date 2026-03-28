@@ -1,6 +1,7 @@
 'use client';
 
 import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -79,10 +80,10 @@ export function ExportButton({ products, columnVisibility }: ExportButtonProps) 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => exportCsv(products, visibleFields)}>
+        <DropdownMenuItem onClick={() => { exportCsv(products, visibleFields); toast.success(`Exported ${products.length} rows as CSV`); }}>
           Export as CSV
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => exportXlsx(products, visibleFields)}>
+        <DropdownMenuItem onClick={async () => { await exportXlsx(products, visibleFields); toast.success(`Exported ${products.length} rows as XLSX`); }}>
           Export as XLSX
         </DropdownMenuItem>
       </DropdownMenuContent>
