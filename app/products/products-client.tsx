@@ -10,6 +10,7 @@ import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/
 import { ProductForm } from '@/components/products/product-form';
 import { BulkActionsToolbar } from '@/components/products/bulk-actions-toolbar';
 import { DeleteConfirmDialog } from '@/components/products/delete-confirm-dialog';
+import { ExportButton } from '@/components/products/export-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -106,6 +107,7 @@ export function ProductsClient() {
               </button>
             )}
           </div>
+          <ExportButton products={searchedProducts} columnVisibility={columnVisibility} />
           <ColumnVisibilityPanel
             columnVisibility={columnVisibility}
             onColumnVisibilityChange={setColumnVisibility}
