@@ -21,7 +21,7 @@ const STATUS_HEX: Record<string, { fill: string; stroke: string }> = {
   Completed: { fill: '#dcfce7', stroke: '#16a34a' },
   'In Progress - High priority': { fill: '#fee2e2', stroke: '#dc2626' },
   'On hold': { fill: '#f3f4f6', stroke: '#6b7280' },
-  Ignored: { fill: '#f9fafb', stroke: '#9ca3af' },
+  Ignored: { fill: '#f9fafb', stroke: '#e5e7eb' },
 };
 
 const PIE_COLORS = [

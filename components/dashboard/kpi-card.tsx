@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface KpiCardProps {
@@ -5,7 +6,7 @@ interface KpiCardProps {
   value: number;
   total?: number;
   color?: 'default' | 'green' | 'amber' | 'red' | 'gray';
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 }
 
 const colorClasses: Record<NonNullable<KpiCardProps['color']>, string> = {
