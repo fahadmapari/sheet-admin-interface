@@ -297,6 +297,9 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                 )}
                 {virtualItems.map((virtualRow) => {
                   const row = rows[virtualRow.index];
+                  const stickyBg = virtualRow.index % 2 === 0
+                    ? 'hsl(var(--background))'
+                    : 'hsl(var(--muted))';
                   return (
                     <tr
                       key={row.id}
@@ -310,11 +313,17 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                           key={cell.id}
                           className={cn(
                             'border border-border px-2 py-1 text-xs',
-                            cell.column.id === 'rowNum' && 'sticky left-0 z-[10] bg-inherit font-mono text-muted-foreground',
-                            cell.column.id === 'country' && 'sticky left-[60px] z-[10] bg-inherit font-medium',
-                            cell.column.id === 'city' && 'sticky left-[180px] z-[10] bg-inherit shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
+                            cell.column.id === 'rowNum' && 'sticky left-0 z-[10] font-mono text-muted-foreground',
+                            cell.column.id === 'country' && 'sticky left-[60px] z-[10] font-medium',
+                            cell.column.id === 'city' && 'sticky left-[180px] z-[10] shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
                           )}
-                          style={{ width: cell.column.getSize(), minWidth: cell.column.getSize() }}
+                          style={{
+                            width: cell.column.getSize(),
+                            minWidth: cell.column.getSize(),
+                            ...(cell.column.id === 'rowNum' || cell.column.id === 'country' || cell.column.id === 'city'
+                              ? { background: stickyBg }
+                              : {}),
+                          }}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
