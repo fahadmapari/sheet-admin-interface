@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   useReactTable,
@@ -13,9 +13,11 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
+import { useSWRConfig } from 'swr';
 import { cn } from '@/lib/utils';
-import { ALWAYS_VISIBLE_COLUMNS, COLUMN_GROUPS, STATUS_COLORS, FIELD_LABELS } from '@/lib/constants';
+import { ALWAYS_VISIBLE_COLUMNS, COLUMN_GROUPS, FIELD_LABELS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
+import { InlineEditCell } from './inline-edit-cell';
 
 // Column width map
 const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
@@ -50,24 +52,9 @@ const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
 };
 
 
-function BooleanCell({ value }: { value: boolean }) {
-  return (
-    <span className={value ? 'text-green-500' : 'text-gray-300'}>●</span>
-  );
-}
-
-function StatusCell({ value }: { value: string | null }) {
-  if (!value) return <span className="text-muted-foreground text-xs">—</span>;
-  const colors = STATUS_COLORS[value];
-  if (!colors) return <span className="text-xs">{value}</span>;
-  return (
-    <span className={cn('inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium', colors.bg, colors.text)}>
-      {value}
-    </span>
-  );
-}
-
-function buildColumns(): ColumnDef<TourProduct>[] {
+function buildColumns(
+  onCellSaved: (rowIndex: number, field: string, value: string) => void,
+): ColumnDef<TourProduct>[] {
   const cols: ColumnDef<TourProduct>[] = [
     {
       id: 'rowNum',
@@ -86,19 +73,13 @@ function buildColumns(): ColumnDef<TourProduct>[] {
         accessorKey: key,
         header: FIELD_LABELS[key],
         size: COL_WIDTHS[key] ?? 120,
-        cell: ({ getValue }) => {
-          const val = getValue();
-          if (typeof val === 'boolean') return <BooleanCell value={val} />;
-          if (key === 'productStatus') return <StatusCell value={val as string | null} />;
-          if (val === null || val === undefined || val === '') {
-            return <span className="text-muted-foreground text-xs">—</span>;
-          }
-          return (
-            <span className="max-w-[200px] truncate block" title={String(val)}>
-              {String(val)}
-            </span>
-          );
-        },
+        cell: ({ row }) => (
+          <InlineEditCell
+            product={row.original}
+            field={key}
+            onSaved={(f, v) => onCellSaved(row.original.rowIndex, f, v)}
+          />
+        ),
       });
     }
   }
@@ -131,7 +112,23 @@ interface ProductTableProps {
 export function ProductTable({ data, isLoading, error, columnVisibility, onColumnVisibilityChange }: ProductTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const columns = useMemo(() => buildColumns(), []);
+  const { mutate } = useSWRConfig();
+
+  const onCellSaved = useCallback(
+    (rowIndex: number, field: string, value: string) => {
+      mutate('/api/products', (current: TourProduct[] | undefined) => {
+        if (!current) return current;
+        return current.map((p) =>
+          p.rowIndex === rowIndex
+            ? { ...p, [field]: value }
+            : p,
+        );
+      }, { revalidate: false });
+    },
+    [mutate],
+  );
+
+  const columns = useMemo(() => buildColumns(onCellSaved), [onCellSaved]);
 
   const table = useReactTable({
     data: data ?? [],
