@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Sidebar } from "@/components/sidebar";
+import { MobileTopBar } from "@/components/mobile-top-bar";
 
 export const metadata: Metadata = {
   title: "Sheet Admin — Tour Products",
@@ -18,8 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
+        <MobileTopBar />
+        <div className="flex h-screen overflow-hidden md:h-screen">
+          <div className="hidden md:flex">
+            <Sidebar />
+          </div>
           <main className="flex-1 overflow-auto bg-background">
             {children}
           </main>
