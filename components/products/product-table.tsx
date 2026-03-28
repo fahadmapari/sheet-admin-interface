@@ -210,7 +210,7 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
           <tr style={{ background: 'hsl(var(--muted))' }}>
             {/* rowNum spanning both header rows */}
             <th
-              className="border border-border px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-[30]"
+              className="border border-border px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-30"
               style={{ background: 'hsl(var(--muted))' }}
               rowSpan={2}
             >
@@ -253,13 +253,12 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                   className={cn(
                     'border border-border px-2 py-1.5 text-left text-xs font-medium whitespace-nowrap cursor-pointer select-none',
                     'hover:bg-accent/50',
-                    col.id === 'country' && 'sticky left-[60px] z-[30]',
-                    col.id === 'city' && 'sticky left-[180px] z-[30] shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
+                    col.id === 'country' && 'sticky left-[60px] z-30 bg-muted',
+                    col.id === 'city' && 'sticky left-[180px] z-30 bg-muted shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
                   )}
                   style={{
                     width: size,
                     minWidth: size,
-                    ...(col.id === 'country' || col.id === 'city' ? { background: 'hsl(var(--muted))' } : {}),
                   }}
                   onClick={col.getToggleSortingHandler()}
                 >
@@ -297,9 +296,7 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                 )}
                 {virtualItems.map((virtualRow) => {
                   const row = rows[virtualRow.index];
-                  const stickyBg = virtualRow.index % 2 === 0
-                    ? 'hsl(var(--background))'
-                    : 'hsl(var(--muted))';
+                  const stickyBg = 'hsl(var(--background))';
                   return (
                     <tr
                       key={row.id}
@@ -313,9 +310,9 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                           key={cell.id}
                           className={cn(
                             'border border-border px-2 py-1 text-xs',
-                            cell.column.id === 'rowNum' && 'sticky left-0 z-[10] font-mono text-muted-foreground',
-                            cell.column.id === 'country' && 'sticky left-[60px] z-[10] font-medium',
-                            cell.column.id === 'city' && 'sticky left-[180px] z-[10] shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
+                            cell.column.id === 'rowNum' && 'sticky left-0 z-10 font-mono text-muted-foreground',
+                            cell.column.id === 'country' && 'sticky left-[60px] z-10 font-medium',
+                            cell.column.id === 'city' && 'sticky left-[180px] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
                           )}
                           style={{
                             width: cell.column.getSize(),
