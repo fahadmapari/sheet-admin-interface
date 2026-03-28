@@ -1,21 +1,30 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import type { VisibilityState } from '@tanstack/react-table';
+import { Search, X } from 'lucide-react';
 import { ProductTable } from '@/components/products/product-table';
 import { ColumnVisibilityPanel } from '@/components/products/column-visibility';
 import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
+import { Input } from '@/components/ui/input';
 import type { TourProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
 export function ProductsClient() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [searchInput, setSearchInput] = useState('');
+  const [globalSearch, setGlobalSearch] = useState('');
 
   const { data: products, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
   });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setGlobalSearch(searchInput), 200);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const filteredProducts = useMemo(() => {
     const all = products ?? [];
@@ -31,8 +40,17 @@ export function ProductsClient() {
     });
   }, [products, filters]);
 
+  const searchedProducts = useMemo(() => {
+    if (!globalSearch.trim()) return filteredProducts;
+    const q = globalSearch.toLowerCase();
+    return filteredProducts.filter(p =>
+      [p.country, p.city, p.productName, p.link, p.notes, p.productType]
+        .some(v => v?.toLowerCase().includes(q))
+    );
+  }, [filteredProducts, globalSearch]);
+
   const totalCount = products?.length ?? 0;
-  const filteredCount = filteredProducts.length;
+  const filteredCount = searchedProducts.length;
 
   return (
     <div className="flex flex-col h-full">
@@ -46,6 +64,24 @@ export function ProductsClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              className="pl-8 pr-8 w-56"
+              placeholder="Search…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            {searchInput && (
+              <button
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setSearchInput('')}
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
           <ColumnVisibilityPanel
             columnVisibility={columnVisibility}
             onColumnVisibilityChange={setColumnVisibility}
@@ -55,7 +91,7 @@ export function ProductsClient() {
       <FilterBar filters={filters} onFiltersChange={setFilters} />
       <div className="flex-1 overflow-hidden">
         <ProductTable
-          data={filteredProducts}
+          data={searchedProducts}
           isLoading={isLoading}
           error={error}
           columnVisibility={columnVisibility}
