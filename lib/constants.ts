@@ -264,6 +264,9 @@ export const VIEW_PRESETS: Record<string, Array<keyof Omit<TourProduct, 'rowInde
   tourDetails: ['country', 'city', 'link', 'maxPax', 'guide', 'driver', 'driverGuide', 'componentsOfTour', 'attractionIncluded', 'attractionOptional', 'transportation', 'attractionsIncluded', 'attractionLink'],
 };
 
+// Columns that are always visible regardless of collapse/visibility settings
+export const ALWAYS_VISIBLE_COLUMNS = new Set<string>(['country', 'city']);
+
 // Status badge colours (Tailwind classes)
 export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   'In Progress': { bg: 'bg-amber-100', text: 'text-amber-800' },
