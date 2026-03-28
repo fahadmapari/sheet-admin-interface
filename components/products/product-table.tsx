@@ -14,8 +14,8 @@ import {
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import { useSWRConfig } from 'swr';
-import { cn } from '@/lib/utils';
-import { ALWAYS_VISIBLE_COLUMNS, COLUMN_GROUPS, FIELD_LABELS } from '@/lib/constants';
+import { cn, toBoolean, toNumber } from '@/lib/utils';
+import { ALWAYS_VISIBLE_COLUMNS, BOOLEAN_FIELDS, COLUMN_GROUPS, FIELD_LABELS, NUMBER_FIELDS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
 import { InlineEditCell } from './inline-edit-cell';
 
@@ -118,11 +118,19 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
     (rowIndex: number, field: string, value: string) => {
       mutate('/api/products', (current: TourProduct[] | undefined) => {
         if (!current) return current;
-        return current.map((p) =>
-          p.rowIndex === rowIndex
-            ? { ...p, [field]: value }
-            : p,
-        );
+        return current.map((p) => {
+          if (p.rowIndex !== rowIndex) return p;
+          const fieldKey = field as keyof TourProduct;
+          let typedValue: string | boolean | number | null = value;
+          if (BOOLEAN_FIELDS.has(fieldKey)) {
+            typedValue = toBoolean(value);
+          } else if (NUMBER_FIELDS.has(fieldKey)) {
+            typedValue = toNumber(value);
+          } else if (value === '') {
+            typedValue = null;
+          }
+          return { ...p, [field]: typedValue };
+        });
       }, { revalidate: false });
     },
     [mutate],

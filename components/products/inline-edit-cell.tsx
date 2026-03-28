@@ -88,6 +88,8 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
   const [saving, setSaving] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const isMountedRef = useRef(true);
+  const savingRef = useRef(false);
 
   // Keep inputValue in sync if product changes externally
   useEffect(() => {
@@ -103,15 +105,20 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     }
   }, [editing]);
 
-  // Clear debounce timer on unmount
+  // Track mounted state and clear debounce timer on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
 
   const save = useCallback(
     async (valueToSave: string) => {
+      if (!isMountedRef.current) return;
+      if (savingRef.current) return; // prevent concurrent saves
+      savingRef.current = true;
       setSaving(true);
       try {
         const res = await fetch(`/api/products/${product.rowIndex}`, {
@@ -119,19 +126,27 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ field, value: valueToSave }),
         });
+        if (!isMountedRef.current) return;
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data?.error ?? `HTTP ${res.status}`);
         }
-        onSaved(field, valueToSave);
-        toast.success('Saved');
+        if (isMountedRef.current) {
+          onSaved(field, valueToSave);
+          toast.success('Saved');
+          setEditing(false);
+        }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        toast.error(`Failed to save: ${msg}`);
-        // Revert
-        setInputValue(fieldValueToString(field, rawValue));
+        if (isMountedRef.current) {
+          const msg = err instanceof Error ? err.message : String(err);
+          toast.error(`Failed to save: ${msg}`);
+          // Revert
+          setInputValue(fieldValueToString(field, rawValue));
+          setEditing(false);
+        }
       } finally {
-        setSaving(false);
+        savingRef.current = false;
+        if (isMountedRef.current) setSaving(false);
       }
     },
     [field, product.rowIndex, rawValue, onSaved],
