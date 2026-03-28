@@ -1,5 +1,10 @@
-import { ProductsClient } from './products-client';
+import { Suspense } from 'react';
+import { ProductsPageClient } from '@/components/products/products-page-client';
 
 export default function ProductsPage() {
-  return <ProductsClient />;
+  return (
+    <Suspense fallback={null}>
+      <ProductsPageClient />
+    </Suspense>
+  );
 }

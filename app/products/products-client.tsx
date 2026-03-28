@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
 import type { VisibilityState, RowSelectionState } from '@tanstack/react-table';
 import { Plus, Search, X } from 'lucide-react';
@@ -17,14 +18,39 @@ import { toast } from 'sonner';
 import type { TourProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
-export function ProductsClient() {
+interface ProductsClientProps {
+  initialFilters?: Filters;
+  initialSearch?: string;
+}
+
+export function ProductsClient({ initialFilters, initialSearch }: ProductsClientProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [searchInput, setSearchInput] = useState('');
-  const [globalSearch, setGlobalSearch] = useState('');
+  const [filters, setFilters] = useState<Filters>(initialFilters ?? DEFAULT_FILTERS);
+  const [searchInput, setSearchInput] = useState(initialSearch ?? '');
+  const [globalSearch, setGlobalSearch] = useState(initialSearch ?? '');
   const [addOpen, setAddOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [deleteTarget, setDeleteTarget] = useState<TourProduct | null>(null);
+
+  const updateUrl = useCallback((newFilters: Filters, newSearch: string) => {
+    const params = new URLSearchParams();
+    if (newFilters.country) params.set('country', newFilters.country);
+    if (newFilters.city) params.set('city', newFilters.city);
+    newFilters.productTypes.forEach(t => params.append('type', t));
+    newFilters.statuses.forEach(s => params.append('status', s));
+    newFilters.pics.forEach(p => params.append('pic', p));
+    if (newFilters.readyForUpload !== 'all') params.set('ready', newFilters.readyForUpload);
+    if (newSearch) params.set('q', newSearch);
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [router, pathname]);
+
+  useEffect(() => {
+    updateUrl(filters, globalSearch);
+  }, [filters, globalSearch, updateUrl]);
 
   const { mutate } = useSWRConfig();
   const { data: products, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
