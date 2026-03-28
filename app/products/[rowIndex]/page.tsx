@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import 'server-only';
 import { fetchAllRows } from '@/lib/sheets';
 import { rowToProduct } from '@/lib/utils';

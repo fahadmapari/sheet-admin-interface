@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { fetchAllRows } from '@/lib/sheets';
 import { rowToProduct } from '@/lib/utils';
 import { DashboardClient } from '@/components/dashboard/dashboard-client';

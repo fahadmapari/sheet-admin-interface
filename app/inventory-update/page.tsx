@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { fetchInventoryUpdate } from '@/lib/sheets';
 
 export default async function InventoryUpdatePage() {
