@@ -103,6 +103,13 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     }
   }, [editing]);
 
+  // Clear debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   const save = useCallback(
     async (valueToSave: string) => {
       setSaving(true);
@@ -292,10 +299,11 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
           className="min-h-[60px] text-xs resize-none"
           value={inputValue}
           onChange={(e) => {
-            setInputValue(e.target.value);
+            const newValue = e.target.value;
+            setInputValue(newValue);
             if (debounceRef.current) clearTimeout(debounceRef.current);
             debounceRef.current = setTimeout(() => {
-              // Only debounce, don't save yet — save on blur/Enter
+              save(newValue);
             }, 300);
           }}
           onKeyDown={handleKeyDown}
@@ -330,10 +338,11 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
         className="h-7 text-xs px-1"
         value={inputValue}
         onChange={(e) => {
-          setInputValue(e.target.value);
+          const newValue = e.target.value;
+          setInputValue(newValue);
           if (debounceRef.current) clearTimeout(debounceRef.current);
           debounceRef.current = setTimeout(() => {
-            // debounce placeholder — save happens on blur/Enter
+            save(newValue);
           }, 300);
         }}
         onKeyDown={handleKeyDown}
