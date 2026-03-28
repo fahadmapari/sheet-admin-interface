@@ -205,12 +205,13 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
   return (
     <div ref={parentRef} style={{ height: '100%', overflow: 'auto' }}>
       <table className="border-collapse text-sm">
-        <thead className="sticky top-0 z-10">
+        <thead className="sticky top-0 z-20">
           {/* Group header row */}
-          <tr className="bg-muted/80 backdrop-blur">
+          <tr style={{ background: 'hsl(var(--muted))' }}>
             {/* rowNum spanning both header rows */}
             <th
-              className="border border-border px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/80"
+              className="border border-border px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-[30]"
+              style={{ background: 'hsl(var(--muted))' }}
               rowSpan={2}
             >
               #
@@ -241,7 +242,7 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
             })}
           </tr>
           {/* Column header row */}
-          <tr className="bg-muted/60 backdrop-blur">
+          <tr style={{ background: 'hsl(var(--muted))' }}>
             {visibleDataHeaders.map((col) => {
               // Get size from the column
               const size = col.getSize();
@@ -251,9 +252,15 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                   key={col.id}
                   className={cn(
                     'border border-border px-2 py-1.5 text-left text-xs font-medium whitespace-nowrap cursor-pointer select-none',
-                    'hover:bg-accent/50'
+                    'hover:bg-accent/50',
+                    col.id === 'country' && 'sticky left-[60px] z-[30]',
+                    col.id === 'city' && 'sticky left-[180px] z-[30] shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
                   )}
-                  style={{ width: size, minWidth: size }}
+                  style={{
+                    width: size,
+                    minWidth: size,
+                    ...(col.id === 'country' || col.id === 'city' ? { background: 'hsl(var(--muted))' } : {}),
+                  }}
                   onClick={col.getToggleSortingHandler()}
                 >
                   <span className="flex items-center gap-1">
@@ -303,9 +310,9 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                           key={cell.id}
                           className={cn(
                             'border border-border px-2 py-1 text-xs',
-                            cell.column.id === 'rowNum' && 'sticky left-0 bg-inherit font-mono text-muted-foreground',
-                            cell.column.id === 'country' && 'sticky left-[60px] bg-inherit font-medium',
-                            cell.column.id === 'city' && 'sticky left-[180px] bg-inherit'
+                            cell.column.id === 'rowNum' && 'sticky left-0 z-[10] bg-inherit font-mono text-muted-foreground',
+                            cell.column.id === 'country' && 'sticky left-[60px] z-[10] bg-inherit font-medium',
+                            cell.column.id === 'city' && 'sticky left-[180px] z-[10] bg-inherit shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
                           )}
                           style={{ width: cell.column.getSize(), minWidth: cell.column.getSize() }}
                         >
