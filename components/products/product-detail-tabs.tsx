@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -224,7 +224,6 @@ interface FieldRendererProps {
   control: ReturnType<typeof useForm<FormValues>>['control'];
   register: ReturnType<typeof useForm<FormValues>>['register'];
   errors: ReturnType<typeof useForm<FormValues>>['formState']['errors'];
-  watchedValues: Partial<FormValues>;
 }
 
 function FieldRenderer({
@@ -232,7 +231,6 @@ function FieldRenderer({
   control,
   register,
   errors,
-  watchedValues,
 }: FieldRendererProps) {
   const label = FIELD_LABELS[fieldName];
   const error = errors[fieldName as keyof FormValues];
@@ -240,37 +238,41 @@ function FieldRenderer({
   // Boolean → Switch
   if (BOOLEAN_FIELDS.has(fieldName)) {
     const isReadyForUpload = fieldName === 'readyForUpload';
-    const currentValue = watchedValues[fieldName as keyof FormValues] as boolean | undefined;
 
     return (
       <div className="flex items-center justify-between rounded-md border p-3">
-        <Label
-          htmlFor={fieldName}
-          className={
-            isReadyForUpload
-              ? `text-sm font-semibold ${currentValue ? 'text-green-600' : 'text-red-600'}`
-              : 'text-sm font-medium'
-          }
-        >
-          {label}
-        </Label>
         <Controller
           name={fieldName as keyof FormValues}
           control={control}
-          render={({ field }) => (
-            <Switch
-              id={fieldName}
-              checked={field.value as boolean}
-              onCheckedChange={field.onChange}
-              className={
-                isReadyForUpload
-                  ? currentValue
-                    ? 'data-[state=checked]:bg-green-500'
-                    : ''
-                  : ''
-              }
-            />
-          )}
+          render={({ field }) => {
+            const currentValue = field.value as boolean | undefined;
+            return (
+              <>
+                <Label
+                  htmlFor={fieldName}
+                  className={
+                    isReadyForUpload
+                      ? `text-sm font-semibold ${currentValue ? 'text-green-600' : 'text-red-600'}`
+                      : 'text-sm font-medium'
+                  }
+                >
+                  {label}
+                </Label>
+                <Switch
+                  id={fieldName}
+                  checked={field.value as boolean}
+                  onCheckedChange={field.onChange}
+                  className={
+                    isReadyForUpload
+                      ? currentValue
+                        ? 'data-[state=checked]:bg-green-500'
+                        : ''
+                      : ''
+                  }
+                />
+              </>
+            );
+          }}
         />
       </div>
     );
@@ -346,7 +348,8 @@ function FieldRenderer({
 
   // URL fields → Input type="url" + external link button
   if (URL_FIELDS.has(fieldName)) {
-    const currentUrl = watchedValues[fieldName as keyof FormValues] as string | null | undefined;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const currentUrl = useWatch({ control, name: fieldName as keyof FormValues }) as string | null | undefined;
     return (
       <div className="space-y-1.5">
         <Label htmlFor={fieldName} className="text-sm font-medium">
@@ -372,17 +375,6 @@ function FieldRenderer({
             </Button>
           )}
         </div>
-        {fieldName === 'productLink' && currentUrl && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(currentUrl, '_blank', 'noopener,noreferrer')}
-          >
-            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-            Open Product Link
-          </Button>
-        )}
         {error && <p className="text-xs text-destructive">{error.message as string}</p>}
       </div>
     );
@@ -476,21 +468,18 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
-  const defaultValues = buildDefaultValues(product);
+  const defaultValues = useMemo(() => buildDefaultValues(product), [product]);
 
   const {
     control,
     register,
     handleSubmit,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues,
   });
-
-  const watchedValues = watch();
 
   const onSubmit = async (data: FormValues) => {
     const res = await fetch(`/api/products/${product.rowIndex}`, {
@@ -594,7 +583,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
                       control={control}
                       register={register}
                       errors={errors}
-                      watchedValues={watchedValues}
                     />
                   ))}
                 </div>
