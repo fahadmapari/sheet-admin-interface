@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { fetchAllRows } from '@/lib/sheets';
-import { rowToProduct } from '@/lib/utils';
+import { NextRequest, NextResponse } from 'next/server';
+import { fetchAllRows, appendRow } from '@/lib/sheets';
+import { rowToProduct, productToRow } from '@/lib/utils';
 import type { TourProduct } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,18 @@ export async function GET() {
       .slice(1) // skip header
       .map((row, i) => rowToProduct(row, i + 2)); // i=0 → sheet row 2
     return NextResponse.json(products);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json() as Omit<TourProduct, 'rowIndex'>;
+    const rowValues = productToRow(body);
+    await appendRow(rowValues);
+    return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
