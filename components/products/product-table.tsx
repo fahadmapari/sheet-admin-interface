@@ -131,7 +131,6 @@ interface ProductTableProps {
 export function ProductTable({ data, isLoading, error, columnVisibility, onColumnVisibilityChange }: ProductTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const columns = useMemo(() => buildColumns(), []);
 
   const table = useReactTable({
@@ -156,11 +155,18 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
     overscan: 20,
   });
 
+  const isGroupCollapsed = (groupId: string): boolean => {
+    const group = COLUMN_GROUPS.find(g => g.id === groupId);
+    if (!group) return false;
+    return group.fields.some(
+      f => !ALWAYS_VISIBLE_COLUMNS.has(f) && columnVisibility[f] === false
+    );
+  };
+
   const toggleGroup = (groupId: string) => {
     const group = COLUMN_GROUPS.find((g) => g.id === groupId);
     if (!group) return;
-    const isCurrentlyCollapsed = !!collapsedGroups[groupId];
-    setCollapsedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+    const isCurrentlyCollapsed = isGroupCollapsed(groupId);
     onColumnVisibilityChange((prev: VisibilityState) => {
       const next = { ...prev };
       for (const field of group.fields) {
@@ -204,7 +210,7 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
 
   return (
     <div ref={parentRef} style={{ height: '100%', overflow: 'auto' }}>
-      <table className="border-collapse text-sm">
+      <table className="border-collapse text-sm table-fixed">
         <thead className="sticky top-0 z-20">
           {/* Group header row */}
           <tr style={{ background: 'hsl(var(--muted))' }}>
@@ -218,8 +224,9 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
             </th>
             {COLUMN_GROUPS.map((group) => {
               const visCount = groupVisibleCounts[group.id];
-              const isCollapsed = !!collapsedGroups[group.id];
-              const colSpan = Math.max(visCount, 1);
+              if (visCount === 0) return null;
+              const isCollapsed = isGroupCollapsed(group.id);
+              const colSpan = visCount;
 
               return (
                 <th
