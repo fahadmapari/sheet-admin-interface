@@ -11,17 +11,29 @@ import {
   type ColumnDef,
   type SortingState,
   type VisibilityState,
+  type RowSelectionState,
 } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useSWRConfig } from 'swr';
 import { cn, toBoolean, toNumber } from '@/lib/utils';
 import { ALWAYS_VISIBLE_COLUMNS, BOOLEAN_FIELDS, COLUMN_GROUPS, FIELD_LABELS, NUMBER_FIELDS } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
 import { InlineEditCell } from './inline-edit-cell';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 // Column width map
-const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
+const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum' | 'select' | 'actions', number>> = {
+  select: 40,
   rowNum: 60,
+  actions: 40,
   country: 120,
   city: 120,
   department: 100,
@@ -54,8 +66,30 @@ const COL_WIDTHS: Partial<Record<keyof TourProduct | 'rowNum', number>> = {
 
 function buildColumns(
   onCellSaved: (rowIndex: number, field: string, value: string) => void,
+  onDeleteRequest: (product: TourProduct) => void,
 ): ColumnDef<TourProduct>[] {
   const cols: ColumnDef<TourProduct>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      size: COL_WIDTHS.select,
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       id: 'rowNum',
       header: '#',
@@ -84,7 +118,55 @@ function buildColumns(
     }
   }
 
+  cols.push({
+    id: 'actions',
+    header: '',
+    cell: ({ row }) => <RowActionsMenu product={row.original} onDeleteRequest={onDeleteRequest} />,
+    size: COL_WIDTHS.actions,
+    enableSorting: false,
+    enableHiding: false,
+  });
+
   return cols;
+}
+
+function RowActionsMenu({
+  product,
+  onDeleteRequest,
+}: {
+  product: TourProduct;
+  onDeleteRequest: (product: TourProduct) => void;
+}) {
+  const router = useRouter();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 opacity-0 group-hover/row:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Row actions"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => router.push(`/products/${product.rowIndex}`)}>
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteRequest(product);
+          }}
+        >
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 function SkeletonTable() {
@@ -107,9 +189,21 @@ interface ProductTableProps {
   error: unknown;
   columnVisibility: VisibilityState;
   onColumnVisibilityChange: (updater: VisibilityState | ((prev: VisibilityState) => VisibilityState)) => void;
+  rowSelection: RowSelectionState;
+  onRowSelectionChange: (updater: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void;
+  onDeleteRequest: (product: TourProduct) => void;
 }
 
-export function ProductTable({ data, isLoading, error, columnVisibility, onColumnVisibilityChange }: ProductTableProps) {
+export function ProductTable({
+  data,
+  isLoading,
+  error,
+  columnVisibility,
+  onColumnVisibilityChange,
+  rowSelection,
+  onRowSelectionChange,
+  onDeleteRequest,
+}: ProductTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const { mutate } = useSWRConfig();
@@ -136,18 +230,22 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
     [mutate],
   );
 
-  const columns = useMemo(() => buildColumns(onCellSaved), [onCellSaved]);
+  const columns = useMemo(() => buildColumns(onCellSaved, onDeleteRequest), [onCellSaved, onDeleteRequest]);
 
   const table = useReactTable({
     data: data ?? [],
     columns,
-    state: { sorting, columnVisibility },
+    state: { sorting, columnVisibility, rowSelection },
     onSortingChange: setSorting,
     onColumnVisibilityChange: (updater) => {
       onColumnVisibilityChange(functionalUpdate(updater, columnVisibility));
     },
+    onRowSelectionChange: (updater) => {
+      onRowSelectionChange(functionalUpdate(updater, rowSelection));
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    enableRowSelection: true,
     enableMultiSort: false,
   });
 
@@ -208,10 +306,10 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
     );
   }
 
-  // All visible columns except rowNum (which is in a rowSpan=2 header)
+  // All visible columns except select, rowNum, and actions (handled separately in rowSpan headers)
   const visibleDataHeaders = table
     .getAllColumns()
-    .filter((col) => col.id !== 'rowNum' && col.getIsVisible());
+    .filter((col) => col.id !== 'rowNum' && col.id !== 'select' && col.id !== 'actions' && col.getIsVisible());
 
   return (
     <div ref={parentRef} style={{ height: '100%', overflow: 'auto' }}>
@@ -219,9 +317,21 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
         <thead className="sticky top-0 z-20">
           {/* Group header row */}
           <tr style={{ background: 'hsl(var(--muted))' }}>
+            {/* select checkbox spanning both header rows */}
+            <th
+              className="border border-border px-2 py-1.5 text-center sticky left-0 z-30"
+              style={{ background: 'hsl(var(--muted))', width: 40, minWidth: 40 }}
+              rowSpan={2}
+            >
+              <Checkbox
+                checked={table.getIsAllPageRowsSelected()}
+                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                aria-label="Select all"
+              />
+            </th>
             {/* rowNum spanning both header rows */}
             <th
-              className="border border-border px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-30"
+              className="border border-border px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-[40px] z-30"
               style={{ background: 'hsl(var(--muted))' }}
               rowSpan={2}
             >
@@ -252,11 +362,16 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                 </th>
               );
             })}
+            {/* actions column spanning both header rows */}
+            <th
+              className="border border-border px-1 py-1.5 sticky z-30"
+              style={{ background: 'hsl(var(--muted))', width: 40, minWidth: 40 }}
+              rowSpan={2}
+            />
           </tr>
           {/* Column header row */}
           <tr style={{ background: 'hsl(var(--muted))' }}>
             {visibleDataHeaders.map((col) => {
-              // Get size from the column
               const size = col.getSize();
               const header = table.getFlatHeaders().find((h) => h.id === col.id);
               return (
@@ -265,8 +380,8 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                   className={cn(
                     'border border-border px-2 py-1.5 text-left text-xs font-medium whitespace-nowrap cursor-pointer select-none',
                     'hover:bg-accent/50',
-                    col.id === 'country' && 'sticky left-[60px] z-30 bg-muted',
-                    col.id === 'city' && 'sticky left-[180px] z-30 bg-muted shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
+                    col.id === 'country' && 'sticky left-[100px] z-30 bg-muted',
+                    col.id === 'city' && 'sticky left-[220px] z-30 bg-muted shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
                   )}
                   style={{
                     width: size,
@@ -308,13 +423,17 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                 )}
                 {virtualItems.map((virtualRow) => {
                   const row = rows[virtualRow.index];
-                  const stickyBg = 'hsl(var(--background))';
+                  const stickyBg = row.getIsSelected()
+                    ? 'hsl(var(--accent))'
+                    : 'hsl(var(--background))';
                   return (
                     <tr
                       key={row.id}
                       className={cn(
-                        'hover:bg-accent/30 transition-colors',
-                        virtualRow.index % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                        'group/row hover:bg-accent/30 transition-colors',
+                        row.getIsSelected() && 'bg-accent/20',
+                        !row.getIsSelected() && virtualRow.index % 2 === 0 && 'bg-background',
+                        !row.getIsSelected() && virtualRow.index % 2 !== 0 && 'bg-muted/20'
                       )}
                     >
                       {row.getVisibleCells().map((cell) => (
@@ -322,14 +441,16 @@ export function ProductTable({ data, isLoading, error, columnVisibility, onColum
                           key={cell.id}
                           className={cn(
                             'border border-border px-2 py-1 text-xs',
-                            cell.column.id === 'rowNum' && 'sticky left-0 z-10 font-mono text-muted-foreground',
-                            cell.column.id === 'country' && 'sticky left-[60px] z-10 font-medium',
-                            cell.column.id === 'city' && 'sticky left-[180px] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.06)]'
+                            cell.column.id === 'select' && 'sticky left-0 z-10 text-center',
+                            cell.column.id === 'rowNum' && 'sticky left-[40px] z-10 font-mono text-muted-foreground',
+                            cell.column.id === 'country' && 'sticky left-[100px] z-10 font-medium',
+                            cell.column.id === 'city' && 'sticky left-[220px] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.06)]',
+                            cell.column.id === 'actions' && 'px-1'
                           )}
                           style={{
                             width: cell.column.getSize(),
                             minWidth: cell.column.getSize(),
-                            ...(cell.column.id === 'rowNum' || cell.column.id === 'country' || cell.column.id === 'city'
+                            ...(cell.column.id === 'select' || cell.column.id === 'rowNum' || cell.column.id === 'country' || cell.column.id === 'city'
                               ? { background: stickyBg }
                               : {}),
                           }}

@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import useSWR from 'swr';
-import type { VisibilityState } from '@tanstack/react-table';
+import useSWR, { useSWRConfig } from 'swr';
+import type { VisibilityState, RowSelectionState } from '@tanstack/react-table';
 import { Plus, Search, X } from 'lucide-react';
 import { ProductTable } from '@/components/products/product-table';
 import { ColumnVisibilityPanel } from '@/components/products/column-visibility';
 import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
 import { ProductForm } from '@/components/products/product-form';
+import { BulkActionsToolbar } from '@/components/products/bulk-actions-toolbar';
+import { DeleteConfirmDialog } from '@/components/products/delete-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import type { TourProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
@@ -19,7 +22,10 @@ export function ProductsClient() {
   const [searchInput, setSearchInput] = useState('');
   const [globalSearch, setGlobalSearch] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [deleteTarget, setDeleteTarget] = useState<TourProduct | null>(null);
 
+  const { mutate } = useSWRConfig();
   const { data: products, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
   });
@@ -52,8 +58,23 @@ export function ProductsClient() {
     );
   }, [filteredProducts, globalSearch]);
 
+  const selectedProducts = useMemo(() => {
+    return searchedProducts.filter((_, i) => rowSelection[i]);
+  }, [searchedProducts, rowSelection]);
+
   const totalCount = products?.length ?? 0;
   const filteredCount = searchedProducts.length;
+
+  const handleSingleDelete = async () => {
+    if (!deleteTarget) return;
+    const res = await fetch(`/api/products/${deleteTarget.rowIndex}`, { method: 'DELETE' });
+    if (res.ok) {
+      toast.success('Product deleted');
+      mutate('/api/products');
+    } else {
+      toast.error('Delete failed');
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -96,6 +117,11 @@ export function ProductsClient() {
         </div>
       </div>
       <FilterBar filters={filters} onFiltersChange={setFilters} />
+      <BulkActionsToolbar
+        selectedProducts={selectedProducts}
+        onClearSelection={() => setRowSelection({})}
+        onMutate={() => mutate('/api/products')}
+      />
       <div className="flex-1 overflow-hidden">
         <ProductTable
           data={searchedProducts}
@@ -103,9 +129,18 @@ export function ProductsClient() {
           error={error}
           columnVisibility={columnVisibility}
           onColumnVisibilityChange={setColumnVisibility}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          onDeleteRequest={(product) => setDeleteTarget(product)}
         />
       </div>
       <ProductForm open={addOpen} onClose={() => setAddOpen(false)} />
+      <DeleteConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        count={1}
+        onConfirm={handleSingleDelete}
+      />
     </div>
   );
 }
