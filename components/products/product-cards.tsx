@@ -1,15 +1,12 @@
 'use client';
 
-import { Clock, MapPin, Pencil, Globe } from 'lucide-react';
+import { Clock, MapPin, Pencil } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { getProductStatusClasses } from '@/lib/design-system';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getActiveOtaCount } from './product-detail-sheet';
-
-const OTA_TOTAL = 13;
 
 interface ProductCardsProps {
   data: TourProduct[];
@@ -23,8 +20,6 @@ function StatusBadge({ status }: { status: string | null }) {
 }
 
 function ProductCard({ product, onClick }: { product: TourProduct; onClick: () => void }) {
-  const otaCount = getActiveOtaCount(product);
-
   return (
     <Card
       className="group cursor-pointer transition-colors hover:border-[hsl(var(--border-strong))]"
@@ -61,28 +56,15 @@ function ProductCard({ product, onClick }: { product: TourProduct; onClick: () =
         <div className="flex items-center justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-2">
           <div>
             <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2B</div>
-            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2bPriceInstant || '—'}</div>
+            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2bPriceInstant || '-'}</div>
           </div>
           <div className="text-right">
             <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2C</div>
-            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2cPriceInstant || '—'}</div>
+            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2cPriceInstant || '-'}</div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {product.pic && (
-              <Badge variant="outline" className="text-xs">
-                {product.pic}
-              </Badge>
-            )}
-            {otaCount > 0 && (
-              <Badge variant="outline" className="gap-1 text-xs">
-                <Globe className="mr-1 h-3 w-3" />
-                {otaCount}/{OTA_TOTAL}
-              </Badge>
-            )}
-          </div>
+        <div className="flex items-center justify-end">
           <Button
             variant="ghost"
             size="icon"

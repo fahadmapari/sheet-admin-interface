@@ -12,11 +12,10 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Globe } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
-import { getActiveOtaCount } from './product-detail-sheet';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -27,10 +26,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
-const OTA_TOTAL = 13;
-
 function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
+  if (!status) return <span className="text-[hsl(var(--text-tertiary))]">-</span>;
   return <Badge className={cn('text-xs', getProductStatusClasses(status))}>{status}</Badge>;
 }
 
@@ -105,7 +102,7 @@ function buildColumns(
       header: 'B2B',
       cell: ({ row }) => (
         <span className="font-medium tabular-nums text-[hsl(var(--text-primary))]">
-          {row.original.b2bPriceInstant || '—'}
+          {row.original.b2bPriceInstant || '-'}
         </span>
       ),
     },
@@ -115,37 +112,9 @@ function buildColumns(
       header: 'B2C',
       cell: ({ row }) => (
         <span className="font-medium tabular-nums text-[hsl(var(--text-primary))]">
-          {row.original.b2cPriceInstant || '—'}
+          {row.original.b2cPriceInstant || '-'}
         </span>
       ),
-    },
-    {
-      id: 'pic',
-      accessorKey: 'pic',
-      header: 'PIC',
-      cell: ({ row }) =>
-        row.original.pic ? (
-          <Badge variant="outline" className="text-xs">
-            {row.original.pic}
-          </Badge>
-        ) : (
-          <span className="text-[hsl(var(--text-tertiary))]">—</span>
-        ),
-    },
-    {
-      id: 'otas',
-      header: 'OTAs',
-      accessorFn: (row) => getActiveOtaCount(row),
-      cell: ({ row }) => {
-        const count = getActiveOtaCount(row.original);
-        if (count === 0) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
-        return (
-          <Badge variant="outline" className="gap-1 text-xs">
-            <Globe className="h-3 w-3 mr-1" />
-            {count}/{OTA_TOTAL}
-          </Badge>
-        );
-      },
     },
     {
       id: 'status',
