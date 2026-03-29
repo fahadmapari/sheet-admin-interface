@@ -2,10 +2,11 @@
 
 import { Clock, MapPin, Pencil, Globe } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
-import { STATUS_COLORS } from '@/lib/constants';
+import { getProductStatusClasses } from '@/lib/design-system';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { getActiveOtaCount } from './product-detail-sheet';
 
 const OTA_TOTAL = 13;
@@ -18,9 +19,7 @@ interface ProductCardsProps {
 
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return null;
-  const colors = STATUS_COLORS[status];
-  if (!colors) return <Badge variant="outline" className="text-xs">{status}</Badge>;
-  return <Badge className={`${colors.bg} ${colors.text} border-0 text-xs`}>{status}</Badge>;
+  return <Badge className={cn('text-xs', getProductStatusClasses(status))}>{status}</Badge>;
 }
 
 function ProductCard({ product, onClick }: { product: TourProduct; onClick: () => void }) {
@@ -28,23 +27,23 @@ function ProductCard({ product, onClick }: { product: TourProduct; onClick: () =
 
   return (
     <Card
-      className="cursor-pointer transition-shadow hover:shadow-md group"
+      className="group cursor-pointer transition-colors hover:border-[hsl(var(--border-strong))]"
       onClick={onClick}
     >
       <CardHeader className="pb-3 space-y-2">
         <div className="flex items-start justify-between gap-2">
           {product.productType && (
-            <Badge variant="secondary" className="text-xs flex-shrink-0">
+            <Badge variant="default" className="shrink-0 text-xs">
               {product.productType}
             </Badge>
           )}
           <StatusBadge status={product.productStatus} />
         </div>
         <div>
-          <h3 className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 className="line-clamp-2 text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
             {product.productName || product.link || `${product.city}, ${product.country}`}
           </h3>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+          <div className="mt-1.5 flex items-center gap-3 text-xs text-[hsl(var(--text-secondary))]">
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               {product.city}, {product.country}
@@ -59,29 +58,27 @@ function ProductCard({ product, onClick }: { product: TourProduct; onClick: () =
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
-        {/* Pricing */}
-        <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+        <div className="flex items-center justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-2">
           <div>
-            <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">B2B</div>
-            <div className="text-sm font-bold">{product.b2bPriceInstant || '—'}</div>
+            <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2B</div>
+            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2bPriceInstant || '—'}</div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">B2C</div>
-            <div className="text-sm font-bold text-emerald-700">{product.b2cPriceInstant || '—'}</div>
+            <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2C</div>
+            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2cPriceInstant || '—'}</div>
           </div>
         </div>
 
-        {/* Footer row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {product.pic && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+              <Badge variant="outline" className="text-xs">
                 {product.pic}
               </Badge>
             )}
             {otaCount > 0 && (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
-                <Globe className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="gap-1 text-xs">
+                <Globe className="mr-1 h-3 w-3" />
                 {otaCount}/{OTA_TOTAL}
               </Badge>
             )}
@@ -108,19 +105,19 @@ function CardSkeleton() {
     <Card className="animate-pulse">
       <CardHeader className="pb-3 space-y-2">
         <div className="flex gap-2">
-          <div className="h-5 w-16 bg-muted rounded" />
-          <div className="h-5 w-20 bg-muted rounded ml-auto" />
+          <div className="h-5 w-16 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="ml-auto h-5 w-20 rounded bg-[hsl(var(--surface-raised))]" />
         </div>
         <div className="space-y-1.5">
-          <div className="h-4 w-full bg-muted rounded" />
-          <div className="h-3 w-2/3 bg-muted rounded" />
+          <div className="h-4 w-full rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-3 w-2/3 rounded bg-[hsl(var(--surface-raised))]" />
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
-        <div className="h-12 bg-muted/40 rounded-lg" />
+        <div className="h-12 rounded-lg bg-[hsl(var(--surface-raised))]" />
         <div className="flex gap-2">
-          <div className="h-5 w-10 bg-muted rounded" />
-          <div className="h-5 w-14 bg-muted rounded" />
+          <div className="h-5 w-10 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-5 w-14 rounded bg-[hsl(var(--surface-raised))]" />
         </div>
       </CardContent>
     </Card>
@@ -140,7 +137,7 @@ export function ProductCards({ data, isLoading, onCardClick }: ProductCardsProps
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
+      <div className="flex items-center justify-center py-16 text-sm text-[hsl(var(--text-secondary))]">
         No products match your filters.
       </div>
     );

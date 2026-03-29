@@ -8,10 +8,12 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   }, [error]);
 
   return (
-    <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4">
-      <h2 className="text-lg font-semibold">Something went wrong</h2>
-      <p className="text-sm text-muted-foreground">{error.message}</p>
-      <Button onClick={reset} variant="outline">Try again</Button>
+    <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-6 text-center">
+      <h2 className="text-xl font-semibold tracking-tight">Something went wrong</h2>
+      <p className="text-sm text-[hsl(var(--text-secondary))]">{error.message}</p>
+      <Button onClick={reset} variant="secondary">
+        Try again
+      </Button>
     </div>
   );
 }

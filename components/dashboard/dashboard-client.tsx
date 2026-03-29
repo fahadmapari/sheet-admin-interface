@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleGauge,
+  Clock3,
+  Package,
+  Upload,
+  Waypoints,
+} from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { KpiCard } from './kpi-card';
 import {
@@ -29,30 +38,62 @@ export function DashboardClient({ products }: DashboardClientProps) {
   const onHold = products.filter((p) => p.productStatus === 'On hold').length;
 
   return (
-    <div className="p-6 space-y-8 max-w-screen-2xl mx-auto">
-      {/* Page heading */}
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="mt-1 text-sm text-[hsl(var(--text-secondary))]">
           {total.toLocaleString()} products in total
         </p>
       </div>
 
-      {/* KPI Cards */}
       <section>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-          <KpiCard title="Total Products" value={total} color="default" />
-          <KpiCard title="Ready for Upload" value={readyForUpload} total={total} color="green" />
-          <KpiCard title="Uploaded" value={uploaded} total={total} color="green" />
-          <KpiCard title="In Progress" value={inProgress} total={total} color="amber" />
-          <KpiCard title="High Priority" value={highPriority} total={total} color="red" />
-          <KpiCard title="Completed" value={completed} total={total} color="green" />
-          <KpiCard title="On Hold" value={onHold} total={total} color="gray" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+          <KpiCard title="Total Products" value={total} icon={<Package className="h-4 w-4" />} />
+          <KpiCard
+            title="Ready for Upload"
+            value={readyForUpload}
+            total={total}
+            tone="success"
+            icon={<Upload className="h-4 w-4" />}
+          />
+          <KpiCard
+            title="Uploaded"
+            value={uploaded}
+            total={total}
+            tone="info"
+            icon={<Waypoints className="h-4 w-4" />}
+          />
+          <KpiCard
+            title="In Progress"
+            value={inProgress}
+            total={total}
+            tone="warning"
+            icon={<Clock3 className="h-4 w-4" />}
+          />
+          <KpiCard
+            title="High Priority"
+            value={highPriority}
+            total={total}
+            tone="error"
+            icon={<AlertTriangle className="h-4 w-4" />}
+          />
+          <KpiCard
+            title="Completed"
+            value={completed}
+            total={total}
+            tone="success"
+            icon={<CheckCircle2 className="h-4 w-4" />}
+          />
+          <KpiCard
+            title="On Hold"
+            value={onHold}
+            total={total}
+            icon={<CircleGauge className="h-4 w-4" />}
+          />
         </div>
       </section>
 
-      {/* Charts */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <ProductsByCountry products={products} />
         <ProductsByType products={products} />
         <ProductsByStatus products={products} />

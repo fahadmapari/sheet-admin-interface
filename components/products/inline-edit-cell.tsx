@@ -1,5 +1,6 @@
 'use client';
 
+import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
@@ -16,8 +17,8 @@ import {
   BOOLEAN_FIELDS,
   PRODUCT_STATUSES,
   PIC_VALUES,
-  STATUS_COLORS,
 } from '@/lib/constants';
+import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -37,23 +38,20 @@ const LONG_TEXT_FIELDS = new Set<keyof TourProduct>([
 function getDisplayValue(
   field: keyof Omit<TourProduct, 'rowIndex'>,
   value: TourProduct[keyof TourProduct],
-): React.ReactNode {
+): ReactNode {
   if (BOOLEAN_FIELDS.has(field as keyof TourProduct)) {
     const boolVal = Boolean(value);
-    return <span className={boolVal ? 'text-green-500' : 'text-gray-300'}>●</span>;
+    return <span className={boolVal ? 'text-[hsl(var(--text-primary))]' : 'text-[hsl(var(--text-tertiary))]'}>●</span>;
   }
 
   if (field === 'productStatus') {
     const strVal = value as string | null;
-    if (!strVal) return <span className="text-muted-foreground text-xs">—</span>;
-    const colors = STATUS_COLORS[strVal];
-    if (!colors) return <span className="text-xs">{strVal}</span>;
+    if (!strVal) return <span className="text-xs text-[hsl(var(--text-tertiary))]">—</span>;
     return (
       <span
         className={cn(
-          'inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium',
-          colors.bg,
-          colors.text,
+          'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
+          getProductStatusClasses(strVal),
         )}
       >
         {strVal}
@@ -62,7 +60,7 @@ function getDisplayValue(
   }
 
   if (value === null || value === undefined || value === '') {
-    return <span className="text-muted-foreground text-xs">—</span>;
+    return <span className="text-xs text-[hsl(var(--text-tertiary))]">—</span>;
   }
 
   return (
@@ -164,7 +162,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     [field, rawValue, save],
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       commitAndExit(inputValue);
@@ -206,7 +204,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     if (!editing) {
       return (
         <button
-          className="w-full text-left cursor-pointer rounded hover:bg-accent/50 transition-colors p-0.5"
+          className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
           onClick={() => setEditing(true)}
         >
           {getDisplayValue(field, rawValue)}
@@ -253,7 +251,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     if (!editing) {
       return (
         <button
-          className="w-full text-left cursor-pointer rounded hover:bg-accent/50 transition-colors p-0.5"
+          className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
           onClick={() => setEditing(true)}
         >
           {getDisplayValue(field, rawValue)}
@@ -300,7 +298,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     if (!editing) {
       return (
         <button
-          className="w-full text-left cursor-pointer rounded hover:bg-accent/50 transition-colors p-0.5"
+          className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
           onClick={() => setEditing(true)}
         >
           {getDisplayValue(field, rawValue)}
@@ -310,7 +308,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     return (
       <div className="relative">
         <Textarea
-          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+          ref={inputRef as RefObject<HTMLTextAreaElement>}
           className="min-h-[60px] text-xs resize-none"
           value={inputValue}
           onChange={(e) => {
@@ -337,7 +335,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
   if (!editing) {
     return (
       <button
-        className="w-full text-left cursor-pointer rounded hover:bg-accent/50 transition-colors p-0.5"
+        className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
         onClick={() => setEditing(true)}
       >
         {getDisplayValue(field, rawValue)}
@@ -348,7 +346,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
   return (
     <div className="relative">
       <Input
-        ref={inputRef as React.RefObject<HTMLInputElement>}
+        ref={inputRef as RefObject<HTMLInputElement>}
         type="text"
         className="h-7 text-xs px-1"
         value={inputValue}

@@ -400,11 +400,11 @@ export const ALWAYS_VISIBLE_COLUMNS = new Set<string>(["country", "city"]);
 
 // Status badge colours (Tailwind classes)
 export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  "In Progress": { bg: "bg-amber-100", text: "text-amber-800" },
-  Completed: { bg: "bg-green-100", text: "text-green-800" },
-  "In Progress - High priority": { bg: "bg-red-100", text: "text-red-800" },
-  "On hold": { bg: "bg-gray-100", text: "text-gray-600" },
-  Ignored: { bg: "bg-gray-50", text: "text-gray-400" },
+  "In Progress": { bg: "bg-amber-50 dark:bg-amber-500/15", text: "text-amber-700 dark:text-amber-300" },
+  Completed: { bg: "bg-emerald-50 dark:bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-300" },
+  "In Progress - High priority": { bg: "bg-red-50 dark:bg-red-500/15", text: "text-red-700 dark:text-red-300" },
+  "On hold": { bg: "bg-[hsl(var(--surface))]", text: "text-[hsl(var(--text-secondary))]" },
+  Ignored: { bg: "bg-[hsl(var(--background))]", text: "text-[hsl(var(--text-tertiary))]" },
 };
 
 // Human-readable display names for each field

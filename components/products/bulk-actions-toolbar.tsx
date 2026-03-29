@@ -64,46 +64,42 @@ export function BulkActionsToolbar({
 
   return (
     <>
-      <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 border-b border-border animate-in slide-in-from-top-1 duration-150">
-        <span className="text-sm font-medium text-primary shrink-0">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-2 animate-in slide-in-from-top-1 duration-150">
+        <span className="shrink-0 text-sm font-medium text-[hsl(var(--text-primary))]">
           {selectedProducts.length} row{selectedProducts.length !== 1 ? 's' : ''} selected
         </span>
 
-        <div className="h-4 w-px bg-border mx-1" />
+        <div className="mx-1 h-4 w-px bg-[hsl(var(--border))]" />
 
-        {/* Set PIC */}
         <Select onValueChange={(value) => applyBulkField('pic', value)}>
-          <SelectTrigger className="h-7 w-32 text-xs">
+          <SelectTrigger className="w-32">
             <SelectValue placeholder="Set PIC…" />
           </SelectTrigger>
           <SelectContent>
             {PIC_VALUES.map((pic) => (
-              <SelectItem key={pic} value={pic} className="text-xs">
+              <SelectItem key={pic} value={pic}>
                 {pic}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Set Status */}
         <Select onValueChange={(value) => applyBulkField('productStatus', value)}>
-          <SelectTrigger className="h-7 w-44 text-xs">
+          <SelectTrigger className="w-44">
             <SelectValue placeholder="Set Status…" />
           </SelectTrigger>
           <SelectContent>
             {PRODUCT_STATUSES.map((status) => (
-              <SelectItem key={status} value={status} className="text-xs">
+              <SelectItem key={status} value={status}>
                 {status}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Ready for Upload */}
         <Button
           variant="outline"
           size="sm"
-          className="h-7 text-xs"
           onClick={() => applyBulkField('readyForUpload', 'TRUE')}
         >
           Mark Ready
@@ -111,19 +107,16 @@ export function BulkActionsToolbar({
         <Button
           variant="outline"
           size="sm"
-          className="h-7 text-xs"
           onClick={() => applyBulkField('readyForUpload', 'FALSE')}
         >
           Unmark Ready
         </Button>
 
-        <div className="h-4 w-px bg-border mx-1" />
+        <div className="mx-1 h-4 w-px bg-[hsl(var(--border))]" />
 
-        {/* Delete */}
         <Button
           variant="destructive"
           size="sm"
-          className="h-7 text-xs"
           onClick={() => setDeleteDialogOpen(true)}
         >
           Delete
@@ -133,7 +126,6 @@ export function BulkActionsToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
             onClick={onClearSelection}
             aria-label="Clear selection"
           >

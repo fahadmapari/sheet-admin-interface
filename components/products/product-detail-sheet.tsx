@@ -3,18 +3,17 @@
 import Link from 'next/link';
 import { ExternalLink, Pencil, X, Check, Clock, MapPin, Users, Globe } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
-import { BOOLEAN_FIELDS, FIELD_LABELS, STATUS_COLORS } from '@/lib/constants';
+import { BOOLEAN_FIELDS } from '@/lib/constants';
+import { getProductStatusClasses } from '@/lib/design-system';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 
 // OTA channel fields and their display names
 const OTA_CHANNELS: { field: keyof TourProduct; label: string }[] = [
@@ -157,10 +156,8 @@ function isUrl(value: string): boolean {
 }
 
 function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-muted-foreground">—</span>;
-  const colors = STATUS_COLORS[status];
-  if (!colors) return <Badge variant="outline">{status}</Badge>;
-  return <Badge className={`${colors.bg} ${colors.text} border-0`}>{status}</Badge>;
+  if (!status) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
+  return <Badge className={getProductStatusClasses(status)}>{status}</Badge>;
 }
 
 function FieldValue({ product, field }: { product: TourProduct; field: keyof TourProduct }) {
@@ -173,10 +170,10 @@ function FieldValue({ product, field }: { product: TourProduct; field: keyof Tou
 
   if (BOOLEAN_FIELDS.has(field)) {
     return (
-      <span className={`inline-flex items-center gap-1.5 text-sm ${value ? 'text-green-700' : 'text-muted-foreground'}`}>
+      <Badge variant={value ? 'success' : 'outline'} className="gap-1.5">
         {value ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
         {value ? 'Yes' : 'No'}
-      </span>
+      </Badge>
     );
   }
 
@@ -186,7 +183,7 @@ function FieldValue({ product, field }: { product: TourProduct; field: keyof Tou
         href={display}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1 break-all"
+        className="inline-flex items-center gap-1 break-all text-sm text-[hsl(var(--accent))] hover:underline"
       >
         {display.length > 50 ? display.slice(0, 50) + '...' : display}
         <ExternalLink className="h-3 w-3 flex-shrink-0" />
@@ -194,7 +191,7 @@ function FieldValue({ product, field }: { product: TourProduct; field: keyof Tou
     );
   }
 
-  return <span className="text-sm text-foreground">{display}</span>;
+  return <span className="text-sm text-[hsl(var(--text-primary))]">{display}</span>;
 }
 
 export function getActiveOtaCount(product: TourProduct): number {
@@ -223,14 +220,13 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-2xl w-full p-0 flex flex-col" side="right">
-        {/* Header */}
-        <div className="px-6 py-5 border-b space-y-3">
+        <div className="space-y-3 border-b border-[hsl(var(--border))] px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <SheetTitle className="text-lg font-semibold leading-tight">
+              <SheetTitle className="text-xl font-semibold tracking-tight">
                 {product.productName || product.link || `${product.city}, ${product.country}`}
               </SheetTitle>
-              <SheetDescription className="mt-1 flex items-center gap-3 text-sm">
+              <SheetDescription className="mt-1 flex flex-wrap items-center gap-3 text-sm">
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
                   {product.city}, {product.country}
@@ -250,18 +246,18 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
               </SheetDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={product.productStatus} />
             {product.productType && (
-              <Badge variant="secondary">{product.productType}</Badge>
+              <Badge variant="default">{product.productType}</Badge>
             )}
             {product.pic && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              <Badge variant="outline">
                 {product.pic}
               </Badge>
             )}
             {activeOtas.length > 0 && (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+              <Badge variant="outline" className="gap-1">
                 <Globe className="h-3 w-3 mr-1" />
                 {activeOtas.length}/{OTA_CHANNELS.length} OTAs
               </Badge>
@@ -269,44 +265,36 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
           </div>
         </div>
 
-        {/* Scrollable body */}
         <ScrollArea className="flex-1">
-          <div className="px-6 py-4 space-y-6">
-            {/* Quick pricing summary */}
+          <div className="space-y-6 px-6 py-4">
             {(product.b2bPriceInstant || product.b2cPriceInstant) && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">B2B Instant</div>
-                  <div className="text-xl font-bold mt-1">
+                <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3">
+                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2B Instant</div>
+                  <div className="mt-1 text-xl font-semibold tracking-tight">
                     {product.b2bPriceInstant || '—'}
                   </div>
                 </div>
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">B2C Instant</div>
-                  <div className="text-xl font-bold mt-1 text-emerald-700">
+                <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3">
+                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2C Instant</div>
+                  <div className="mt-1 text-xl font-semibold tracking-tight">
                     {product.b2cPriceInstant || '—'}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Detail sections */}
             {DETAIL_SECTIONS.map((section) => {
-              const hasAnyValue = section.fields.some((f) => {
-                const val = product[f.key];
-                return val !== null && val !== undefined && val !== '' && val !== false;
-              });
-
               return (
                 <div key={section.id}>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
                     {section.label}
                   </h3>
-                  <div className="rounded-lg border">
+                  <div className="rounded-lg border border-[hsl(var(--border))]">
                     <div className="divide-y">
                       {section.fields.map((f) => (
-                        <div key={f.key} className="flex items-start justify-between px-4 py-2.5 gap-4">
-                          <span className="text-sm text-muted-foreground flex-shrink-0">{f.label}</span>
+                        <div key={f.key} className="flex items-start justify-between gap-4 px-4 py-2.5">
+                          <span className="flex-shrink-0 text-sm text-[hsl(var(--text-secondary))]">{f.label}</span>
                           <div className="text-right">
                             <FieldValue product={product} field={f.key} />
                           </div>
@@ -318,12 +306,11 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
               );
             })}
 
-            {/* OTA Distribution section */}
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
                 OTA Distribution ({activeOtas.length}/{OTA_CHANNELS.length})
               </h3>
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border border-[hsl(var(--border))] p-4">
                 <div className="flex flex-wrap gap-2">
                   {OTA_CHANNELS.map((ch) => {
                     const val = product[ch.field];
@@ -334,8 +321,8 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
                         variant="outline"
                         className={
                           active
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-muted/30 text-muted-foreground border-muted'
+                            ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/15 dark:text-blue-300'
+                            : 'border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--text-secondary))]'
                         }
                       >
                         {active ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
@@ -349,8 +336,7 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
           </div>
         </ScrollArea>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] px-6 py-4">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Close
           </Button>

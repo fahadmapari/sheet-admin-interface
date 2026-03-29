@@ -185,7 +185,7 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
                 control={control}
                 render={({ field }) => (
                   <Select
-                    value={field.value ?? ''}
+                    value={field.value ?? '__none__'}
                     onValueChange={(val) => field.onChange(val === '__none__' ? undefined : val)}
                   >
                     <SelectTrigger id="productStatus">
@@ -212,7 +212,7 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
                 control={control}
                 render={({ field }) => (
                   <Select
-                    value={field.value ?? ''}
+                    value={field.value ?? '__none__'}
                     onValueChange={(val) => field.onChange(val === '__none__' ? undefined : val)}
                   >
                     <SelectTrigger id="pic">

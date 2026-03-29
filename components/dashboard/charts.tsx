@@ -11,24 +11,30 @@ import {
   Pie,
   Cell,
   Legend,
+  CartesianGrid,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { TourProduct } from '@/lib/types';
 
-// Status hex colors (recharts SVG can't use Tailwind classes)
-const STATUS_HEX: Record<string, { fill: string; stroke: string }> = {
-  'In Progress': { fill: '#fef3c7', stroke: '#d97706' },
-  Completed: { fill: '#dcfce7', stroke: '#16a34a' },
-  'In Progress - High priority': { fill: '#fee2e2', stroke: '#dc2626' },
-  'On hold': { fill: '#f3f4f6', stroke: '#6b7280' },
-  Ignored: { fill: '#f9fafb', stroke: '#e5e7eb' },
-};
-
-const PIE_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316',
-  '#eab308', '#22c55e', '#14b8a6', '#0ea5e9', '#3b82f6',
-  '#a855f7',
+const CHART_COLORS = [
+  'hsl(var(--text-primary))',
+  'hsl(var(--accent))',
+  'hsl(var(--text-secondary))',
+  'hsl(var(--text-tertiary))',
+  'hsl(var(--border-strong))',
+  'hsl(var(--surface-raised))',
 ];
+
+const AXIS_TICK = { fontSize: 11, fill: 'hsl(var(--text-tertiary))' };
+const GRID_STROKE = 'hsl(var(--border))';
+const TOOLTIP_STYLE = {
+  backgroundColor: 'hsl(var(--background))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '8px',
+  fontSize: 12,
+  color: 'hsl(var(--text-primary))',
+};
+const CURSOR_STYLE = { fill: 'hsl(var(--surface))' };
 
 // ─── Chart 1: Products by Country ───────────────────────────────────────────
 interface CountItem { country: string; count: number }
@@ -46,23 +52,24 @@ export function ProductsByCountry({ products }: { products: TourProduct[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Products by Country</CardTitle>
+        <CardTitle>Products by Country</CardTitle>
+        <CardDescription>Top destinations by product count</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={340}>
           <BarChart data={data} layout="vertical" margin={{ left: 80, right: 20, top: 4, bottom: 4 }}>
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
+            <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis
               type="category"
               dataKey="country"
               width={75}
-              tick={{ fontSize: 11, fill: '#6b7280' }}
+              tick={AXIS_TICK}
+              axisLine={false}
+              tickLine={false}
             />
-            <Tooltip
-              contentStyle={{ fontSize: 12 }}
-              cursor={{ fill: '#f3f4f6' }}
-            />
-            <Bar dataKey="count" fill="#6366f1" radius={[0, 3, 3, 0]} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={CURSOR_STYLE} />
+            <Bar dataKey="count" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
@@ -88,7 +95,8 @@ export function ProductsByType({ products }: { products: TourProduct[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Products by Type</CardTitle>
+        <CardTitle>Products by Type</CardTitle>
+        <CardDescription>Distribution across the most common product types</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={320}>
@@ -103,12 +111,12 @@ export function ProductsByType({ products }: { products: TourProduct[] }) {
               nameKey="name"
             >
               {data.map((_, idx) => (
-                <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip contentStyle={{ fontSize: 12 }} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} />
             <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+              wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'hsl(var(--text-secondary))' }}
               iconSize={10}
             />
           </PieChart>
@@ -132,24 +140,27 @@ export function ProductsByStatus({ products }: { products: TourProduct[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Products by Status</CardTitle>
+        <CardTitle>Products by Status</CardTitle>
+        <CardDescription>Current workflow distribution</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data} layout="vertical" margin={{ left: 140, right: 20, top: 4, bottom: 4 }}>
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
+            <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis
               type="category"
               dataKey="status"
               width={135}
-              tick={{ fontSize: 11, fill: '#6b7280' }}
+              tick={AXIS_TICK}
+              axisLine={false}
+              tickLine={false}
             />
-            <Tooltip contentStyle={{ fontSize: 12 }} cursor={{ fill: '#f3f4f6' }} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={CURSOR_STYLE} />
             <Bar dataKey="count" radius={[0, 3, 3, 0]}>
-              {data.map((entry, idx) => {
-                const colors = STATUS_HEX[entry.status] ?? { fill: '#e5e7eb', stroke: '#9ca3af' };
-                return <Cell key={idx} fill={colors.fill} stroke={colors.stroke} strokeWidth={1} />;
-              })}
+              {data.map((_, idx) => (
+                <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+              ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -171,33 +182,34 @@ export function UploadProgress({ products }: { products: TourProduct[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Upload Progress</CardTitle>
+        <CardTitle>Upload Progress</CardTitle>
+        <CardDescription>Readiness and completion across the catalog</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-muted-foreground">Ready for Upload</span>
-            <span className="font-medium">
+          <div className="mb-1 flex justify-between text-sm">
+            <span className="text-[hsl(var(--text-secondary))]">Ready for Upload</span>
+            <span className="font-medium text-[hsl(var(--text-primary))]">
               {readyCount.toLocaleString()} / {total.toLocaleString()} ({readyPct}%)
             </span>
           </div>
-          <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[hsl(var(--surface-raised))]">
             <div
-              className="h-full rounded-full bg-green-500 transition-all"
+              className="h-full rounded-full bg-[hsl(var(--text-primary))] transition-all"
               style={{ width: `${readyPct}%` }}
             />
           </div>
         </div>
         <div>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="text-muted-foreground">Uploaded (of ready)</span>
-            <span className="font-medium">
+          <div className="mb-1 flex justify-between text-sm">
+            <span className="text-[hsl(var(--text-secondary))]">Uploaded (of ready)</span>
+            <span className="font-medium text-[hsl(var(--text-primary))]">
               {uploadedCount.toLocaleString()} / {readyCount.toLocaleString()} ({uploadedPct}%)
             </span>
           </div>
-          <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[hsl(var(--surface-raised))]">
             <div
-              className="h-full rounded-full bg-blue-500 transition-all"
+              className="h-full rounded-full bg-[hsl(var(--accent))] transition-all"
               style={{ width: `${uploadedPct}%` }}
             />
           </div>
@@ -221,20 +233,24 @@ export function PicWorkload({ products }: { products: TourProduct[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">PIC Workload</CardTitle>
+        <CardTitle>PIC Workload</CardTitle>
+        <CardDescription>Assigned products by PIC</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data} layout="vertical" margin={{ left: 70, right: 20, top: 4, bottom: 4 }}>
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
+            <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis
               type="category"
               dataKey="pic"
               width={65}
-              tick={{ fontSize: 11, fill: '#6b7280' }}
+              tick={AXIS_TICK}
+              axisLine={false}
+              tickLine={false}
             />
-            <Tooltip contentStyle={{ fontSize: 12 }} cursor={{ fill: '#f3f4f6' }} />
-            <Bar dataKey="count" fill="#8b5cf6" radius={[0, 3, 3, 0]} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={CURSOR_STYLE} />
+            <Bar dataKey="count" fill="hsl(var(--text-primary))" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
@@ -274,20 +290,24 @@ export function OtaCoverage({ products }: { products: TourProduct[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">OTA Coverage</CardTitle>
+        <CardTitle>OTA Coverage</CardTitle>
+        <CardDescription>Active channel coverage across OTAs</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={320}>
           <BarChart data={data} layout="vertical" margin={{ left: 110, right: 20, top: 4, bottom: 4 }}>
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
+            <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis
               type="category"
               dataKey="channel"
               width={105}
-              tick={{ fontSize: 11, fill: '#6b7280' }}
+              tick={AXIS_TICK}
+              axisLine={false}
+              tickLine={false}
             />
-            <Tooltip contentStyle={{ fontSize: 12 }} cursor={{ fill: '#f3f4f6' }} />
-            <Bar dataKey="count" fill="#14b8a6" radius={[0, 3, 3, 0]} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} cursor={CURSOR_STYLE} />
+            <Bar dataKey="count" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

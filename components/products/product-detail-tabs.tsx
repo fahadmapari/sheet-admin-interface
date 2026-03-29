@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,8 +15,8 @@ import {
   FIELD_LABELS,
   PIC_VALUES,
   PRODUCT_STATUSES,
-  STATUS_COLORS,
 } from '@/lib/constants';
+import { getProductStatusClasses } from '@/lib/design-system';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -240,21 +240,16 @@ function FieldRenderer({
     const isReadyForUpload = fieldName === 'readyForUpload';
 
     return (
-      <div className="flex items-center justify-between rounded-md border p-3">
+      <div className="flex items-center justify-between rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-3">
         <Controller
           name={fieldName as keyof FormValues}
           control={control}
           render={({ field }) => {
-            const currentValue = field.value as boolean | undefined;
             return (
               <>
                 <Label
                   htmlFor={fieldName}
-                  className={
-                    isReadyForUpload
-                      ? `text-sm font-semibold ${currentValue ? 'text-green-600' : 'text-red-600'}`
-                      : 'text-sm font-medium'
-                  }
+                  className={isReadyForUpload ? 'text-xs font-medium text-[hsl(var(--text-primary))]' : 'text-xs font-medium'}
                 >
                   {label}
                 </Label>
@@ -262,13 +257,6 @@ function FieldRenderer({
                   id={fieldName}
                   checked={field.value as boolean}
                   onCheckedChange={field.onChange}
-                  className={
-                    isReadyForUpload
-                      ? currentValue
-                        ? 'data-[state=checked]:bg-green-500'
-                        : ''
-                      : ''
-                  }
                 />
               </>
             );
@@ -282,7 +270,7 @@ function FieldRenderer({
   if (fieldName === 'productStatus') {
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={fieldName} className="text-sm font-medium">
+        <Label htmlFor={fieldName} className="font-medium">
           {label}
         </Label>
         <Controller
@@ -290,14 +278,14 @@ function FieldRenderer({
           control={control}
           render={({ field }) => (
             <Select
-              value={field.value ?? ''}
-              onValueChange={(val) => field.onChange(val === '' ? null : val)}
+              value={field.value ?? '__none__'}
+              onValueChange={(val) => field.onChange(val === '__none__' ? null : val)}
             >
               <SelectTrigger id={fieldName}>
                 <SelectValue placeholder="Select status…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">— None —</SelectItem>
+                <SelectItem value="__none__">— None —</SelectItem>
                 {PRODUCT_STATUSES.map((s) => (
                   <SelectItem key={s} value={s}>
                     {s}
@@ -316,7 +304,7 @@ function FieldRenderer({
   if (fieldName === 'pic') {
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={fieldName} className="text-sm font-medium">
+        <Label htmlFor={fieldName} className="font-medium">
           {label}
         </Label>
         <Controller
@@ -324,14 +312,14 @@ function FieldRenderer({
           control={control}
           render={({ field }) => (
             <Select
-              value={field.value ?? ''}
-              onValueChange={(val) => field.onChange(val === '' ? null : val)}
+              value={field.value ?? '__none__'}
+              onValueChange={(val) => field.onChange(val === '__none__' ? null : val)}
             >
               <SelectTrigger id={fieldName}>
                 <SelectValue placeholder="Select PIC…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">— None —</SelectItem>
+                <SelectItem value="__none__">— None —</SelectItem>
                 {PIC_VALUES.map((p) => (
                   <SelectItem key={p} value={p}>
                     {p}
@@ -352,7 +340,7 @@ function FieldRenderer({
     const currentUrl = useWatch({ control, name: fieldName as keyof FormValues }) as string | null | undefined;
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={fieldName} className="text-sm font-medium">
+        <Label htmlFor={fieldName} className="font-medium">
           {label}
         </Label>
         <div className="flex gap-2">
@@ -384,7 +372,7 @@ function FieldRenderer({
   if (LONG_TEXT_FIELDS.has(fieldName)) {
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={fieldName} className="text-sm font-medium">
+        <Label htmlFor={fieldName} className="font-medium">
           {label}
         </Label>
         <Textarea
@@ -402,7 +390,7 @@ function FieldRenderer({
   if (DATE_FIELDS.has(fieldName)) {
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={fieldName} className="text-sm font-medium">
+        <Label htmlFor={fieldName} className="font-medium">
           {label}
         </Label>
         <Input
@@ -419,7 +407,7 @@ function FieldRenderer({
   if (fieldName === 'vatPercent') {
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={fieldName} className="text-sm font-medium">
+        <Label htmlFor={fieldName} className="font-medium">
           {label}
         </Label>
         <Controller
@@ -446,7 +434,7 @@ function FieldRenderer({
   // Default → text input
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={fieldName} className="text-sm font-medium">
+      <Label htmlFor={fieldName} className="font-medium">
         {label}
       </Label>
       <Input
@@ -502,44 +490,38 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     `Row ${product.rowIndex}`;
 
   const status = product.productStatus;
-  const statusColor = status ? STATUS_COLORS[status] : null;
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-6">
-      {/* Header */}
-      <div className="mb-6 space-y-3">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <div className="space-y-3">
         <Link
           href="/products"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-[hsl(var(--text-secondary))] transition-colors hover:text-[hsl(var(--text-primary))]"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Products
         </Link>
 
         <div className="flex flex-wrap items-start gap-3">
-          <h1 className="text-2xl font-bold leading-tight flex-1 min-w-0 break-words">
+          <h1 className="min-w-0 flex-1 break-words text-xl font-semibold tracking-tight">
             {title}
           </h1>
-          {status && statusColor && (
-            <Badge
-              className={`shrink-0 ${statusColor.bg} ${statusColor.text} border-transparent hover:${statusColor.bg}`}
-            >
+          {status && (
+            <Badge className={`shrink-0 ${getProductStatusClasses(status)}`}>
               {status}
             </Badge>
           )}
         </div>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-[hsl(var(--text-secondary))]">
           {product.country}
           {product.city ? ` › ${product.city}` : ''}
           {product.productType ? ` · ${product.productType}` : ''}
-          {' · '}Row {product.rowIndex}
+          {' · '}<span className="font-mono text-xs">Row {product.rowIndex}</span>
         </p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Action buttons — top */}
         <div className="mb-4 flex justify-end gap-2">
           <Button
             type="button"
@@ -557,7 +539,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
           </Button>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue={COLUMN_GROUPS[0].id}>
           <div className="overflow-x-auto pb-1">
             <TabsList className="flex w-max gap-0.5 h-auto flex-wrap">
@@ -571,8 +552,8 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
 
           {COLUMN_GROUPS.map((group) => (
             <TabsContent key={group.id} value={group.id} className="mt-4">
-              <div className="rounded-lg border bg-card p-5">
-                <h2 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-5">
+                <h2 className="mb-4 text-sm font-medium text-[hsl(var(--text-secondary))]">
                   {group.label}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -591,7 +572,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
           ))}
         </Tabs>
 
-        {/* Action buttons — bottom */}
         <div className="mt-6 flex justify-end gap-2">
           <Button
             type="button"

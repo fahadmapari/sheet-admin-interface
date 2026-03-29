@@ -13,6 +13,7 @@ import { ProductForm } from '@/components/products/product-form';
 import { BulkActionsToolbar } from '@/components/products/bulk-actions-toolbar';
 import { DeleteConfirmDialog } from '@/components/products/delete-confirm-dialog';
 import { ExportButton } from '@/components/products/export-button';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -98,10 +99,12 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-destructive text-sm flex items-center justify-between">
+      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/15 dark:text-red-300">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <span>Failed to load products: {error.message ?? 'Unknown error'}</span>
-          <button onClick={() => mutate('/api/products')} className="underline text-sm">Retry</button>
+          <button onClick={() => mutate('/api/products')} className="text-left underline">
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -119,28 +122,28 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 py-4 border-b">
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Products</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight">Products</h1>
+          <p className="mt-1 text-sm text-[hsl(var(--text-secondary))]">
             {isLoading
               ? 'Loading...'
               : `Showing ${filteredCount} of ${totalCount} products`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1 sm:flex-none">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--text-tertiary))]" />
             <Input
-              className="pl-8 pr-8 w-56"
+              className="w-full pl-8 pr-8 sm:w-60"
               placeholder="Search..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
             {searchInput && (
               <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[hsl(var(--text-tertiary))] transition-colors hover:text-[hsl(var(--text-primary))]"
                 onClick={() => setSearchInput('')}
                 aria-label="Clear search"
               >
@@ -148,35 +151,37 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
               </button>
             )}
           </div>
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
+
+          <div className="flex items-center rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-0.5">
             <Button
               variant={activeView === 'table' ? 'secondary' : 'ghost'}
               size="sm"
-              className="h-7 px-2.5 gap-1.5"
+              className="h-7 gap-1.5 px-2.5"
               onClick={() => setActiveView('table')}
             >
               <Table2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Table</span>
+              <span className="hidden sm:inline">Table</span>
             </Button>
             <Button
               variant={activeView === 'cards' ? 'secondary' : 'ghost'}
               size="sm"
-              className="h-7 px-2.5 gap-1.5"
+              className="h-7 gap-1.5 px-2.5"
               onClick={() => setActiveView('cards')}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline text-xs">Cards</span>
+              <span className="hidden sm:inline">Cards</span>
             </Button>
           </div>
           <ExportButton products={searchedProducts} columnVisibility={{}} />
           <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="mr-1 h-4 w-4" />
             Add Product
           </Button>
         </div>
       </div>
+
       <FilterBar filters={filters} onFiltersChange={setFilters} />
+
       {activeView === 'table' && (
         <BulkActionsToolbar
           selectedProducts={selectedProducts}
@@ -184,8 +189,16 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
           onMutate={() => mutate('/api/products')}
         />
       )}
+
+      {!isLoading && (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">{filteredCount} visible</Badge>
+          {globalSearch && <Badge variant="info">Search: {globalSearch}</Badge>}
+        </div>
+      )}
+
       {activeView === 'table' ? (
-        <div className="flex-1 overflow-hidden min-h-0 p-4 flex flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <ProductTable
             data={searchedProducts}
             isLoading={isLoading}
@@ -197,7 +210,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
           />
         </div>
       ) : (
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto">
           <ProductCards
             data={searchedProducts}
             isLoading={isLoading}

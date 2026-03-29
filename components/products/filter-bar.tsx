@@ -69,11 +69,11 @@ function MultiSelectPopover({
         <Button
           variant="outline"
           size="sm"
-          className={`h-8 gap-1.5 text-xs font-normal ${hasSelection ? 'border-primary text-primary' : ''}`}
+          className={`gap-1.5 ${hasSelection ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
         >
           {label}
           {hasSelection && (
-            <span className="inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground w-4 h-4 text-[10px] font-semibold">
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
               {selected.length}
             </span>
           )}
@@ -85,7 +85,7 @@ function MultiSelectPopover({
             {options.map((opt) => (
               <label
                 key={opt}
-                className="flex items-center gap-2 px-1 py-1 rounded cursor-pointer hover:bg-accent text-sm"
+                className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-[hsl(var(--surface))]"
               >
                 <Checkbox
                   checked={selected.includes(opt)}
@@ -139,14 +139,13 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
     filters.readyForUpload !== 'all';
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-6 py-2.5 border-b bg-background/95">
-      {/* Country */}
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-3">
       <Select
         value={filters.country || '__all__'}
         onValueChange={(v) => update('country', v === '__all__' ? '' : v)}
       >
         <SelectTrigger
-          className={`h-8 w-[140px] text-xs ${filters.country ? 'border-primary text-primary' : ''}`}
+          className={`w-[148px] ${filters.country ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
         >
           <SelectValue placeholder="Country" />
         </SelectTrigger>
@@ -162,13 +161,12 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
         </SelectContent>
       </Select>
 
-      {/* City */}
       <Select
         value={filters.city || '__all__'}
         onValueChange={(v) => update('city', v === '__all__' ? '' : v)}
       >
         <SelectTrigger
-          className={`h-8 w-[140px] text-xs ${filters.city ? 'border-primary text-primary' : ''}`}
+          className={`w-[148px] ${filters.city ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
         >
           <SelectValue placeholder="City" />
         </SelectTrigger>
@@ -186,7 +184,6 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
 
       <Separator orientation="vertical" className="h-6" />
 
-      {/* Product Type multi-select */}
       <MultiSelectPopover
         label="Product Type"
         options={productTypes}
@@ -212,29 +209,27 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
 
       <Separator orientation="vertical" className="h-6" />
 
-      {/* Ready for Upload toggle group */}
-      <div className="flex items-center rounded-md border text-xs overflow-hidden h-8">
+      <div className="flex h-8 items-center overflow-hidden rounded-md border border-[hsl(var(--border))] text-xs">
         {(['all', 'yes', 'no'] as const).map((val, idx) => (
           <button
             key={val}
             onClick={() => update('readyForUpload', val)}
             className={`px-3 h-full text-xs transition-colors ${
               filters.readyForUpload === val
-                ? 'bg-primary text-primary-foreground font-medium'
-                : 'hover:bg-accent'
-            } ${idx > 0 ? 'border-l' : ''}`}
+                ? 'bg-[hsl(var(--text-primary))] font-medium text-[hsl(var(--background))]'
+                : 'text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface))] hover:text-[hsl(var(--text-primary))]'
+            } ${idx > 0 ? 'border-l border-[hsl(var(--border))]' : ''}`}
           >
             {val === 'all' ? 'All' : val === 'yes' ? 'Yes' : 'No'}
           </button>
         ))}
       </div>
 
-      {/* Clear All */}
       {isActive && (
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground ml-auto"
+          className="ml-auto h-8 gap-1.5"
           onClick={() => onFiltersChange(DEFAULT_FILTERS)}
         >
           <X className="h-3 w-3" />

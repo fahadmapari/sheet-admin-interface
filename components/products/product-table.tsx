@@ -15,7 +15,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { STATUS_COLORS } from '@/lib/constants';
+import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
 import { getActiveOtaCount } from './product-detail-sheet';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,10 +31,8 @@ import { Button } from '@/components/ui/button';
 const OTA_TOTAL = 13;
 
 function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-muted-foreground">—</span>;
-  const colors = STATUS_COLORS[status];
-  if (!colors) return <Badge variant="outline" className="text-xs">{status}</Badge>;
-  return <Badge className={`${colors.bg} ${colors.text} border-0 text-xs`}>{status}</Badge>;
+  if (!status) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
+  return <Badge className={cn('text-xs', getProductStatusClasses(status))}>{status}</Badge>;
 }
 
 function buildColumns(
@@ -56,6 +54,7 @@ function buildColumns(
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
           onClick={(e) => e.stopPropagation()}
+          className="opacity-0 transition-opacity group-hover/row:opacity-100 data-[state=checked]:opacity-100"
         />
       ),
       enableSorting: false,
@@ -69,11 +68,11 @@ function buildColumns(
         const p = row.original;
         return (
           <div className="min-w-0 max-w-[280px]">
-            <div className="font-medium text-foreground leading-tight truncate">
+            <div className="truncate text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
               {p.productName || p.link || `${p.city}, ${p.country}`}
             </div>
             {p.duration && (
-              <div className="text-muted-foreground text-xs mt-0.5">{p.duration}</div>
+              <div className="mt-0.5 text-xs text-[hsl(var(--text-secondary))]">{p.duration}</div>
             )}
           </div>
         );
@@ -85,8 +84,8 @@ function buildColumns(
       header: 'Location',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.city}</div>
-          <div className="text-muted-foreground text-xs">{row.original.country}</div>
+          <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{row.original.city}</div>
+          <div className="text-xs text-[hsl(var(--text-secondary))]">{row.original.country}</div>
         </div>
       ),
     },
@@ -95,7 +94,7 @@ function buildColumns(
       accessorKey: 'productType',
       header: 'Type',
       cell: ({ row }) => (
-        <Badge variant="secondary" className="text-xs font-medium">
+        <Badge variant="default" className="text-xs">
           {row.original.productType}
         </Badge>
       ),
@@ -105,7 +104,7 @@ function buildColumns(
       accessorKey: 'b2bPriceInstant',
       header: 'B2B',
       cell: ({ row }) => (
-        <span className="font-semibold tabular-nums">
+        <span className="font-medium tabular-nums text-[hsl(var(--text-primary))]">
           {row.original.b2bPriceInstant || '—'}
         </span>
       ),
@@ -115,7 +114,7 @@ function buildColumns(
       accessorKey: 'b2cPriceInstant',
       header: 'B2C',
       cell: ({ row }) => (
-        <span className="font-semibold tabular-nums text-emerald-700">
+        <span className="font-medium tabular-nums text-[hsl(var(--text-primary))]">
           {row.original.b2cPriceInstant || '—'}
         </span>
       ),
@@ -126,11 +125,11 @@ function buildColumns(
       header: 'PIC',
       cell: ({ row }) =>
         row.original.pic ? (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+          <Badge variant="outline" className="text-xs">
             {row.original.pic}
           </Badge>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <span className="text-[hsl(var(--text-tertiary))]">—</span>
         ),
     },
     {
@@ -139,9 +138,9 @@ function buildColumns(
       accessorFn: (row) => getActiveOtaCount(row),
       cell: ({ row }) => {
         const count = getActiveOtaCount(row.original);
-        if (count === 0) return <span className="text-muted-foreground">—</span>;
+        if (count === 0) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
         return (
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+          <Badge variant="outline" className="gap-1 text-xs">
             <Globe className="h-3 w-3 mr-1" />
             {count}/{OTA_TOTAL}
           </Badge>
@@ -178,7 +177,7 @@ function RowActionsMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 opacity-0 group-hover/row:opacity-100 transition-opacity"
+          className="opacity-0 transition-opacity group-hover/row:opacity-100"
           onClick={(e) => e.stopPropagation()}
           aria-label="Row actions"
         >
@@ -190,7 +189,7 @@ function RowActionsMenu({
           Edit
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
+          className="text-red-700 focus:text-red-700 dark:text-red-300 dark:focus:text-red-300"
           onClick={(e) => {
             e.stopPropagation();
             onDeleteRequest(product);
@@ -208,15 +207,15 @@ function SkeletonTable() {
     <div className="animate-pulse space-y-1">
       {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className="flex gap-3 px-4 py-3">
-          <div className="h-4 w-4 bg-muted rounded" />
-          <div className="h-4 w-48 bg-muted rounded" />
-          <div className="h-4 w-28 bg-muted rounded" />
-          <div className="h-4 w-20 bg-muted rounded" />
-          <div className="h-4 w-16 bg-muted rounded" />
-          <div className="h-4 w-16 bg-muted rounded" />
-          <div className="h-4 w-12 bg-muted rounded" />
-          <div className="h-4 w-16 bg-muted rounded" />
-          <div className="h-4 w-20 bg-muted rounded" />
+          <div className="h-4 w-4 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-48 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-28 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-20 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-16 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-16 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-12 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-16 rounded bg-[hsl(var(--surface-raised))]" />
+          <div className="h-4 w-20 rounded bg-[hsl(var(--surface-raised))]" />
         </div>
       ))}
     </div>
@@ -276,8 +275,8 @@ export function ProductTable({
     return (
       <div className="flex items-center justify-center h-full p-8">
         <div className="text-center space-y-2">
-          <p className="text-destructive font-medium">Failed to load products</p>
-          <p className="text-muted-foreground text-sm">{String(error)}</p>
+          <p className="font-medium text-red-700 dark:text-red-300">Failed to load products</p>
+          <p className="text-sm text-[hsl(var(--text-secondary))]">{String(error)}</p>
         </div>
       </div>
     );
@@ -291,16 +290,19 @@ export function ProductTable({
     : 0;
 
   return (
-    <div ref={containerRef} className="rounded-lg border bg-card overflow-auto flex-1 min-h-0">
+    <div
+      ref={containerRef}
+      className="flex min-h-0 flex-1 overflow-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]"
+    >
       <table className="w-full border-collapse text-sm table-auto">
         <thead className="sticky top-0 z-10">
-          <tr className="border-b bg-muted/50">
+          <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
             {table.getFlatHeaders().map((header) => (
               <th
                 key={header.id}
                 className={cn(
-                  'px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap',
-                  header.column.getCanSort() && 'cursor-pointer select-none hover:text-foreground transition-colors',
+                  'px-3 py-3 text-left text-xs font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-secondary))] whitespace-nowrap',
+                  header.column.getCanSort() && 'cursor-pointer select-none transition-colors hover:text-[hsl(var(--text-primary))]',
                   header.id === 'select' && 'w-10',
                   header.id === 'actions' && 'w-10',
                 )}
@@ -325,7 +327,7 @@ export function ProductTable({
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="text-center py-16 text-muted-foreground text-sm">
+              <td colSpan={columns.length} className="py-16 text-center text-sm text-[hsl(var(--text-secondary))]">
                 No products match your filters.
               </td>
             </tr>
@@ -345,15 +347,15 @@ export function ProductTable({
                     ref={virtualizer.measureElement}
                     className={cn(
                       'group/row border-b last:border-b-0 cursor-pointer transition-colors',
-                      'hover:bg-accent/40',
-                      row.getIsSelected() && 'bg-accent/20',
+                      'border-[hsl(var(--border))] hover:bg-[hsl(var(--surface))]',
+                      row.getIsSelected() && 'bg-[hsl(var(--surface))]',
                     )}
                     onClick={() => onRowClick(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}
-                        className="px-3 py-3"
+                        className="h-11 px-3 text-sm"
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>

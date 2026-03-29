@@ -63,9 +63,8 @@ export function ColumnVisibilityPanel({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="end">
-        {/* View Presets */}
         <div className="p-3 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
             View Presets
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -98,7 +97,7 @@ export function ColumnVisibilityPanel({
           <div className="p-3 space-y-4">
             {COLUMN_GROUPS.map((group) => (
               <div key={group.id}>
-                <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+                <p className="mb-1.5 text-xs font-medium text-[hsl(var(--text-secondary))]">
                   {group.label}
                 </p>
                 <div className="space-y-1">
@@ -110,7 +109,7 @@ export function ColumnVisibilityPanel({
                     return (
                       <label
                         key={field}
-                        className="flex items-center gap-2 cursor-pointer group"
+                        className="group flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 hover:bg-[hsl(var(--surface))]"
                       >
                         <Checkbox
                           checked={isVisible}
@@ -118,7 +117,7 @@ export function ColumnVisibilityPanel({
                           onCheckedChange={() => toggleColumn(field)}
                           className="h-3.5 w-3.5"
                         />
-                        <span className={`text-xs ${isSticky ? 'text-muted-foreground' : 'group-hover:text-foreground'}`}>
+                        <span className={`text-xs ${isSticky ? 'text-[hsl(var(--text-tertiary))]' : 'text-[hsl(var(--text-secondary))] group-hover:text-[hsl(var(--text-primary))]'}`}>
                           {label}
                           {isSticky && <span className="ml-1 text-[10px] opacity-50">(pinned)</span>}
                         </span>

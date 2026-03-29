@@ -1,38 +1,46 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface KpiCardProps {
   title: string;
   value: number;
   total?: number;
-  color?: 'default' | 'green' | 'amber' | 'red' | 'gray';
+  tone?: 'default' | 'success' | 'warning' | 'error' | 'info';
   icon?: ReactNode;
 }
 
-const colorClasses: Record<NonNullable<KpiCardProps['color']>, string> = {
-  default: '',
-  green: 'text-green-600',
-  amber: 'text-amber-600',
-  red: 'text-red-600',
-  gray: 'text-gray-400',
+const toneVariant: Record<NonNullable<KpiCardProps['tone']>, ComponentProps<typeof Badge>['variant']> = {
+  default: 'outline',
+  success: 'success',
+  warning: 'warning',
+  error: 'error',
+  info: 'info',
 };
 
-export function KpiCard({ title, value, total, color = 'default', icon }: KpiCardProps) {
-  const valueColor = colorClasses[color];
+export function KpiCard({ title, value, total, tone = 'default', icon }: KpiCardProps) {
   const percentage = total && total > 0 ? Math.round((value / total) * 100) : null;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        {icon && <div className="text-muted-foreground">{icon}</div>}
+    <Card className="h-full">
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <CardTitle>{title}</CardTitle>
+        {icon && <div className="mt-0.5 text-[hsl(var(--text-tertiary))]">{icon}</div>}
       </CardHeader>
-      <CardContent>
-        <div className={`text-3xl font-bold ${valueColor}`}>{value.toLocaleString()}</div>
+      <CardContent className="flex flex-col gap-3">
+        <div className="text-2xl font-semibold tracking-tight text-[hsl(var(--text-primary))]">
+          {value.toLocaleString()}
+        </div>
         {total !== undefined && percentage !== null && (
-          <p className="text-xs text-muted-foreground mt-1">
-            {value.toLocaleString()} / {total.toLocaleString()} ({percentage}%)
-          </p>
+          <div className="flex items-center gap-2">
+            <Badge variant={toneVariant[tone]}>{percentage}%</Badge>
+            <span className="text-xs text-[hsl(var(--text-secondary))]">
+              {value.toLocaleString()} of {total.toLocaleString()}
+            </span>
+          </div>
+        )}
+        {total === undefined && (
+          <p className="text-xs text-[hsl(var(--text-secondary))]">Current total</p>
         )}
       </CardContent>
     </Card>
