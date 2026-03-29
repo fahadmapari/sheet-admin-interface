@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Clock, Globe, MapPin, Users, X } from 'lucide-react';
+import { Check, Clock, MapPin, Users, X } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, NUMBER_FIELDS } from '@/lib/constants';
 import { getProductStatusClasses } from '@/lib/design-system';
@@ -291,13 +291,6 @@ export function ProductDetailSheet({
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={draftProduct.productStatus} />
             {draftProduct.productType && <Badge variant="default">{draftProduct.productType}</Badge>}
-            {draftProduct.pic && <Badge variant="outline">{draftProduct.pic}</Badge>}
-            {activeOtas.length > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <Globe className="h-3 w-3 mr-1" />
-                {activeOtas.length}/{OTA_CHANNELS.length} OTAs
-              </Badge>
-            )}
           </div>
 
           <p className="text-xs text-[hsl(var(--text-secondary))]">
