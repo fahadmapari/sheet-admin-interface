@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -11,6 +11,7 @@ import {
   type SortingState,
   type RowSelectionState,
 } from '@tanstack/react-table';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -242,6 +243,7 @@ export function ProductTable({
   onRowClick,
 }: ProductTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const columns = useMemo(() => buildColumns(onDeleteRequest), [onDeleteRequest]);
 
@@ -259,6 +261,15 @@ export function ProductTable({
     enableMultiSort: false,
   });
 
+  const rows = table.getRowModel().rows;
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 49,
+    overscan: 10,
+  });
+
   if (isLoading) return <SkeletonTable />;
 
   if (error) {
@@ -272,12 +283,17 @@ export function ProductTable({
     );
   }
 
-  const rows = table.getRowModel().rows;
+  const virtualRows = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const paddingTop = virtualRows.length > 0 ? (virtualRows[0]?.start ?? 0) : 0;
+  const paddingBottom = virtualRows.length > 0
+    ? totalSize - (virtualRows[virtualRows.length - 1]?.end ?? 0)
+    : 0;
 
   return (
-    <div className="rounded-lg border bg-card overflow-hidden">
+    <div ref={containerRef} className="rounded-lg border bg-card overflow-auto flex-1 min-h-0">
       <table className="w-full border-collapse text-sm table-auto">
-        <thead>
+        <thead className="sticky top-0 z-10">
           <tr className="border-b bg-muted/50">
             {table.getFlatHeaders().map((header) => (
               <th
@@ -314,26 +330,43 @@ export function ProductTable({
               </td>
             </tr>
           ) : (
-            rows.map((row) => (
-              <tr
-                key={row.id}
-                className={cn(
-                  'group/row border-b last:border-b-0 cursor-pointer transition-colors',
-                  'hover:bg-accent/40',
-                  row.getIsSelected() && 'bg-accent/20',
-                )}
-                onClick={() => onRowClick(row.original)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className="px-3 py-3"
+            <>
+              {paddingTop > 0 && (
+                <tr>
+                  <td style={{ height: `${paddingTop}px` }} colSpan={columns.length} />
+                </tr>
+              )}
+              {virtualRows.map((virtualRow) => {
+                const row = rows[virtualRow.index];
+                return (
+                  <tr
+                    key={row.id}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    className={cn(
+                      'group/row border-b last:border-b-0 cursor-pointer transition-colors',
+                      'hover:bg-accent/40',
+                      row.getIsSelected() && 'bg-accent/20',
+                    )}
+                    onClick={() => onRowClick(row.original)}
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))
+                    {row.getVisibleCells().map((cell) => (
+                      <td
+                        key={cell.id}
+                        className="px-3 py-3"
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+              {paddingBottom > 0 && (
+                <tr>
+                  <td style={{ height: `${paddingBottom}px` }} colSpan={columns.length} />
+                </tr>
+              )}
+            </>
           )}
         </tbody>
       </table>

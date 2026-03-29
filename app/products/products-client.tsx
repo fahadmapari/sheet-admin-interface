@@ -184,8 +184,8 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
           onMutate={() => mutate('/api/products')}
         />
       )}
-      <div className="flex-1 overflow-auto p-4">
-        {activeView === 'table' ? (
+      {activeView === 'table' ? (
+        <div className="flex-1 overflow-hidden min-h-0 p-4 flex flex-col">
           <ProductTable
             data={searchedProducts}
             isLoading={isLoading}
@@ -195,14 +195,16 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
             onDeleteRequest={(product) => setDeleteTarget(product)}
             onRowClick={(product) => setSelectedProduct(product)}
           />
-        ) : (
+        </div>
+      ) : (
+        <div className="flex-1 overflow-auto p-4">
           <ProductCards
             data={searchedProducts}
             isLoading={isLoading}
             onCardClick={(product) => setSelectedProduct(product)}
           />
-        )}
-      </div>
+        </div>
+      )}
       <ProductDetailSheet
         product={selectedProduct}
         open={selectedProduct !== null}
