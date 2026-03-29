@@ -39,7 +39,6 @@ export function getSheetsClient(): sheets_v4.Sheets {
 const SPREADSHEET_ID = requireEnv('SPREADSHEET_ID');
 const NET_RATES_SHEET = 'NET RATES';
 const NET_RATES_RANGE = `'${NET_RATES_SHEET}'!A:BR`;
-const INVENTORY_UPDATE_RANGE = "'Inventory Update'!A:Z";
 
 // ---------------------------------------------------------------------------
 // Helper: column index (0-based) → A1 column letter(s)
@@ -260,23 +259,5 @@ export async function batchUpdateRows(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to batch update rows: ${message}`);
-  }
-}
-
-/**
- * Fetch the "Inventory Update" sheet.
- * Returns raw string[][].
- */
-export async function fetchInventoryUpdate(): Promise<string[][]> {
-  const sheets = getSheetsClient();
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: INVENTORY_UPDATE_RANGE,
-    });
-    return (response.data.values ?? []) as string[][];
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to fetch Inventory Update sheet: ${message}`);
   }
 }
