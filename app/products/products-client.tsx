@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
-import type { VisibilityState, RowSelectionState } from '@tanstack/react-table';
-import { Plus, Search, X } from 'lucide-react';
+import type { RowSelectionState } from '@tanstack/react-table';
+import { Plus, Search, X, LayoutGrid, Table2 } from 'lucide-react';
 import { ProductTable } from '@/components/products/product-table';
-import { ColumnVisibilityPanel } from '@/components/products/column-visibility';
+import { ProductCards } from '@/components/products/product-cards';
+import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
 import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
 import { ProductForm } from '@/components/products/product-form';
 import { BulkActionsToolbar } from '@/components/products/bulk-actions-toolbar';
@@ -18,6 +19,8 @@ import { toast } from 'sonner';
 import type { TourProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
+type ViewMode = 'table' | 'cards';
+
 interface ProductsClientProps {
   initialFilters?: Filters;
   initialSearch?: string;
@@ -27,13 +30,14 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const router = useRouter();
   const pathname = usePathname();
 
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [activeView, setActiveView] = useState<ViewMode>('table');
   const [filters, setFilters] = useState<Filters>(initialFilters ?? DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState(initialSearch ?? '');
   const [globalSearch, setGlobalSearch] = useState(initialSearch ?? '');
   const [addOpen, setAddOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [deleteTarget, setDeleteTarget] = useState<TourProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
 
   const updateUrl = useCallback((newFilters: Filters, newSearch: string) => {
     const params = new URLSearchParams();
@@ -121,7 +125,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
           <h1 className="text-xl font-semibold">Products</h1>
           <p className="text-sm text-muted-foreground">
             {isLoading
-              ? 'Loading…'
+              ? 'Loading...'
               : `Showing ${filteredCount} of ${totalCount} products`}
           </p>
         </div>
@@ -130,7 +134,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               className="pl-8 pr-8 w-56"
-              placeholder="Search…"
+              placeholder="Search..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -144,11 +148,28 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
               </button>
             )}
           </div>
-          <ExportButton products={searchedProducts} columnVisibility={columnVisibility} />
-          <ColumnVisibilityPanel
-            columnVisibility={columnVisibility}
-            onColumnVisibilityChange={setColumnVisibility}
-          />
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
+            <Button
+              variant={activeView === 'table' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-2.5 gap-1.5"
+              onClick={() => setActiveView('table')}
+            >
+              <Table2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Table</span>
+            </Button>
+            <Button
+              variant={activeView === 'cards' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-2.5 gap-1.5"
+              onClick={() => setActiveView('cards')}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline text-xs">Cards</span>
+            </Button>
+          </div>
+          <ExportButton products={searchedProducts} columnVisibility={{}} />
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4 mr-1" />
             Add Product
@@ -156,23 +177,37 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
         </div>
       </div>
       <FilterBar filters={filters} onFiltersChange={setFilters} />
-      <BulkActionsToolbar
-        selectedProducts={selectedProducts}
-        onClearSelection={() => setRowSelection({})}
-        onMutate={() => mutate('/api/products')}
-      />
-      <div className="flex-1 overflow-hidden">
-        <ProductTable
-          data={searchedProducts}
-          isLoading={isLoading}
-          error={error}
-          columnVisibility={columnVisibility}
-          onColumnVisibilityChange={setColumnVisibility}
-          rowSelection={rowSelection}
-          onRowSelectionChange={setRowSelection}
-          onDeleteRequest={(product) => setDeleteTarget(product)}
+      {activeView === 'table' && (
+        <BulkActionsToolbar
+          selectedProducts={selectedProducts}
+          onClearSelection={() => setRowSelection({})}
+          onMutate={() => mutate('/api/products')}
         />
+      )}
+      <div className="flex-1 overflow-auto p-4">
+        {activeView === 'table' ? (
+          <ProductTable
+            data={searchedProducts}
+            isLoading={isLoading}
+            error={error}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            onDeleteRequest={(product) => setDeleteTarget(product)}
+            onRowClick={(product) => setSelectedProduct(product)}
+          />
+        ) : (
+          <ProductCards
+            data={searchedProducts}
+            isLoading={isLoading}
+            onCardClick={(product) => setSelectedProduct(product)}
+          />
+        )}
       </div>
+      <ProductDetailSheet
+        product={selectedProduct}
+        open={selectedProduct !== null}
+        onOpenChange={(open) => { if (!open) setSelectedProduct(null); }}
+      />
       <ProductForm open={addOpen} onClose={() => setAddOpen(false)} />
       <DeleteConfirmDialog
         open={deleteTarget !== null}
