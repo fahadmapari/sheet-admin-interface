@@ -12,7 +12,7 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { parseLinkField } from '@/lib/utils';
 
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-[hsl(var(--text-tertiary))]">-</span>;
@@ -63,13 +64,29 @@ function buildColumns(
       header: 'Product',
       cell: ({ row }) => {
         const p = row.original;
+        const linkParsed = p.link ? parseLinkField(p.link) : null;
+        const linkUrl = linkParsed?.url || null;
+        const displayName = p.productName || linkParsed?.text || p.link || `${p.city}, ${p.country}`;
         return (
-          <div className="min-w-0 max-w-[280px]">
-            <div className="truncate text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
-              {p.productName || p.link || `${p.city}, ${p.country}`}
+          <div className="min-w-0 max-w-[280px] flex items-start gap-1">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
+                {displayName}
+              </div>
+              {p.duration && (
+                <div className="mt-0.5 text-xs text-[hsl(var(--text-secondary))]">{p.duration}</div>
+              )}
             </div>
-            {p.duration && (
-              <div className="mt-0.5 text-xs text-[hsl(var(--text-secondary))]">{p.duration}</div>
+            {linkUrl && (
+              <a
+                href={linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="mt-0.5 flex-shrink-0 text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
             )}
           </div>
         );

@@ -234,6 +234,88 @@ export async function deleteRow(rowIndex: number): Promise<void> {
 }
 
 /**
+ * Fetch hyperlinks for a single column (0-based colIndex) across all data rows.
+ * Returns a Map<rowIndex (1-based), hyperlink URL>.
+ * Only entries with an actual hyperlink are included.
+ */
+export async function fetchColumnHyperlinks(colIndex: number): Promise<Map<number, string>> {
+  const sheets = getSheetsClient();
+  const colLetter = colIndexToLetter(colIndex);
+  // Row 1 is the header — fetch from row 2 onward
+  const range = `'${NET_RATES_SHEET}'!${colLetter}2:${colLetter}`;
+
+  try {
+    const response = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+      ranges: [range],
+      includeGridData: true,
+    });
+
+    const result = new Map<number, string>();
+    const rowData = response.data.sheets?.[0]?.data?.[0]?.rowData ?? [];
+    rowData.forEach((row, idx) => {
+      const hyperlink = row.values?.[0]?.hyperlink;
+      if (hyperlink) {
+        result.set(idx + 2, hyperlink); // idx 0 = sheet row 2 (first data row)
+      }
+    });
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to fetch hyperlinks for column ${colLetter}: ${message}`);
+  }
+}
+
+/**
+ * Update a single cell's value and hyperlink using batchUpdate.
+ * If url is empty, the hyperlink is cleared.
+ * rowIndex is 1-based; colIndex is 0-based.
+ */
+export async function updateCellHyperlink(
+  rowIndex: number,
+  colIndex: number,
+  displayText: string,
+  url: string,
+): Promise<void> {
+  if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
+  const sheets = getSheetsClient();
+  const sheetId = await getSheetId(NET_RATES_SHEET);
+
+  // When url is absent, omitting textFormat.link from the body while including it
+  // in the fields mask causes the Sheets API to clear the existing hyperlink.
+  const cellData: sheets_v4.Schema$CellData = {
+    userEnteredValue: { stringValue: displayText },
+    ...(url ? { userEnteredFormat: { textFormat: { link: { uri: url } } } } : {}),
+  };
+
+  try {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [
+          {
+            updateCells: {
+              rows: [{ values: [cellData] }],
+              fields: 'userEnteredValue,userEnteredFormat.textFormat.link',
+              range: {
+                sheetId,
+                startRowIndex: rowIndex - 1,
+                endRowIndex: rowIndex,
+                startColumnIndex: colIndex,
+                endColumnIndex: colIndex + 1,
+              },
+            },
+          },
+        ],
+      },
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to update cell hyperlink at row ${rowIndex}, col ${colIndex}: ${message}`);
+  }
+}
+
+/**
  * Batch update multiple rows at once for efficiency.
  * updates is an array of { rowIndex: number, values: string[] }.
  */

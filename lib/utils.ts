@@ -34,10 +34,34 @@ export function toRequiredText(raw: string | undefined): string {
   return toText(raw) ?? '';
 }
 
+// Parse a link field value that may be stored as "Display Text||https://url"
+// or as a bare URL, or as plain text with no URL.
+export function parseLinkField(value: string): { text: string; url: string } {
+  const idx = value.indexOf('||');
+  if (idx !== -1) {
+    return { text: value.substring(0, idx), url: value.substring(idx + 2) };
+  }
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return { text: '', url: value };
+  }
+  return { text: value, url: '' };
+}
+
 // Convert a raw sheet row (string[]) to a TourProduct
 // rowIndex is the 1-based sheet row number
-export function rowToProduct(row: string[], rowIndex: number): TourProduct {
+export function rowToProduct(row: string[], rowIndex: number, linkHyperlink?: string): TourProduct {
   const get = (col: number) => row[col];
+  const linkText = toText(get(5));
+
+  // If the cell has an underlying hyperlink, combine as "display text||url"
+  let link: string | null;
+  if (linkHyperlink) {
+    link = linkText && linkText !== linkHyperlink
+      ? `${linkText}||${linkHyperlink}`
+      : linkHyperlink;
+  } else {
+    link = linkText;
+  }
 
   return {
     rowIndex,
@@ -46,7 +70,7 @@ export function rowToProduct(row: string[], rowIndex: number): TourProduct {
     department: toText(get(2)),
     region: toText(get(3)),
     productType: toRequiredText(get(4)),
-    link: toText(get(5)),
+    link,
     duration: toText(get(6)),
     productStatus: toText(get(7)),
     productName: toText(get(8)),
@@ -127,7 +151,8 @@ export function productToRow(product: Omit<TourProduct, 'rowIndex'>): string[] {
   set(2, product.department);
   set(3, product.region);
   set(4, product.productType);
-  set(5, product.link);
+  // link field may be "display text||url" — only write display text to the cell
+  set(5, product.link ? parseLinkField(product.link).text || parseLinkField(product.link).url : '');
   set(6, product.duration);
   set(7, product.productStatus);
   set(8, product.productName);

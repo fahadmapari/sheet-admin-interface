@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { updateRow, updateCell, deleteRow } from '@/lib/sheets';
-import { productToRow } from '@/lib/utils';
+import { updateRow, updateCell, updateCellHyperlink, deleteRow } from '@/lib/sheets';
+import { productToRow, parseLinkField } from '@/lib/utils';
 import { FIELD_TO_COL } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
 
@@ -36,7 +36,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (colIndex === undefined) {
       return NextResponse.json({ error: `Unknown field: ${body.field}` }, { status: 400 });
     }
-    await updateCell(rowIndex, colIndex, body.value);
+    if (body.field === 'link') {
+      const { text, url } = parseLinkField(body.value ?? '');
+      await updateCellHyperlink(rowIndex, colIndex, text, url);
+    } else {
+      await updateCell(rowIndex, colIndex, body.value);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

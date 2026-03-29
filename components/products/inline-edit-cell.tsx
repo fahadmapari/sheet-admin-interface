@@ -3,6 +3,7 @@
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { ExternalLink } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -20,7 +21,7 @@ import {
 } from '@/lib/constants';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, parseLinkField } from '@/lib/utils';
 
 interface InlineEditCellProps {
   product: TourProduct;
@@ -34,6 +35,165 @@ const LONG_TEXT_FIELDS = new Set<keyof TourProduct>([
   'qualityRemarks',
   'componentsOfTour',
 ]);
+
+const LINK_FIELDS = new Set<keyof TourProduct>(['link']);
+
+
+function buildLinkField(text: string, url: string): string {
+  const t = text.trim();
+  const u = url.trim();
+  if (t && u) return `${t}||${u}`;
+  return u || t;
+}
+
+function LinkEditCell({ product, field, onSaved }: InlineEditCellProps) {
+  const rawValue = product[field];
+  const strValue = rawValue ? String(rawValue) : '';
+  const initial = parseLinkField(strValue);
+
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(initial.text);
+  const [url, setUrl] = useState(initial.url);
+  const [saving, setSaving] = useState(false);
+  const textRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(true);
+  const savingRef = useRef(false);
+
+  useEffect(() => {
+    if (!editing) {
+      const p = parseLinkField(rawValue ? String(rawValue) : '');
+      setText(p.text);
+      setUrl(p.url);
+    }
+  }, [rawValue, editing]);
+
+  useEffect(() => {
+    if (editing && textRef.current) textRef.current.focus();
+  }, [editing]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const save = useCallback(
+    async (textVal: string, urlVal: string) => {
+      if (!isMountedRef.current || savingRef.current) return;
+      savingRef.current = true;
+      setSaving(true);
+      const combined = buildLinkField(textVal, urlVal);
+      onSaved(field, combined);
+      try {
+        const res = await fetch(`/api/products/${product.rowIndex}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ field, value: combined }),
+        });
+        if (!isMountedRef.current) return;
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error ?? `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
+          onSaved(field, strValue);
+          const p = parseLinkField(strValue);
+          setText(p.text);
+          setUrl(p.url);
+        }
+      } finally {
+        savingRef.current = false;
+        if (isMountedRef.current) setSaving(false);
+      }
+    },
+    [field, product.rowIndex, strValue, onSaved],
+  );
+
+  const commitAndExit = useCallback(
+    (textVal: string, urlVal: string) => {
+      setEditing(false);
+      if (buildLinkField(textVal, urlVal) !== strValue) save(textVal, urlVal);
+    },
+    [strValue, save],
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitAndExit(text, url);
+    } else if (e.key === 'Escape') {
+      const p = parseLinkField(strValue);
+      setText(p.text);
+      setUrl(p.url);
+      setEditing(false);
+    }
+  };
+
+  if (!editing) {
+    const displayText = text || url;
+    return (
+      <button
+        className="relative w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
+        onClick={() => setEditing(true)}
+      >
+        <span className="flex items-center gap-1">
+          {displayText ? (
+            <span className="max-w-[180px] truncate block text-sm" title={displayText}>
+              {displayText}
+            </span>
+          ) : (
+            <span className="text-xs text-[hsl(var(--text-tertiary))]">—</span>
+          )}
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex-shrink-0 text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </span>
+        {saving && (
+          <span className="absolute inset-0 flex items-center justify-center bg-background/50">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5 py-1 relative">
+      <input
+        ref={textRef}
+        type="text"
+        placeholder="Title (optional)"
+        className="flex h-7 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      <input
+        type="url"
+        placeholder="https://..."
+        className="flex h-7 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => commitAndExit(text, url)}
+      />
+      {saving && (
+        <span className="absolute inset-0 flex items-center justify-center bg-background/50">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+        </span>
+      )}
+    </div>
+  );
+}
 
 function getDisplayValue(
   field: keyof Omit<TourProduct, 'rowIndex'>,
@@ -316,6 +476,11 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
         onBlur={handleBlur}
       />
     );
+  }
+
+  // Link fields — dual text+URL inputs
+  if (LINK_FIELDS.has(field as keyof TourProduct)) {
+    return <LinkEditCell product={product} field={field} onSaved={onSaved} />;
   }
 
   // Default — text Input
