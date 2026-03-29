@@ -47,7 +47,6 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     if (newFilters.city) params.set('city', newFilters.city);
     newFilters.productTypes.forEach(t => params.append('type', t));
     newFilters.statuses.forEach(s => params.append('status', s));
-    newFilters.pics.forEach(p => params.append('pic', p));
     if (newFilters.readyForUpload !== 'all') params.set('ready', newFilters.readyForUpload);
     if (newSearch) params.set('q', newSearch);
     const qs = params.toString();
@@ -87,7 +86,6 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
       if (filters.city && p.city !== filters.city) return false;
       if (filters.productTypes.length && !filters.productTypes.includes(p.productType ?? '')) return false;
       if (filters.statuses.length && !filters.statuses.includes(p.productStatus ?? '')) return false;
-      if (filters.pics.length && !filters.pics.includes(p.pic ?? '')) return false;
       if (filters.readyForUpload === 'yes' && !p.readyForUpload) return false;
       if (filters.readyForUpload === 'no' && p.readyForUpload) return false;
       return true;

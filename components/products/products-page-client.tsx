@@ -12,7 +12,6 @@ export function ProductsPageClient() {
     city: searchParams.get('city') ?? DEFAULT_FILTERS.city,
     productTypes: searchParams.getAll('type'),
     statuses: searchParams.getAll('status'),
-    pics: searchParams.getAll('pic'),
     readyForUpload: (searchParams.get('ready') ?? 'all') as 'all' | 'yes' | 'no',
   };
   const initialSearch = searchParams.get('q') ?? '';

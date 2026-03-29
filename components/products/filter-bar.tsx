@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { PRODUCT_STATUSES, PIC_VALUES } from '@/lib/constants';
+import { PRODUCT_STATUSES } from '@/lib/constants';
 import type { FiltersResponse } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
@@ -23,7 +24,6 @@ export interface Filters {
   city: string;
   productTypes: string[];
   statuses: string[];
-  pics: string[];
   readyForUpload: 'all' | 'yes' | 'no';
 }
 
@@ -32,7 +32,6 @@ export const DEFAULT_FILTERS: Filters = {
   city: '',
   productTypes: [],
   statuses: [],
-  pics: [],
   readyForUpload: 'all',
 };
 
@@ -41,7 +40,22 @@ interface FilterBarProps {
   onFiltersChange: (filters: Filters) => void;
 }
 
-// Multi-select popover used for productTypes, statuses, and pics
+function FilterField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-xs font-medium text-[hsl(var(--text-tertiary))]">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+// Multi-select popover used for productTypes and statuses
 function MultiSelectPopover({
   label,
   options,
@@ -135,95 +149,92 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
     filters.city !== '' ||
     filters.productTypes.length > 0 ||
     filters.statuses.length > 0 ||
-    filters.pics.length > 0 ||
     filters.readyForUpload !== 'all';
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-3">
-      <Select
-        value={filters.country || '__all__'}
-        onValueChange={(v) => update('country', v === '__all__' ? '' : v)}
-      >
-        <SelectTrigger
-          className={`w-[148px] ${filters.country ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
+      <FilterField label="Country">
+        <Select
+          value={filters.country || '__all__'}
+          onValueChange={(v) => update('country', v === '__all__' ? '' : v)}
         >
-          <SelectValue placeholder="Country" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__all__" className="text-xs">
-            All Countries
-          </SelectItem>
-          {countries.map((c) => (
-            <SelectItem key={c} value={c} className="text-xs">
-              {c}
+          <SelectTrigger
+            className={`w-[148px] ${filters.country ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
+          >
+            <SelectValue placeholder="Country" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__" className="text-xs">
+              All Countries
             </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+            {countries.map((c) => (
+              <SelectItem key={c} value={c} className="text-xs">
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      <Select
-        value={filters.city || '__all__'}
-        onValueChange={(v) => update('city', v === '__all__' ? '' : v)}
-      >
-        <SelectTrigger
-          className={`w-[148px] ${filters.city ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
+      <FilterField label="City">
+        <Select
+          value={filters.city || '__all__'}
+          onValueChange={(v) => update('city', v === '__all__' ? '' : v)}
         >
-          <SelectValue placeholder="City" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__all__" className="text-xs">
-            All Cities
-          </SelectItem>
-          {cities.map((c) => (
-            <SelectItem key={c} value={c} className="text-xs">
-              {c}
+          <SelectTrigger
+            className={`w-[148px] ${filters.city ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
+          >
+            <SelectValue placeholder="City" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__" className="text-xs">
+              All Cities
             </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+            {cities.map((c) => (
+              <SelectItem key={c} value={c} className="text-xs">
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterField>
 
-      <Separator orientation="vertical" className="h-6" />
-
-      <MultiSelectPopover
-        label="Product Type"
-        options={productTypes}
-        selected={filters.productTypes}
-        onChange={(v) => update('productTypes', v)}
-      />
+      <FilterField label="Product Type">
+        <MultiSelectPopover
+          label="Product Type"
+          options={productTypes}
+          selected={filters.productTypes}
+          onChange={(v) => update('productTypes', v)}
+        />
+      </FilterField>
 
       {/* Status multi-select */}
-      <MultiSelectPopover
-        label="Status"
-        options={[...PRODUCT_STATUSES]}
-        selected={filters.statuses}
-        onChange={(v) => update('statuses', v)}
-      />
+      <FilterField label="Status">
+        <MultiSelectPopover
+          label="Status"
+          options={[...PRODUCT_STATUSES]}
+          selected={filters.statuses}
+          onChange={(v) => update('statuses', v)}
+        />
+      </FilterField>
 
-      {/* PIC multi-select */}
-      <MultiSelectPopover
-        label="PIC"
-        options={[...PIC_VALUES]}
-        selected={filters.pics}
-        onChange={(v) => update('pics', v)}
-      />
-
-      <Separator orientation="vertical" className="h-6" />
-
-      <div className="flex h-8 items-center overflow-hidden rounded-md border border-[hsl(var(--border))] text-xs">
-        {(['all', 'yes', 'no'] as const).map((val, idx) => (
-          <button
-            key={val}
-            onClick={() => update('readyForUpload', val)}
-            className={`px-3 h-full text-xs transition-colors ${
-              filters.readyForUpload === val
-                ? 'bg-[hsl(var(--text-primary))] font-medium text-[hsl(var(--background))]'
-                : 'text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface))] hover:text-[hsl(var(--text-primary))]'
-            } ${idx > 0 ? 'border-l border-[hsl(var(--border))]' : ''}`}
-          >
-            {val === 'all' ? 'All' : val === 'yes' ? 'Yes' : 'No'}
-          </button>
-        ))}
-      </div>
+      <FilterField label="Ready for Upload">
+        <div className="flex h-8 items-center overflow-hidden rounded-md border border-[hsl(var(--border))] text-xs">
+          {(['all', 'yes', 'no'] as const).map((val, idx) => (
+            <button
+              key={val}
+              onClick={() => update('readyForUpload', val)}
+              className={`px-3 h-full text-xs transition-colors ${
+                filters.readyForUpload === val
+                  ? 'bg-[hsl(var(--text-primary))] font-medium text-[hsl(var(--background))]'
+                  : 'text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface))] hover:text-[hsl(var(--text-primary))]'
+              } ${idx > 0 ? 'border-l border-[hsl(var(--border))]' : ''}`}
+            >
+              {val === 'all' ? 'All' : val === 'yes' ? 'Yes' : 'No'}
+            </button>
+          ))}
+        </div>
+      </FilterField>
 
       {isActive && (
         <Button
