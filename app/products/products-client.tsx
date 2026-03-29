@@ -43,8 +43,8 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
 
   const updateUrl = useCallback((newFilters: Filters, newSearch: string) => {
     const params = new URLSearchParams();
-    if (newFilters.country) params.set('country', newFilters.country);
-    if (newFilters.city) params.set('city', newFilters.city);
+    newFilters.country.forEach((country) => params.append('country', country));
+    newFilters.city.forEach((city) => params.append('city', city));
     newFilters.productTypes.forEach(t => params.append('type', t));
     newFilters.statuses.forEach(s => params.append('status', s));
     if (newFilters.readyForUpload !== 'all') params.set('ready', newFilters.readyForUpload);
@@ -82,8 +82,8 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const filteredProducts = useMemo(() => {
     const all = products ?? [];
     return all.filter((p) => {
-      if (filters.country && p.country !== filters.country) return false;
-      if (filters.city && p.city !== filters.city) return false;
+      if (filters.country.length && !filters.country.includes(p.country ?? '')) return false;
+      if (filters.city.length && !filters.city.includes(p.city ?? '')) return false;
       if (filters.productTypes.length && !filters.productTypes.includes(p.productType ?? '')) return false;
       if (filters.statuses.length && !filters.statuses.includes(p.productStatus ?? '')) return false;
       if (filters.readyForUpload === 'yes' && !p.readyForUpload) return false;

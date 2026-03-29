@@ -1,34 +1,28 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { PRODUCT_STATUSES } from '@/lib/constants';
 import type { FiltersResponse } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
 export interface Filters {
-  country: string;
-  city: string;
+  country: string[];
+  city: string[];
   productTypes: string[];
   statuses: string[];
   readyForUpload: 'all' | 'yes' | 'no';
 }
 
 export const DEFAULT_FILTERS: Filters = {
-  country: '',
-  city: '',
+  country: [],
+  city: [],
   productTypes: [],
   statuses: [],
   readyForUpload: 'all',
@@ -60,12 +54,18 @@ function MultiSelectPopover({
   options,
   selected,
   onChange,
+  searchable = false,
+  emptyMessage = 'No results found.',
 }: {
   label: string;
   options: string[];
   selected: string[];
   onChange: (next: string[]) => void;
+  searchable?: boolean;
+  emptyMessage?: string;
 }) {
+  const [query, setQuery] = useState('');
+
   const toggle = (value: string) => {
     if (selected.includes(value)) {
       onChange(selected.filter((v) => v !== value));
@@ -75,6 +75,11 @@ function MultiSelectPopover({
   };
 
   const hasSelection = selected.length > 0;
+  const filteredOptions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return options;
+    return options.filter((opt) => opt.toLowerCase().includes(normalizedQuery));
+  }, [options, query]);
 
   return (
     <Popover>
@@ -82,7 +87,7 @@ function MultiSelectPopover({
         <Button
           variant="outline"
           size="sm"
-          className={`gap-1.5 ${hasSelection ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
+          className={`justify-between gap-1.5 ${hasSelection ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
         >
           {label}
           {hasSelection && (
@@ -92,22 +97,37 @@ function MultiSelectPopover({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
+      <PopoverContent className="w-64 p-0" align="start">
+        {searchable && (
+          <div className="border-b border-[hsl(var(--border))] p-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="flex h-8 w-full rounded-md border border-[hsl(var(--border))] bg-transparent px-2 text-xs shadow-sm outline-none transition-colors placeholder:text-[hsl(var(--text-tertiary))] focus-visible:ring-1 focus-visible:ring-[hsl(var(--ring))]"
+            />
+          </div>
+        )}
         <div className="max-h-64 overflow-y-auto">
           <div className="p-2 space-y-0.5">
-            {options.map((opt) => (
-              <label
-                key={opt}
-                className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-[hsl(var(--surface))]"
-              >
-                <Checkbox
-                  checked={selected.includes(opt)}
-                  onCheckedChange={() => toggle(opt)}
-                  className="h-3.5 w-3.5"
-                />
-                <span className="text-xs">{opt}</span>
-              </label>
-            ))}
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <label
+                  key={opt}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-[hsl(var(--surface))]"
+                >
+                  <Checkbox
+                    checked={selected.includes(opt)}
+                    onCheckedChange={() => toggle(opt)}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span className="text-xs">{opt}</span>
+                </label>
+              ))
+            ) : (
+              <div className="px-1 py-3 text-xs text-[hsl(var(--text-tertiary))]">{emptyMessage}</div>
+            )}
           </div>
         </div>
         {hasSelection && (
@@ -144,8 +164,8 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
   };
 
   const isActive =
-    filters.country !== '' ||
-    filters.city !== '' ||
+    filters.country.length > 0 ||
+    filters.city.length > 0 ||
     filters.productTypes.length > 0 ||
     filters.statuses.length > 0 ||
     filters.readyForUpload !== 'all';
@@ -153,49 +173,25 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-3">
       <FilterField label="Country">
-        <Select
-          value={filters.country || '__all__'}
-          onValueChange={(v) => update('country', v === '__all__' ? '' : v)}
-        >
-          <SelectTrigger
-            className={`w-[148px] ${filters.country ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
-          >
-            <SelectValue placeholder="Country" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__" className="text-xs">
-              All Countries
-            </SelectItem>
-            {countries.map((c) => (
-              <SelectItem key={c} value={c} className="text-xs">
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelectPopover
+          label="Country"
+          options={countries}
+          selected={filters.country}
+          onChange={(v) => update('country', v)}
+          searchable
+          emptyMessage="No countries found."
+        />
       </FilterField>
 
       <FilterField label="City">
-        <Select
-          value={filters.city || '__all__'}
-          onValueChange={(v) => update('city', v === '__all__' ? '' : v)}
-        >
-          <SelectTrigger
-            className={`w-[148px] ${filters.city ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
-          >
-            <SelectValue placeholder="City" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__" className="text-xs">
-              All Cities
-            </SelectItem>
-            {cities.map((c) => (
-              <SelectItem key={c} value={c} className="text-xs">
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelectPopover
+          label="City"
+          options={cities}
+          selected={filters.city}
+          onChange={(v) => update('city', v)}
+          searchable
+          emptyMessage="No cities found."
+        />
       </FilterField>
 
       <FilterField label="Product Type">

@@ -6,10 +6,14 @@ import { DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar'
 
 export function ProductsPageClient() {
   const searchParams = useSearchParams();
+  const countries = searchParams.getAll('country');
+  const cities = searchParams.getAll('city');
+  const legacyCountry = searchParams.get('country');
+  const legacyCity = searchParams.get('city');
 
   const initialFilters: Filters = {
-    country: searchParams.get('country') ?? DEFAULT_FILTERS.country,
-    city: searchParams.get('city') ?? DEFAULT_FILTERS.city,
+    country: countries.length > 0 ? countries : (legacyCountry ? [legacyCountry] : DEFAULT_FILTERS.country),
+    city: cities.length > 0 ? cities : (legacyCity ? [legacyCity] : DEFAULT_FILTERS.city),
     productTypes: searchParams.getAll('type'),
     statuses: searchParams.getAll('status'),
     readyForUpload: (searchParams.get('ready') ?? 'all') as 'all' | 'yes' | 'no',
