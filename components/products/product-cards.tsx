@@ -1,12 +1,12 @@
 'use client';
 
-import { Clock, MapPin, Pencil } from 'lucide-react';
+import { Clock, ExternalLink, MapPin, Pencil } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { getProductStatusClasses } from '@/lib/design-system';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, parseLinkField } from '@/lib/utils';
 
 interface ProductCardsProps {
   data: TourProduct[];
@@ -35,9 +35,29 @@ function ProductCard({ product, onClick }: { product: TourProduct; onClick: () =
           <StatusBadge status={product.productStatus} />
         </div>
         <div>
-          <h3 className="line-clamp-2 text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
-            {product.productName || product.link || `${product.city}, ${product.country}`}
-          </h3>
+          {(() => {
+            const linkParsed = product.link ? parseLinkField(product.link) : null;
+            const linkUrl = linkParsed?.url || null;
+            const displayName = product.productName || linkParsed?.text || product.link || `${product.city}, ${product.country}`;
+            return (
+              <div className="flex items-start gap-1">
+                <h3 className="line-clamp-2 text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
+                  {displayName}
+                </h3>
+                {linkUrl && (
+                  <a
+                    href={linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-0.5 shrink-0 text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+            );
+          })()}
           <div className="mt-1.5 flex items-center gap-3 text-xs text-[hsl(var(--text-secondary))]">
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-3 w-3" />

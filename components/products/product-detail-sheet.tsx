@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Clock, MapPin, Users, X } from 'lucide-react';
+import { Check, Clock, ExternalLink, MapPin, Users, X } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, NUMBER_FIELDS } from '@/lib/constants';
 import { getProductStatusClasses } from '@/lib/design-system';
+import { parseLinkField } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
@@ -265,7 +266,26 @@ export function ProductDetailSheet({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <SheetTitle className="text-xl font-semibold tracking-tight">
-                {draftProduct.productName || draftProduct.link || `${draftProduct.city}, ${draftProduct.country}`}
+                {(() => {
+                  const linkParsed = draftProduct.link ? parseLinkField(draftProduct.link) : null;
+                  const displayName = draftProduct.productName || linkParsed?.text || linkParsed?.url || `${draftProduct.city}, ${draftProduct.country}`;
+                  const linkUrl = linkParsed?.url || null;
+                  return (
+                    <span className="inline-flex items-center gap-1.5">
+                      {displayName}
+                      {linkUrl && (
+                        <a
+                          href={linkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </span>
+                  );
+                })()}
               </SheetTitle>
               <SheetDescription className="mt-1 flex flex-wrap items-center gap-3 text-sm">
                 <span className="inline-flex items-center gap-1">
