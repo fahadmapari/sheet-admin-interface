@@ -52,18 +52,7 @@ function ProductCard({ product, onClick }: { product: TourProduct; onClick: () =
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 space-y-3">
-        <div className="flex items-center justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-2">
-          <div>
-            <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2B</div>
-            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2bPriceInstant || '-'}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2C</div>
-            <div className="text-sm font-medium text-[hsl(var(--text-primary))]">{product.b2cPriceInstant || '-'}</div>
-          </div>
-        </div>
-
+      <CardContent className="pt-0">
         <div className="flex items-center justify-end">
           <Button
             variant="ghost"

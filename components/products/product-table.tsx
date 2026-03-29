@@ -114,26 +114,6 @@ function buildColumns(
       ),
     },
     {
-      id: 'b2b',
-      accessorKey: 'b2bPriceInstant',
-      header: 'B2B',
-      cell: ({ row }) => (
-        <span className="font-medium tabular-nums text-[hsl(var(--text-primary))]">
-          {row.original.b2bPriceInstant || '-'}
-        </span>
-      ),
-    },
-    {
-      id: 'b2c',
-      accessorKey: 'b2cPriceInstant',
-      header: 'B2C',
-      cell: ({ row }) => (
-        <span className="font-medium tabular-nums text-[hsl(var(--text-primary))]">
-          {row.original.b2cPriceInstant || '-'}
-        </span>
-      ),
-    },
-    {
       id: 'status',
       accessorKey: 'productStatus',
       header: 'Status',
