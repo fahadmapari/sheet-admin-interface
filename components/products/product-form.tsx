@@ -31,7 +31,8 @@ const schema = z.object({
   country: z.string().min(1, 'Country is required'),
   city: z.string().min(1, 'City is required'),
   productType: z.string().min(1, 'Product type is required'),
-  link: z.string().min(1, 'Link is required'),
+  linkTitle: z.string().optional(),
+  linkUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   productName: z.string().optional(),
   duration: z.string().optional(),
   productStatus: z.string().optional(),
@@ -70,10 +71,15 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
   }, [open, reset]);
 
   const onSubmit = async (data: FormData) => {
+    const { linkTitle, linkUrl, ...rest } = data;
+    const title = linkTitle?.trim() ?? '';
+    const url = linkUrl?.trim() ?? '';
+    const link = title && url ? `${title}||${url}` : url || title || undefined;
+
     const res = await fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...rest, link }),
     });
     if (res.ok) {
       toast.success('Product added');
@@ -142,19 +148,28 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
               )}
             </div>
 
-            {/* Link */}
-            <div className="space-y-1.5">
-              <Label htmlFor="link">
-                Link <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="link"
-                placeholder="e.g. https://..."
-                {...register('link')}
-              />
-              {errors.link && (
-                <p className="text-xs text-destructive">{errors.link.message}</p>
-              )}
+            {/* Link Title + URL */}
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="linkTitle">Link Title</Label>
+                <Input
+                  id="linkTitle"
+                  placeholder="e.g. Tour Document"
+                  {...register('linkTitle')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="linkUrl">Link URL</Label>
+                <Input
+                  id="linkUrl"
+                  placeholder="https://..."
+                  type="url"
+                  {...register('linkUrl')}
+                />
+                {errors.linkUrl && (
+                  <p className="text-xs text-destructive">{errors.linkUrl.message}</p>
+                )}
+              </div>
             </div>
 
             {/* Product Name */}

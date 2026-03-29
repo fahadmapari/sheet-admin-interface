@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchAllRows, fetchColumnHyperlinks, appendRow } from '@/lib/sheets';
-import { rowToProduct, productToRow } from '@/lib/utils';
+import { fetchAllRows, fetchColumnHyperlinks, appendRow, updateCellHyperlink } from '@/lib/sheets';
+import { rowToProduct, productToRow, parseLinkField } from '@/lib/utils';
 import type { TourProduct } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,16 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as Omit<TourProduct, 'rowIndex'>;
     const rowValues = productToRow(body);
-    await appendRow(rowValues);
+    const newRowIndex = await appendRow(rowValues);
+
+    // If link contains a URL, set the hyperlink on the newly appended row
+    if (body.link) {
+      const { text, url } = parseLinkField(body.link);
+      if (url) {
+        await updateCellHyperlink(newRowIndex, LINK_COL_INDEX, text, url);
+      }
+    }
+
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

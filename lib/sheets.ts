@@ -184,17 +184,23 @@ export async function updateCell(
 /**
  * Append a new row at the end of the data.
  * values should be an array of up to 70 cell values.
+ * Returns the 1-based sheet row index of the newly appended row.
  */
-export async function appendRow(values: string[]): Promise<void> {
+export async function appendRow(values: string[]): Promise<number> {
   const sheets = getSheetsClient();
   try {
-    await sheets.spreadsheets.values.append({
+    const response = await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: NET_RATES_RANGE,
       valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [values] },
     });
+    // updatedRange is like "'NET RATES'!A101:BR101" — extract the row number
+    const updatedRange = response.data.updates?.updatedRange ?? '';
+    const match = updatedRange.match(/:?[A-Z]+(\d+)/);
+    if (!match) throw new Error(`Could not parse row index from updatedRange: ${updatedRange}`);
+    return parseInt(match[1], 10);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to append row: ${message}`);
