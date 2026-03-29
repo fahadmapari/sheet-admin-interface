@@ -6,7 +6,6 @@ import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -94,7 +93,7 @@ function MultiSelectPopover({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
-        <ScrollArea className="max-h-64">
+        <div className="max-h-64 overflow-y-auto">
           <div className="p-2 space-y-0.5">
             {options.map((opt) => (
               <label
@@ -110,7 +109,7 @@ function MultiSelectPopover({
               </label>
             ))}
           </div>
-        </ScrollArea>
+        </div>
         {hasSelection && (
           <>
             <Separator />
