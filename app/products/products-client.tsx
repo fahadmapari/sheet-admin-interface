@@ -39,6 +39,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [deleteTarget, setDeleteTarget] = useState<TourProduct | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
+  const selectedProductRowIndex = selectedProduct?.rowIndex ?? null;
 
   const updateUrl = useCallback((newFilters: Filters, newSearch: string) => {
     const params = new URLSearchParams();
@@ -61,6 +62,18 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const { data: products, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
   });
+
+  useEffect(() => {
+    if (!selectedProductRowIndex || !products) return;
+
+    const latestProduct = products.find((product) => product.rowIndex === selectedProductRowIndex);
+    if (!latestProduct) {
+      setSelectedProduct(null);
+      return;
+    }
+
+    setSelectedProduct(latestProduct);
+  }, [products, selectedProductRowIndex]);
 
   useEffect(() => {
     const timer = setTimeout(() => setGlobalSearch(searchInput), 200);
@@ -206,6 +219,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             onDeleteRequest={(product) => setDeleteTarget(product)}
+            onEditRequest={(product) => setSelectedProduct(product)}
             onRowClick={(product) => setSelectedProduct(product)}
           />
         </div>
@@ -222,6 +236,10 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
         product={selectedProduct}
         open={selectedProduct !== null}
         onOpenChange={(open) => { if (!open) setSelectedProduct(null); }}
+        onSaved={(product) => {
+          setSelectedProduct(product);
+          mutate('/api/products');
+        }}
       />
       <ProductForm open={addOpen} onClose={() => setAddOpen(false)} />
       <DeleteConfirmDialog

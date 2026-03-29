@@ -215,12 +215,13 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
       <div className="relative">
         <Select
           defaultOpen
-          value={inputValue}
+          value={inputValue || '__none__'}
           onValueChange={(val) => {
-            setInputValue(val);
+            const nextValue = val === '__none__' ? '' : val;
+            setInputValue(nextValue);
             setEditing(false);
             const original = fieldValueToString(field, rawValue);
-            if (val !== original) save(val);
+            if (nextValue !== original) save(nextValue);
           }}
           onOpenChange={(open) => {
             if (!open) setEditing(false);
@@ -230,6 +231,9 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="__none__" className="text-xs">
+              —
+            </SelectItem>
             {PRODUCT_STATUSES.map((s) => (
               <SelectItem key={s} value={s} className="text-xs">
                 {s}
@@ -262,12 +266,13 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
       <div className="relative">
         <Select
           defaultOpen
-          value={inputValue || undefined}
+          value={inputValue || '__none__'}
           onValueChange={(val) => {
-            setInputValue(val);
+            const nextValue = val === '__none__' ? '' : val;
+            setInputValue(nextValue);
             setEditing(false);
             const original = fieldValueToString(field, rawValue);
-            if (val !== original) save(val);
+            if (nextValue !== original) save(nextValue);
           }}
           onOpenChange={(open) => {
             if (!open) setEditing(false);
@@ -277,6 +282,9 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="__none__" className="text-xs">
+              —
+            </SelectItem>
             {PIC_VALUES.map((p) => (
               <SelectItem key={p} value={p} className="text-xs">
                 {p}

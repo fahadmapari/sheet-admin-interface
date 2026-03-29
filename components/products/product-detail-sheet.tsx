@@ -1,21 +1,27 @@
 'use client';
 
-import Link from 'next/link';
-import { ExternalLink, Pencil, X, Check, Clock, MapPin, Users, Globe } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, Clock, Globe, MapPin, Users, X } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
-import { BOOLEAN_FIELDS } from '@/lib/constants';
+import { BOOLEAN_FIELDS, NUMBER_FIELDS } from '@/lib/constants';
 import { getProductStatusClasses } from '@/lib/design-system';
 import {
   Sheet,
   SheetContent,
-  SheetTitle,
   SheetDescription,
+  SheetTitle,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { InlineEditCell } from './inline-edit-cell';
 
-// OTA channel fields and their display names
+const REQUIRED_STRING_FIELDS = new Set<keyof Omit<TourProduct, 'rowIndex'>>([
+  'country',
+  'city',
+  'productType',
+]);
+
 const OTA_CHANNELS: { field: keyof TourProduct; label: string }[] = [
   { field: 'otaTravmonde', label: 'Travmonde' },
   { field: 'otaBookableTours', label: 'Bookable Tours' },
@@ -32,7 +38,6 @@ const OTA_CHANNELS: { field: keyof TourProduct; label: string }[] = [
   { field: 'otaTourHQ', label: 'TourHQ' },
 ];
 
-// Detail sections with their fields
 const DETAIL_SECTIONS: {
   id: string;
   label: string;
@@ -143,119 +148,150 @@ const DETAIL_SECTIONS: {
   },
 ];
 
-function formatFieldValue(product: TourProduct, key: keyof TourProduct): string {
-  const value = product[key];
-  if (value === null || value === undefined || value === '') return '—';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'number') return String(value);
-  return String(value);
-}
-
-function isUrl(value: string): boolean {
-  return value.startsWith('http://') || value.startsWith('https://');
-}
-
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
   return <Badge className={getProductStatusClasses(status)}>{status}</Badge>;
 }
 
-function FieldValue({ product, field }: { product: TourProduct; field: keyof TourProduct }) {
+function coercePatchedValue(
+  field: keyof Omit<TourProduct, 'rowIndex'>,
+  rawValue: string,
+): TourProduct[keyof Omit<TourProduct, 'rowIndex'>] {
+  if (BOOLEAN_FIELDS.has(field)) {
+    return rawValue === 'TRUE';
+  }
+
+  if (NUMBER_FIELDS.has(field)) {
+    if (rawValue === '') return null;
+    const parsed = Number(rawValue);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  if (rawValue === '') {
+    return REQUIRED_STRING_FIELDS.has(field) ? '' : null;
+  }
+
+  return rawValue;
+}
+
+export function getActiveOtaCount(product: TourProduct): number {
+  return OTA_CHANNELS.filter((channel) => {
+    const value = product[channel.field];
+    return value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
+  }).length;
+}
+
+interface EditableFieldValueProps {
+  product: TourProduct;
+  field: keyof Omit<TourProduct, 'rowIndex'>;
+  onSaved: (field: keyof Omit<TourProduct, 'rowIndex'>, value: string) => void;
+}
+
+function EditableFieldValue({ product, field, onSaved }: EditableFieldValueProps) {
   const value = product[field];
-  const display = formatFieldValue(product, field);
 
   if (field === 'productStatus') {
-    return <StatusBadge status={value as string | null} />;
+    return <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />;
   }
 
   if (BOOLEAN_FIELDS.has(field)) {
     return (
-      <Badge variant={value ? 'success' : 'outline'} className="gap-1.5">
-        {value ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
-        {value ? 'Yes' : 'No'}
-      </Badge>
+      <div className="flex justify-end">
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />
+      </div>
     );
   }
 
-  if (display !== '—' && isUrl(display)) {
+  if (field.startsWith('ota')) {
+    const active = value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
     return (
-      <a
-        href={display}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 break-all text-sm text-[hsl(var(--accent))] hover:underline"
-      >
-        {display.length > 50 ? display.slice(0, 50) + '...' : display}
-        <ExternalLink className="h-3 w-3 flex-shrink-0" />
-      </a>
+      <span className={active ? 'text-[hsl(var(--text-primary))]' : 'text-[hsl(var(--text-secondary))]'}>
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />
+      </span>
     );
   }
 
-  return <span className="text-sm text-[hsl(var(--text-primary))]">{display}</span>;
-}
-
-export function getActiveOtaCount(product: TourProduct): number {
-  return OTA_CHANNELS.filter(
-    (ch) => {
-      const val = product[ch.field];
-      return val && String(val).trim() !== '' && String(val).toLowerCase() !== 'no';
-    }
-  ).length;
+  return (
+    <div className="min-w-0 max-w-[260px] text-right">
+      <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />
+    </div>
+  );
 }
 
 interface ProductDetailSheetProps {
   product: TourProduct | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSaved?: (product: TourProduct) => void;
 }
 
-export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetailSheetProps) {
-  if (!product) return null;
+export function ProductDetailSheet({
+  product,
+  open,
+  onOpenChange,
+  onSaved,
+}: ProductDetailSheetProps) {
+  const [draftProduct, setDraftProduct] = useState<TourProduct | null>(product);
 
-  const activeOtas = OTA_CHANNELS.filter((ch) => {
-    const val = product[ch.field];
-    return val && String(val).trim() !== '' && String(val).toLowerCase() !== 'no';
+  useEffect(() => {
+    setDraftProduct(product);
+  }, [product]);
+
+  if (!draftProduct) return null;
+
+  const activeOtas = OTA_CHANNELS.filter((channel) => {
+    const value = draftProduct[channel.field];
+    return value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
   });
+
+  const handleFieldSaved = (field: keyof Omit<TourProduct, 'rowIndex'>, rawValue: string) => {
+    setDraftProduct((current) => {
+      if (!current) return current;
+
+      const updatedProduct = {
+        ...current,
+        [field]: coercePatchedValue(field, rawValue),
+      } as TourProduct;
+
+      onSaved?.(updatedProduct);
+      return updatedProduct;
+    });
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-2xl w-full p-0 flex flex-col" side="right">
         <div className="space-y-3 border-b border-[hsl(var(--border))] px-6 py-5">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <SheetTitle className="text-xl font-semibold tracking-tight">
-                {product.productName || product.link || `${product.city}, ${product.country}`}
+                {draftProduct.productName || draftProduct.link || `${draftProduct.city}, ${draftProduct.country}`}
               </SheetTitle>
               <SheetDescription className="mt-1 flex flex-wrap items-center gap-3 text-sm">
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
-                  {product.city}, {product.country}
+                  {draftProduct.city}, {draftProduct.country}
                 </span>
-                {product.duration && (
+                {draftProduct.duration && (
                   <span className="inline-flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5" />
-                    {product.duration}
+                    {draftProduct.duration}
                   </span>
                 )}
-                {product.maxPax && (
+                {draftProduct.maxPax && (
                   <span className="inline-flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" />
-                    Max {product.maxPax}
+                    Max {draftProduct.maxPax}
                   </span>
                 )}
               </SheetDescription>
             </div>
           </div>
+
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={product.productStatus} />
-            {product.productType && (
-              <Badge variant="default">{product.productType}</Badge>
-            )}
-            {product.pic && (
-              <Badge variant="outline">
-                {product.pic}
-              </Badge>
-            )}
+            <StatusBadge status={draftProduct.productStatus} />
+            {draftProduct.productType && <Badge variant="default">{draftProduct.productType}</Badge>}
+            {draftProduct.pic && <Badge variant="outline">{draftProduct.pic}</Badge>}
             {activeOtas.length > 0 && (
               <Badge variant="outline" className="gap-1">
                 <Globe className="h-3 w-3 mr-1" />
@@ -263,48 +299,58 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
               </Badge>
             )}
           </div>
+
+          <p className="text-xs text-[hsl(var(--text-secondary))]">
+            Click any value to edit. Changes save automatically.
+          </p>
         </div>
 
         <ScrollArea className="flex-1">
           <div className="space-y-6 px-6 py-4">
-            {(product.b2bPriceInstant || product.b2cPriceInstant) && (
+            {(draftProduct.b2bPriceInstant || draftProduct.b2cPriceInstant) && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3">
-                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2B Instant</div>
+                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+                    B2B Instant
+                  </div>
                   <div className="mt-1 text-xl font-semibold tracking-tight">
-                    {product.b2bPriceInstant || '—'}
+                    {draftProduct.b2bPriceInstant || '—'}
                   </div>
                 </div>
                 <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3">
-                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">B2C Instant</div>
+                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
+                    B2C Instant
+                  </div>
                   <div className="mt-1 text-xl font-semibold tracking-tight">
-                    {product.b2cPriceInstant || '—'}
+                    {draftProduct.b2cPriceInstant || '—'}
                   </div>
                 </div>
               </div>
             )}
 
-            {DETAIL_SECTIONS.map((section) => {
-              return (
-                <div key={section.id}>
-                  <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
-                    {section.label}
-                  </h3>
-                  <div className="rounded-lg border border-[hsl(var(--border))]">
-                    <div className="divide-y">
-                      {section.fields.map((f) => (
-                        <div key={f.key} className="flex items-start justify-between gap-4 px-4 py-2.5">
-                          <span className="flex-shrink-0 text-sm text-[hsl(var(--text-secondary))]">{f.label}</span>
-                          <div className="text-right">
-                            <FieldValue product={product} field={f.key} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+            {DETAIL_SECTIONS.map((section) => (
+              <div key={section.id}>
+                <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
+                  {section.label}
+                </h3>
+                <div className="rounded-lg border border-[hsl(var(--border))]">
+                  <div className="divide-y">
+                    {section.fields.map((field) => (
+                      <div key={field.key} className="flex items-start justify-between gap-4 px-4 py-2.5">
+                        <span className="flex-shrink-0 text-sm text-[hsl(var(--text-secondary))]">
+                          {field.label}
+                        </span>
+                        <EditableFieldValue
+                          product={draftProduct}
+                          field={field.key as keyof Omit<TourProduct, 'rowIndex'>}
+                          onSaved={handleFieldSaved}
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
 
             <div>
               <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
@@ -312,22 +358,29 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
               </h3>
               <div className="rounded-lg border border-[hsl(var(--border))] p-4">
                 <div className="flex flex-wrap gap-2">
-                  {OTA_CHANNELS.map((ch) => {
-                    const val = product[ch.field];
-                    const active = val && String(val).trim() !== '' && String(val).toLowerCase() !== 'no';
+                  {OTA_CHANNELS.map((channel) => {
+                    const value = draftProduct[channel.field];
+                    const active = value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
+
                     return (
-                      <Badge
-                        key={ch.field}
-                        variant="outline"
+                      <div
+                        key={channel.field}
                         className={
                           active
-                            ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/15 dark:text-blue-300'
-                            : 'border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--text-secondary))]'
+                            ? 'flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/15 dark:text-blue-300'
+                            : 'flex items-center gap-2 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-1 text-[hsl(var(--text-secondary))]'
                         }
                       >
                         {active ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
-                        {ch.label}
-                      </Badge>
+                        <span className="text-xs font-medium">{channel.label}</span>
+                        <div className="max-w-[120px] text-xs">
+                          <InlineEditCell
+                            product={draftProduct}
+                            field={channel.field as keyof Omit<TourProduct, 'rowIndex'>}
+                            onSaved={(field, next) => handleFieldSaved(field as keyof Omit<TourProduct, 'rowIndex'>, next)}
+                          />
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -337,14 +390,11 @@ export function ProductDetailSheet({ product, open, onOpenChange }: ProductDetai
         </ScrollArea>
 
         <div className="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] px-6 py-4">
+          <p className="text-xs text-[hsl(var(--text-secondary))]">
+            Row {draftProduct.rowIndex}
+          </p>
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Close
-          </Button>
-          <Button size="sm" asChild>
-            <Link href={`/products/${product.rowIndex}`}>
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              Edit Product
-            </Link>
           </Button>
         </div>
       </SheetContent>

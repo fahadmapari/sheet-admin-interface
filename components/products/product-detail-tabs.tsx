@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -453,9 +453,15 @@ function FieldRenderer({
 
 interface ProductDetailClientProps {
   product: TourProduct;
+  mode?: 'page' | 'sheet';
+  onSaved?: (product: TourProduct) => void;
 }
 
-export function ProductDetailClient({ product }: ProductDetailClientProps) {
+export function ProductDetailClient({
+  product,
+  mode = 'page',
+  onSaved,
+}: ProductDetailClientProps) {
   const defaultValues = useMemo(() => buildDefaultValues(product), [product]);
 
   const {
@@ -469,14 +475,29 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     defaultValues,
   });
 
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
+
   const onSubmit = async (data: FormValues) => {
     const res = await fetch(`/api/products/${product.rowIndex}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (res.ok) toast.success('Product saved');
-    else toast.error('Failed to save product');
+    if (res.ok) {
+      const updatedProduct: TourProduct = {
+        ...product,
+        ...data,
+        rowIndex: product.rowIndex,
+      };
+      reset(data);
+      onSaved?.(updatedProduct);
+      toast.success('Product saved');
+      return;
+    }
+
+    toast.error('Failed to save product');
   };
 
   const handleReset = () => {
@@ -490,6 +511,73 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     `Row ${product.rowIndex}`;
 
   const status = product.productStatus;
+  const embedded = mode === 'sheet';
+  const renderActionButtons = () => (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleReset}
+        disabled={isSubmitting}
+      >
+        <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+        Reset
+      </Button>
+      <Button type="submit" size="sm" disabled={isSubmitting}>
+        <Save className="mr-1.5 h-3.5 w-3.5" />
+        {isSubmitting ? 'Saving…' : 'Save'}
+      </Button>
+    </>
+  );
+  const form = (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div className="mb-4 flex justify-end gap-2">
+        {renderActionButtons()}
+      </div>
+
+      <Tabs defaultValue={COLUMN_GROUPS[0].id}>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="flex h-auto w-max flex-wrap gap-0.5">
+            {COLUMN_GROUPS.map((group) => (
+              <TabsTrigger key={group.id} value={group.id} className="px-2.5 py-1.5 text-xs">
+                {group.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+
+        {COLUMN_GROUPS.map((group) => (
+          <TabsContent key={group.id} value={group.id} className="mt-4">
+            <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-5">
+              <h2 className="mb-4 text-sm font-medium text-[hsl(var(--text-secondary))]">
+                {group.label}
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(group.fields as readonly string[]).map((fieldName) => (
+                  <FieldRenderer
+                    key={fieldName}
+                    fieldName={fieldName as keyof Omit<TourProduct, 'rowIndex'>}
+                    control={control}
+                    register={register}
+                    errors={errors}
+                  />
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      <div className="mt-6 flex justify-end gap-2">
+        {renderActionButtons()}
+      </div>
+    </form>
+  );
+
+  if (embedded) {
+    return form;
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -521,74 +609,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="mb-4 flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleReset}
-            disabled={isSubmitting}
-          >
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            Reset
-          </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting}>
-            <Save className="mr-1.5 h-3.5 w-3.5" />
-            {isSubmitting ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
-
-        <Tabs defaultValue={COLUMN_GROUPS[0].id}>
-          <div className="overflow-x-auto pb-1">
-            <TabsList className="flex w-max gap-0.5 h-auto flex-wrap">
-              {COLUMN_GROUPS.map((group) => (
-                <TabsTrigger key={group.id} value={group.id} className="text-xs px-2.5 py-1.5">
-                  {group.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-
-          {COLUMN_GROUPS.map((group) => (
-            <TabsContent key={group.id} value={group.id} className="mt-4">
-              <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-5">
-                <h2 className="mb-4 text-sm font-medium text-[hsl(var(--text-secondary))]">
-                  {group.label}
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {(group.fields as readonly string[]).map((fieldName) => (
-                    <FieldRenderer
-                      key={fieldName}
-                      fieldName={fieldName as keyof Omit<TourProduct, 'rowIndex'>}
-                      control={control}
-                      register={register}
-                      errors={errors}
-                    />
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleReset}
-            disabled={isSubmitting}
-          >
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            Reset
-          </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting}>
-            <Save className="mr-1.5 h-3.5 w-3.5" />
-            {isSubmitting ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
-      </form>
+      {form}
     </div>
   );
 }
