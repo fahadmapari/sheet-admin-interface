@@ -84,7 +84,6 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState(() => fieldValueToString(field, rawValue));
   const [saving, setSaving] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const isMountedRef = useRef(true);
   const savingRef = useRef(false);
@@ -103,12 +102,11 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     }
   }, [editing]);
 
-  // Track mounted state and clear debounce timer on unmount
+  // Track mounted state
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
 
@@ -118,6 +116,8 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
       if (savingRef.current) return; // prevent concurrent saves
       savingRef.current = true;
       setSaving(true);
+      // Optimistic update — notify parent immediately so UI reflects change
+      onSaved(field, valueToSave);
       try {
         const res = await fetch(`/api/products/${product.rowIndex}`, {
           method: 'PATCH',
@@ -129,18 +129,13 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
           const data = await res.json().catch(() => ({}));
           throw new Error(data?.error ?? `HTTP ${res.status}`);
         }
-        if (isMountedRef.current) {
-          onSaved(field, valueToSave);
-          toast.success('Saved');
-          setEditing(false);
-        }
       } catch (err) {
         if (isMountedRef.current) {
           const msg = err instanceof Error ? err.message : String(err);
           toast.error(`Failed to save: ${msg}`);
-          // Revert
+          // Revert optimistic update
+          onSaved(field, fieldValueToString(field, rawValue));
           setInputValue(fieldValueToString(field, rawValue));
-          setEditing(false);
         }
       } finally {
         savingRef.current = false;
@@ -152,7 +147,6 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
 
   const commitAndExit = useCallback(
     (value: string) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
       setEditing(false);
       const original = fieldValueToString(field, rawValue);
       if (value !== original) {
@@ -167,7 +161,6 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
       e.preventDefault();
       commitAndExit(inputValue);
     } else if (e.key === 'Escape') {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
       setInputValue(fieldValueToString(field, rawValue));
       setEditing(false);
     }
@@ -314,28 +307,14 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
       );
     }
     return (
-      <div className="relative">
-        <Textarea
-          ref={inputRef as RefObject<HTMLTextAreaElement>}
-          className="min-h-[60px] text-xs resize-none"
-          value={inputValue}
-          onChange={(e) => {
-            const newValue = e.target.value;
-            setInputValue(newValue);
-            if (debounceRef.current) clearTimeout(debounceRef.current);
-            debounceRef.current = setTimeout(() => {
-              save(newValue);
-            }, 300);
-          }}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-        />
-        {saving && (
-          <span className="absolute inset-0 flex items-center justify-center bg-background/50 rounded">
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
-          </span>
-        )}
-      </div>
+      <Textarea
+        ref={inputRef as RefObject<HTMLTextAreaElement>}
+        className="min-h-[60px] text-xs resize-none"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+      />
     );
   }
 
@@ -352,28 +331,14 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
   }
 
   return (
-    <div className="relative">
-      <Input
-        ref={inputRef as RefObject<HTMLInputElement>}
-        type="text"
-        className="h-7 text-xs px-1"
-        value={inputValue}
-        onChange={(e) => {
-          const newValue = e.target.value;
-          setInputValue(newValue);
-          if (debounceRef.current) clearTimeout(debounceRef.current);
-          debounceRef.current = setTimeout(() => {
-            save(newValue);
-          }, 300);
-        }}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-      />
-      {saving && (
-        <span className="absolute inset-0 flex items-center justify-center bg-background/50 rounded">
-          <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
-        </span>
-      )}
-    </div>
+    <Input
+      ref={inputRef as RefObject<HTMLInputElement>}
+      type="text"
+      className="h-7 text-xs px-1"
+      value={inputValue}
+      onChange={(e) => setInputValue(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+    />
   );
 }
