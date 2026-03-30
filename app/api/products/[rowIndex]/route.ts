@@ -16,8 +16,31 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
   try {
     const body = await req.json() as Omit<TourProduct, 'rowIndex'>;
-    const rowValues = productToRow(body);
-    await updateRow(rowIndex, rowValues);
+
+    // Resolve real row index using the link title as the identity anchor
+    const linkTitle = parseLinkField(body.link ?? '').text;
+    let targetRowIndex = rowIndex;
+    if (linkTitle) {
+      const foundRow = await findRowByProductName(linkTitle);
+      if (foundRow === null) {
+        return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      }
+      targetRowIndex = foundRow;
+    }
+
+    // Fetch the current row so we don't blank out fields not covered by this form save
+    const currentRow = await fetchRow(targetRowIndex);
+    while (currentRow.length < 70) currentRow.push('');
+
+    // Build the row from submitted body, then merge: prefer submitted non-empty values,
+    // keep current sheet value for any field the form left blank
+    const submittedRow = productToRow(body);
+    const mergedRow = currentRow.map((currentVal, i) => {
+      const submitted = submittedRow[i] ?? '';
+      return submitted !== '' ? submitted : currentVal;
+    });
+
+    await updateRow(targetRowIndex, mergedRow);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
