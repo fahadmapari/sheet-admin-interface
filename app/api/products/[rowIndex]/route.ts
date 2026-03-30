@@ -41,6 +41,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
     });
 
     await updateRow(targetRowIndex, mergedRow);
+
+    // Re-apply hyperlink URL for column F (link field) — updateRow cannot write hyperlink metadata
+    const { text: linkText, url: linkUrl } = parseLinkField(body.link ?? '');
+    if (linkUrl || linkText) {
+      await updateCellHyperlink(targetRowIndex, 5, linkText, linkUrl);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

@@ -111,7 +111,7 @@ function LinkEditCell({ product, field, onSaved }: InlineEditCellProps) {
         if (isMountedRef.current) setSaving(false);
       }
     },
-    [field, product.rowIndex, strValue, onSaved],
+    [field, product.rowIndex, product.link, strValue, onSaved],
   );
 
   const commitAndExit = useCallback(
@@ -310,7 +310,7 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
         if (isMountedRef.current) setSaving(false);
       }
     },
-    [field, product.rowIndex, rawValue, onSaved],
+    [field, product.rowIndex, product.link, rawValue, onSaved],
   );
 
   const commitAndExit = useCallback(
