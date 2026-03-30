@@ -146,4 +146,33 @@
   a {
     color: inherit;
   }
+
+  /* Sleek, discreet scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong) / 0.5);
+    border-radius: var(--radius-full);
+    transition: background 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border-strong) / 0.9);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border-strong) / 0.5) transparent;
+  }
 }
