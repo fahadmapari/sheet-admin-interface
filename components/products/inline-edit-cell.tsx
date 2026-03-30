@@ -87,7 +87,11 @@ function LinkEditCell({ product, field, onSaved }: InlineEditCellProps) {
         const res = await fetch(`/api/products/${product.rowIndex}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ field, value: combined }),
+          body: JSON.stringify({
+            field,
+            value: combined,
+            expectedLinkTitle: parseLinkField(product.link ?? '').text,
+          }),
         });
         if (!isMountedRef.current) return;
         if (!res.ok) {
@@ -282,7 +286,11 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
         const res = await fetch(`/api/products/${product.rowIndex}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ field, value: valueToSave }),
+          body: JSON.stringify({
+            field,
+            value: valueToSave,
+            expectedLinkTitle: parseLinkField(product.link ?? '').text,
+          }),
         });
         if (!isMountedRef.current) return;
         if (!res.ok) {
