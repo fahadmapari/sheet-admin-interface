@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { ArrowLeft, ExternalLink, RotateCcw, Save } from 'lucide-react';
+import { useSWRConfig } from 'swr';
 
 import type { TourProduct } from '@/lib/types';
 import {
@@ -475,6 +476,8 @@ export function ProductDetailClient({
     defaultValues,
   });
 
+  const { mutate } = useSWRConfig();
+
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues, reset]);
@@ -497,6 +500,11 @@ export function ProductDetailClient({
       return;
     }
 
+    if (res.status === 404) {
+      toast.error('Product not found — it may have been deleted. Refreshing list...');
+      mutate('/api/products');
+      return;
+    }
     toast.error('Failed to save product');
   };
 
