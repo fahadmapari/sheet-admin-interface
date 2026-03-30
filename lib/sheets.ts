@@ -1,5 +1,6 @@
 import 'server-only';
 import { google, sheets_v4 } from 'googleapis';
+import { parseLinkField } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Env var helper
@@ -347,5 +348,33 @@ export async function batchUpdateRows(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to batch update rows: ${message}`);
+  }
+}
+
+/**
+ * Scan column F (link column, 0-based index 5) to find the row whose link title
+ * matches the given string. Returns the 1-based rowIndex, or null if not found.
+ * Title is the text portion of a `title||url` or plain-text cell value.
+ */
+export async function findRowByProductName(title: string): Promise<number | null> {
+  if (!title) return null;
+  const sheets = getSheetsClient();
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `'${NET_RATES_SHEET}'!F2:F`,
+    });
+    const values = response.data.values ?? [];
+    for (let i = 0; i < values.length; i++) {
+      const cell = String(values[i]?.[0] ?? '');
+      const { text } = parseLinkField(cell);
+      if (text === title) {
+        return i + 2; // i=0 → sheet row 2 (first data row)
+      }
+    }
+    return null;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to find row by product name "${title}": ${message}`);
   }
 }
