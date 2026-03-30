@@ -60,6 +60,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const { mutate } = useSWRConfig();
   const { data: products, error, isLoading } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
+    refreshInterval: 30_000,
   });
 
   useEffect(() => {
