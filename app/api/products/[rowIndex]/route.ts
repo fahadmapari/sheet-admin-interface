@@ -1,6 +1,6 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { updateRow, updateCell, updateCellHyperlink, deleteRow } from '@/lib/sheets';
+import { updateRow, updateCell, updateCellHyperlink, deleteRow, findRowByProductName, fetchRow } from '@/lib/sheets';
 import { productToRow, parseLinkField } from '@/lib/utils';
 import { FIELD_TO_COL } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
@@ -31,16 +31,28 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
-    const body = await req.json() as { field: string; value: string };
+    const body = await req.json() as { field: string; value: string; expectedLinkTitle?: string };
     const colIndex = FIELD_TO_COL[body.field as keyof typeof FIELD_TO_COL];
     if (colIndex === undefined) {
       return NextResponse.json({ error: `Unknown field: ${body.field}` }, { status: 400 });
     }
+
+    // Resolve real row index unless the link field itself is being changed
+    // (when editing the link, the title is changing so we can't use it for identity)
+    let targetRowIndex = rowIndex;
+    if (body.field !== 'link' && body.expectedLinkTitle) {
+      const foundRow = await findRowByProductName(body.expectedLinkTitle);
+      if (foundRow === null) {
+        return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      }
+      targetRowIndex = foundRow;
+    }
+
     if (body.field === 'link') {
       const { text, url } = parseLinkField(body.value ?? '');
-      await updateCellHyperlink(rowIndex, colIndex, text, url);
+      await updateCellHyperlink(targetRowIndex, colIndex, text, url);
     } else {
-      await updateCell(rowIndex, colIndex, body.value);
+      await updateCell(targetRowIndex, colIndex, body.value);
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
