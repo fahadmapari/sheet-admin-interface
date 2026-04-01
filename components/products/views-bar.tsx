@@ -57,6 +57,8 @@ export function ViewsBar({
       {customViews.map((view) => (
         <span
           key={view.id}
+          role="group"
+          aria-label={view.name}
           className={cn(
             'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
             activeViewId === view.id
@@ -133,15 +135,16 @@ function AddCustomViewDialog({
     });
   }
 
+  const canSave = name.trim().length > 0 && selectedColumns.size > 0;
+
   function handleSave() {
+    if (!canSave) return;
     onSave({
       id: crypto.randomUUID(),
       name: name.trim(),
       columns: [...selectedColumns],
     });
   }
-
-  const canSave = name.trim().length > 0 && selectedColumns.size > 0;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -154,6 +157,7 @@ function AddCustomViewDialog({
             placeholder="View name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && canSave) handleSave(); }}
             autoFocus
           />
           <ScrollArea className="h-72 rounded-md border border-[hsl(var(--border))] p-3">
