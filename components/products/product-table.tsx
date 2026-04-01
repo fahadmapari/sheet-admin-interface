@@ -177,20 +177,13 @@ function RowActionsMenu({
 
 function SkeletonTable() {
   return (
-    <div className="animate-pulse space-y-1">
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="flex gap-3 px-4 py-3">
-          <div className="h-4 w-4 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-48 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-28 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-20 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-16 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-16 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-12 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-16 rounded bg-[hsl(var(--surface-raised))]" />
-          <div className="h-4 w-20 rounded bg-[hsl(var(--surface-raised))]" />
-        </div>
-      ))}
+    <div className="animate-pulse rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] overflow-hidden">
+      <div className="h-10 border-b border-[hsl(var(--border))] bg-[hsl(var(--surface))]" />
+      <div className="p-3 space-y-2">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="h-10 rounded-md bg-[hsl(var(--surface-raised))]" />
+        ))}
+      </div>
     </div>
   );
 }
