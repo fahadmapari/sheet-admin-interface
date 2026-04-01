@@ -10,12 +10,14 @@ import {
   type ColumnDef,
   type SortingState,
   type RowSelectionState,
+  type VisibilityState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
+import { COLUMN_GROUPS, FIELD_LABELS } from '@/lib/constants';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,6 +32,26 @@ import { parseLinkField } from '@/lib/utils';
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-[hsl(var(--text-tertiary))]">-</span>;
   return <Badge className={cn('text-xs', getProductStatusClasses(status))}>{status}</Badge>;
+}
+
+function buildExtraColumns(): ColumnDef<TourProduct>[] {
+  return COLUMN_GROUPS.flatMap((group) =>
+    (group.fields as readonly string[]).map((fieldId) => ({
+      id: fieldId,
+      accessorKey: fieldId,
+      header: FIELD_LABELS[fieldId as keyof typeof FIELD_LABELS] ?? fieldId,
+      cell: ({ row }: { row: any }) => {
+        const value = row.original[fieldId as keyof TourProduct];
+        if (value === null || value === undefined || value === '') {
+          return <span className="text-[hsl(var(--text-tertiary))]">–</span>;
+        }
+        if (typeof value === 'boolean') {
+          return <span className="text-xs text-[hsl(var(--text-secondary))]">{value ? 'Yes' : 'No'}</span>;
+        }
+        return <span className="text-sm text-[hsl(var(--text-primary))] truncate block max-w-[200px]">{String(value)}</span>;
+      },
+    }))
+  );
 }
 
 function buildColumns(
@@ -119,6 +141,7 @@ function buildColumns(
       header: 'Status',
       cell: ({ row }) => <StatusBadge status={row.original.productStatus} />,
     },
+    ...buildExtraColumns(),
     {
       id: 'actions',
       header: '',
@@ -197,6 +220,7 @@ interface ProductTableProps {
   onDeleteRequest: (product: TourProduct) => void;
   onEditRequest: (product: TourProduct) => void;
   onRowClick: (product: TourProduct) => void;
+  columnVisibility?: VisibilityState;
 }
 
 export function ProductTable({
@@ -208,6 +232,7 @@ export function ProductTable({
   onDeleteRequest,
   onEditRequest,
   onRowClick,
+  columnVisibility = {},
 }: ProductTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -220,11 +245,12 @@ export function ProductTable({
   const table = useReactTable({
     data: data ?? [],
     columns,
-    state: { sorting, rowSelection },
+    state: { sorting, rowSelection, columnVisibility },
     onSortingChange: setSorting,
     onRowSelectionChange: (updater) => {
       onRowSelectionChange(functionalUpdate(updater, rowSelection));
     },
+    onColumnVisibilityChange: () => {},
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     enableRowSelection: true,
