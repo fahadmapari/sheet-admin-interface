@@ -11,6 +11,7 @@ import {
   type SortingState,
   type RowSelectionState,
   type VisibilityState,
+  type Row,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, ExternalLink } from 'lucide-react';
@@ -40,7 +41,7 @@ function buildExtraColumns(): ColumnDef<TourProduct>[] {
       id: fieldId,
       accessorKey: fieldId,
       header: FIELD_LABELS[fieldId as keyof typeof FIELD_LABELS] ?? fieldId,
-      cell: ({ row }: { row: any }) => {
+      cell: ({ row }: { row: Row<TourProduct> }) => {
         const value = row.original[fieldId as keyof TourProduct];
         if (value === null || value === undefined || value === '') {
           return <span className="text-[hsl(var(--text-tertiary))]">–</span>;
@@ -53,6 +54,8 @@ function buildExtraColumns(): ColumnDef<TourProduct>[] {
     }))
   );
 }
+
+const EXTRA_COLUMNS: ColumnDef<TourProduct>[] = buildExtraColumns();
 
 function buildColumns(
   onDeleteRequest: (product: TourProduct) => void,
@@ -141,7 +144,7 @@ function buildColumns(
       header: 'Status',
       cell: ({ row }) => <StatusBadge status={row.original.productStatus} />,
     },
-    ...buildExtraColumns(),
+    ...EXTRA_COLUMNS,
     {
       id: 'actions',
       header: '',
@@ -324,7 +327,7 @@ export function ProductTable({
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="py-16 text-center text-sm text-[hsl(var(--text-secondary))]">
+              <td colSpan={table.getVisibleLeafColumns().length} className="py-16 text-center text-sm text-[hsl(var(--text-secondary))]">
                 No products match your filters.
               </td>
             </tr>
@@ -332,7 +335,7 @@ export function ProductTable({
             <>
               {paddingTop > 0 && (
                 <tr>
-                  <td style={{ height: `${paddingTop}px` }} colSpan={columns.length} />
+                  <td style={{ height: `${paddingTop}px` }} colSpan={table.getVisibleLeafColumns().length} />
                 </tr>
               )}
               {virtualRows.map((virtualRow) => {
@@ -362,7 +365,7 @@ export function ProductTable({
               })}
               {paddingBottom > 0 && (
                 <tr>
-                  <td style={{ height: `${paddingBottom}px` }} colSpan={columns.length} />
+                  <td style={{ height: `${paddingBottom}px` }} colSpan={table.getVisibleLeafColumns().length} />
                 </tr>
               )}
             </>
