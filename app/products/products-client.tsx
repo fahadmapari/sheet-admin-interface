@@ -49,7 +49,8 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     try {
       const stored = localStorage.getItem('sheet-admin:custom-views');
       return stored ? (JSON.parse(stored) as CustomView[]) : [];
-    } catch {
+    } catch (e) {
+      console.warn('sheet-admin: failed to parse custom-views from localStorage', e);
       return [];
     }
   });
@@ -143,19 +144,19 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     };
   }, [activeViewId, customViews]);
 
-  function handleViewAdd(view: CustomView) {
+  const handleViewAdd = useCallback((view: CustomView) => {
     const next = [...customViews, view];
     setCustomViews(next);
     localStorage.setItem('sheet-admin:custom-views', JSON.stringify(next));
     setActiveViewId(view.id);
-  }
+  }, [customViews]);
 
-  function handleViewDelete(id: string) {
+  const handleViewDelete = useCallback((id: string) => {
     const next = customViews.filter((v) => v.id !== id);
     setCustomViews(next);
     localStorage.setItem('sheet-admin:custom-views', JSON.stringify(next));
     if (activeViewId === id) setActiveViewId('default');
-  }
+  }, [customViews, activeViewId]);
 
   const totalCount = products?.length ?? 0;
   const filteredCount = searchedProducts.length;
