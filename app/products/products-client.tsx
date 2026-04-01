@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
-import type { RowSelectionState } from '@tanstack/react-table';
+import type { RowSelectionState, VisibilityState } from '@tanstack/react-table';
 import { Plus, Search, X, LayoutGrid, Table2 } from 'lucide-react';
 import { ProductTable } from '@/components/products/product-table';
 import { ProductCards } from '@/components/products/product-cards';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
 import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
+import { ViewsBar, type CustomView } from '@/components/products/views-bar';
+import { COLUMN_GROUPS } from '@/lib/constants';
 import { ProductForm } from '@/components/products/product-form';
 import { BulkActionsToolbar } from '@/components/products/bulk-actions-toolbar';
 import { DeleteConfirmDialog } from '@/components/products/delete-confirm-dialog';
@@ -21,6 +23,8 @@ import type { TourProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
 type ViewMode = 'table' | 'cards';
+
+const ALL_FIELD_IDS = COLUMN_GROUPS.flatMap((g) => g.fields as readonly string[]);
 
 interface ProductsClientProps {
   initialFilters?: Filters;
@@ -39,6 +43,16 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [deleteTarget, setDeleteTarget] = useState<TourProduct | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
+  const [activeViewId, setActiveViewId] = useState<string>('default');
+  const [customViews, setCustomViews] = useState<CustomView[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem('sheet-admin:custom-views');
+      return stored ? (JSON.parse(stored) as CustomView[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const selectedProductRowIndex = selectedProduct?.rowIndex ?? null;
 
   const updateUrl = useCallback((newFilters: Filters, newSearch: string) => {
@@ -105,6 +119,43 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const selectedProducts = useMemo(() => {
     return searchedProducts.filter((_, i) => rowSelection[i]);
   }, [searchedProducts, rowSelection]);
+
+  const columnVisibility = useMemo((): VisibilityState => {
+    const base: VisibilityState = Object.fromEntries(ALL_FIELD_IDS.map((id) => [id, false]));
+
+    if (activeViewId === 'default') {
+      return { ...base, product: true, location: true, type: true, status: true };
+    }
+
+    const view = customViews.find((v) => v.id === activeViewId);
+    if (!view) {
+      return { ...base, product: true, location: true, type: true, status: true };
+    }
+
+    const cols = new Set(view.columns);
+    return {
+      ...base,
+      product: cols.has('product'),
+      location: cols.has('location'),
+      type: cols.has('type'),
+      status: cols.has('status'),
+      ...Object.fromEntries(ALL_FIELD_IDS.map((id) => [id, cols.has(id)])),
+    };
+  }, [activeViewId, customViews]);
+
+  function handleViewAdd(view: CustomView) {
+    const next = [...customViews, view];
+    setCustomViews(next);
+    localStorage.setItem('sheet-admin:custom-views', JSON.stringify(next));
+    setActiveViewId(view.id);
+  }
+
+  function handleViewDelete(id: string) {
+    const next = customViews.filter((v) => v.id !== id);
+    setCustomViews(next);
+    localStorage.setItem('sheet-admin:custom-views', JSON.stringify(next));
+    if (activeViewId === id) setActiveViewId('default');
+  }
 
   const totalCount = products?.length ?? 0;
   const filteredCount = searchedProducts.length;
@@ -184,7 +235,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
               <span className="hidden sm:inline">Cards</span>
             </Button>
           </div>
-          <ExportButton products={searchedProducts} columnVisibility={{}} />
+          <ExportButton products={searchedProducts} columnVisibility={columnVisibility} />
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
             Add Product
@@ -192,6 +243,13 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
         </div>
       </div>
 
+      <ViewsBar
+        activeViewId={activeViewId}
+        customViews={customViews}
+        onViewSelect={setActiveViewId}
+        onViewDelete={handleViewDelete}
+        onViewAdd={handleViewAdd}
+      />
       <FilterBar filters={filters} onFiltersChange={setFilters} />
 
       {activeView === 'table' && (
@@ -220,6 +278,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
             onDeleteRequest={(product) => setDeleteTarget(product)}
             onEditRequest={(product) => setSelectedProduct(product)}
             onRowClick={(product) => setSelectedProduct(product)}
+            columnVisibility={columnVisibility}
           />
         </div>
       ) : (
