@@ -18,9 +18,26 @@ interface ExportButtonProps {
   columnVisibility: VisibilityState;
 }
 
+// Maps composite TanStack column IDs to their underlying raw field IDs
+const COMPOSITE_TO_FIELDS: Record<string, Array<keyof Omit<TourProduct, 'rowIndex'>>> = {
+  product: ['productName', 'duration'],
+  location: ['city', 'country'],
+  type: ['productType'],
+  status: ['productStatus'],
+};
+
 function getVisibleFields(columnVisibility: VisibilityState): Array<keyof Omit<TourProduct, 'rowIndex'>> {
   const allFields = COLUMN_GROUPS.flatMap((g) => g.fields as unknown as Array<keyof Omit<TourProduct, 'rowIndex'>>);
-  return allFields.filter((f) => columnVisibility[f] !== false);
+
+  // Collect raw fields contributed by visible composite columns
+  const fromComposite = new Set<string>();
+  for (const [compositeId, fields] of Object.entries(COMPOSITE_TO_FIELDS)) {
+    if (columnVisibility[compositeId] === true) {
+      for (const f of fields) fromComposite.add(f);
+    }
+  }
+
+  return allFields.filter((f) => columnVisibility[f] !== false || fromComposite.has(f));
 }
 
 function getCellValue(product: TourProduct, field: keyof Omit<TourProduct, 'rowIndex'>): string {

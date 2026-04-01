@@ -43,6 +43,8 @@ export function ViewsBar({
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <button
+        type="button"
+        aria-pressed={activeViewId === 'default'}
         className={cn(
           'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors',
           activeViewId === 'default'
@@ -66,8 +68,9 @@ export function ViewsBar({
               : 'border border-[hsl(var(--border))] text-[hsl(var(--text-secondary))] hover:border-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))]',
           )}
         >
-          <button onClick={() => onViewSelect(view.id)}>{view.name}</button>
+          <button type="button" aria-pressed={activeViewId === view.id} onClick={() => onViewSelect(view.id)}>{view.name}</button>
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onViewDelete(view.id);
