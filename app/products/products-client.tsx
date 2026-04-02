@@ -197,25 +197,6 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1 sm:flex-none">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--text-tertiary))]" />
-            <Input
-              className="w-full pl-8 pr-8 sm:w-60"
-              placeholder="Search..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-            {searchInput && (
-              <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[hsl(var(--text-tertiary))] transition-colors hover:text-[hsl(var(--text-primary))]"
-                onClick={() => setSearchInput('')}
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
           <div className="flex items-center rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-0.5">
             <Button
               variant={activeView === 'table' ? 'secondary' : 'ghost'}
@@ -261,12 +242,32 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
         />
       )}
 
-      {!isLoading && (
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">{filteredCount} visible</Badge>
-          {globalSearch && <Badge variant="info">Search: {globalSearch}</Badge>}
+      <div className="flex flex-col gap-2">
+        {!isLoading && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{filteredCount} visible</Badge>
+            {globalSearch && <Badge variant="info">Search: {globalSearch}</Badge>}
+          </div>
+        )}
+        <div className="relative w-full">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--text-tertiary))]" />
+          <Input
+            className="w-full pl-8 pr-8"
+            placeholder="Search..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          {searchInput && (
+            <button
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[hsl(var(--text-tertiary))] transition-colors hover:text-[hsl(var(--text-primary))]"
+              onClick={() => setSearchInput('')}
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {activeView === 'table' ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
