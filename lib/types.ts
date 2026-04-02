@@ -127,3 +127,34 @@ export interface StatsResponse {
 export interface ApiError {
   error: string;
 }
+
+export const ASSEMBLY_STAGES = [
+  'In Review',
+  '2nd Review',
+  'Buying Price',
+  'Selling Price',
+  'Ready for Upload',
+  'Uploaded',
+] as const;
+
+export type AssemblyStage = (typeof ASSEMBLY_STAGES)[number];
+
+export interface AssemblyBatch {
+  _id: string;
+  name: string;
+  stage: AssemblyStage;
+  productRowIndexes: number[];
+  createdAt: string;
+}
+
+export type AssemblyStageData = {
+  batches: AssemblyBatch[];
+};
+
+export type AssemblyResponse = Record<AssemblyStage, AssemblyStageData>;
+
+export interface ProductAssemblyInfo {
+  stage: AssemblyStage;
+  batchId: string;
+  batchName: string;
+}
