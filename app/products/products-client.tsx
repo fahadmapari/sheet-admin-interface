@@ -15,6 +15,7 @@ import { ProductForm } from '@/components/products/product-form';
 import { BulkActionsToolbar } from '@/components/products/bulk-actions-toolbar';
 import { DeleteConfirmDialog } from '@/components/products/delete-confirm-dialog';
 import { ExportButton } from '@/components/products/export-button';
+import { MoveToStageDialog } from '@/components/assembly/move-to-stage-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,8 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [deleteTarget, setDeleteTarget] = useState<TourProduct | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
+  const [singleMoveDialogOpen, setSingleMoveDialogOpen] = useState(false);
+  const [singleMoveProduct, setSingleMoveProduct] = useState<TourProduct | null>(null);
   const [activeViewId, setActiveViewId] = useState<string>('default');
   const [customViews, setCustomViews] = useState<CustomView[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -164,6 +167,12 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     const info = res.ok ? await res.json() : null;
 
     const currentStage = info?.stage as AssemblyStage | undefined;
+    if (!currentStage) {
+      setSingleMoveProduct(product);
+      setSingleMoveDialogOpen(true);
+      return;
+    }
+
     const currentIndex = currentStage ? ASSEMBLY_STAGES.indexOf(currentStage) : -1;
     const nextStage: AssemblyStage =
       currentIndex === -1 || currentIndex >= ASSEMBLY_STAGES.length - 1
@@ -189,6 +198,31 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
       toast.error('Move failed');
     }
   }, [mutate]);
+
+  const handleSingleMoveConfirm = useCallback(async (
+    strategy: { type: 'new'; name: string } | { type: 'existing'; batchId: string },
+  ) => {
+    if (!singleMoveProduct) return;
+
+    const targetStage = ASSEMBLY_STAGES[0];
+    const moveRes = await fetch('/api/assembly/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rowIndexes: [singleMoveProduct.rowIndex],
+        targetStage,
+        batchStrategy: strategy,
+      }),
+    });
+
+    if (moveRes.ok) {
+      toast.success(`Moved to "${targetStage}"`);
+      setSingleMoveProduct(null);
+    } else {
+      toast.error('Move failed');
+      throw new Error('Move failed');
+    }
+  }, [singleMoveProduct]);
 
   const totalCount = products?.length ?? 0;
   const filteredCount = searchedProducts.length;
@@ -340,6 +374,15 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
         onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
         count={1}
         onConfirm={handleSingleDelete}
+      />
+      <MoveToStageDialog
+        open={singleMoveDialogOpen}
+        onOpenChange={(open) => {
+          setSingleMoveDialogOpen(open);
+          if (!open) setSingleMoveProduct(null);
+        }}
+        targetStage={ASSEMBLY_STAGES[0]}
+        onConfirm={handleSingleMoveConfirm}
       />
     </div>
   );

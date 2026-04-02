@@ -12,6 +12,7 @@ interface StageSectionProps {
   products: TourProduct[];
   movingBatchId: string | null;
   onBatchMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
+  onBatchMoveToStage: (batch: AssemblyBatch, targetStage: AssemblyStage) => Promise<void>;
   onProductClick: (product: TourProduct) => void;
 }
 
@@ -21,6 +22,7 @@ export function StageSection({
   products,
   movingBatchId,
   onBatchMoveToNextStage,
+  onBatchMoveToStage,
   onProductClick,
 }: StageSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -58,6 +60,7 @@ export function StageSection({
                 products={products}
                 isMoving={movingBatchId === batch._id}
                 onMoveToNextStage={onBatchMoveToNextStage}
+                onMoveToStage={onBatchMoveToStage}
                 onProductClick={onProductClick}
               />
             ))

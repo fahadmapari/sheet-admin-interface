@@ -35,10 +35,7 @@ export function AssemblyClient() {
     return ASSEMBLY_STAGES[currentIndex + 1];
   };
 
-  const handleBatchMoveToNextStage = async (batch: AssemblyBatch) => {
-    const nextStage = getNextStage(batch.stage);
-    if (!nextStage) return;
-
+  const moveBatchToStage = async (batch: AssemblyBatch, targetStage: AssemblyStage) => {
     setMovingBatchId(batch._id);
     try {
       const moveRes = await fetch('/api/assembly/move', {
@@ -46,7 +43,7 @@ export function AssemblyClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rowIndexes: batch.productRowIndexes,
-          targetStage: nextStage,
+          targetStage,
           batchStrategy: { type: 'new', name: batch.name },
         }),
       });
@@ -56,14 +53,25 @@ export function AssemblyClient() {
         return;
       }
 
-      toast.success(`Moved batch "${batch.name}" to "${nextStage}"`);
+      toast.success(`Moved batch "${batch.name}" to "${targetStage}"`);
       mutate('/api/assembly');
-      if (nextStage === 'Ready for Upload') {
+      if (targetStage === 'Ready for Upload') {
         mutate('/api/products');
       }
     } finally {
       setMovingBatchId(null);
     }
+  };
+
+  const handleBatchMoveToNextStage = async (batch: AssemblyBatch) => {
+    const nextStage = getNextStage(batch.stage);
+    if (!nextStage) return;
+
+    await moveBatchToStage(batch, nextStage);
+  };
+
+  const handleBatchMoveToStage = async (batch: AssemblyBatch, targetStage: AssemblyStage) => {
+    await moveBatchToStage(batch, targetStage);
   };
 
   if (assemblyError) {
@@ -105,6 +113,7 @@ export function AssemblyClient() {
               products={products ?? []}
               movingBatchId={movingBatchId}
               onBatchMoveToNextStage={handleBatchMoveToNextStage}
+              onBatchMoveToStage={handleBatchMoveToStage}
               onProductClick={(product) => setSelectedProduct(product)}
             />
           ))}

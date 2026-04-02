@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { MoveToStageDialog } from '@/components/assembly/move-to-stage-dialog';
 import { toast } from 'sonner';
 import { ASSEMBLY_STAGES, type AssemblyStage, type ProductAssemblyInfo } from '@/lib/types';
 
@@ -248,6 +249,7 @@ export function ProductDetailSheet({
 
   const [assemblyInfo, setAssemblyInfo] = useState<ProductAssemblyInfo | null | undefined>(undefined);
   const [movingStage, setMovingStage] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!product?.rowIndex) {
@@ -287,6 +289,11 @@ export function ProductDetailSheet({
   };
 
   const handleMoveToNext = () => {
+    if (!assemblyInfo?.stage) {
+      setMoveDialogOpen(true);
+      return;
+    }
+
     const currentStage = assemblyInfo?.stage;
     const currentIndex = currentStage ? ASSEMBLY_STAGES.indexOf(currentStage) : -1;
     const nextStage: AssemblyStage =
@@ -294,6 +301,37 @@ export function ProductDetailSheet({
         ? ASSEMBLY_STAGES[0]
         : ASSEMBLY_STAGES[currentIndex + 1];
     moveToStage(nextStage);
+  };
+
+  const handleAddToAssemblyConfirm = async (
+    strategy: { type: 'new'; name: string } | { type: 'existing'; batchId: string },
+  ) => {
+    if (!draftProduct) return;
+
+    setMovingStage(true);
+    try {
+      const targetStage = ASSEMBLY_STAGES[0];
+      const res = await fetch('/api/assembly/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rowIndexes: [draftProduct.rowIndex],
+          targetStage,
+          batchStrategy: strategy,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json() as { ok: boolean; batchId: string };
+        toast.success(`Moved to "${targetStage}"`);
+        setAssemblyInfo({ stage: targetStage, batchId: data.batchId, batchName: '' });
+      } else {
+        toast.error('Move failed');
+        throw new Error('Move failed');
+      }
+    } finally {
+      setMovingStage(false);
+    }
   };
 
   if (!draftProduct) return null;
@@ -516,6 +554,12 @@ export function ProductDetailSheet({
           </div>
         </div>
       </SheetContent>
+      <MoveToStageDialog
+        open={moveDialogOpen}
+        onOpenChange={setMoveDialogOpen}
+        targetStage={ASSEMBLY_STAGES[0]}
+        onConfirm={handleAddToAssemblyConfirm}
+      />
     </Sheet>
   );
 }

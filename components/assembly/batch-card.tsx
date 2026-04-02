@@ -5,13 +5,20 @@ import { ArrowRight, ChevronDown, ChevronRight, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, parseLinkField } from '@/lib/utils';
-import { ASSEMBLY_STAGES, type AssemblyBatch, type TourProduct } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ASSEMBLY_STAGES, type AssemblyBatch, type AssemblyStage, type TourProduct } from '@/lib/types';
 
 interface BatchCardProps {
   batch: AssemblyBatch;
   products: TourProduct[];
   isMoving: boolean;
   onMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
+  onMoveToStage: (batch: AssemblyBatch, targetStage: AssemblyStage) => Promise<void>;
   onProductClick: (product: TourProduct) => void;
 }
 
@@ -20,6 +27,7 @@ export function BatchCard({
   products,
   isMoving,
   onMoveToNextStage,
+  onMoveToStage,
   onProductClick,
 }: BatchCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -60,20 +68,50 @@ export function BatchCard({
           {batch.productRowIndexes.length}
         </Badge>
         {nextStage ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="ml-2 h-8"
-            disabled={isMoving}
-            onClick={(event) => {
-              event.stopPropagation();
-              void onMoveToNextStage(batch);
-            }}
-          >
-            <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-            {isMoving ? 'Moving...' : `Move to ${nextStage}`}
-          </Button>
+          <div className="ml-2 flex">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-r-none border-r-0"
+              disabled={isMoving}
+              onClick={(event) => {
+                event.stopPropagation();
+                void onMoveToNextStage(batch);
+              }}
+            >
+              <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+              {isMoving ? 'Moving...' : `Move to ${nextStage}`}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-l-none px-2"
+                  disabled={isMoving}
+                  aria-label="Select stage for batch"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {ASSEMBLY_STAGES.map((stage) => (
+                  <DropdownMenuItem
+                    key={stage}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void onMoveToStage(batch, stage);
+                    }}
+                  >
+                    {stage}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ) : null}
       </div>
 
