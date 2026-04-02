@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Clock, ExternalLink, MapPin, Users, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Clock, ExternalLink, MapPin, Users, X } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, NUMBER_FIELDS } from '@/lib/constants';
 import { getProductStatusClasses } from '@/lib/design-system';
@@ -16,6 +16,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { InlineEditCell } from './inline-edit-cell';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
+import { ASSEMBLY_STAGES, type AssemblyStage, type ProductAssemblyInfo } from '@/lib/types';
 
 const REQUIRED_STRING_FIELDS = new Set<keyof Omit<TourProduct, 'rowIndex'>>([
   'country',
@@ -238,6 +246,55 @@ export function ProductDetailSheet({
     setDraftProduct(product);
   }, [product]);
 
+  const [assemblyInfo, setAssemblyInfo] = useState<ProductAssemblyInfo | null | undefined>(undefined);
+  const [movingStage, setMovingStage] = useState(false);
+
+  useEffect(() => {
+    if (!product?.rowIndex) {
+      setAssemblyInfo(undefined);
+      return;
+    }
+    setAssemblyInfo(undefined);
+    fetch(`/api/assembly/product/${product.rowIndex}`)
+      .then((r) => r.json())
+      .then((data) => setAssemblyInfo(data ?? null))
+      .catch(() => setAssemblyInfo(null));
+  }, [product?.rowIndex]);
+
+  const moveToStage = async (targetStage: AssemblyStage) => {
+    if (!draftProduct) return;
+    setMovingStage(true);
+    try {
+      const res = await fetch('/api/assembly/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rowIndexes: [draftProduct.rowIndex],
+          targetStage,
+          batchStrategy: { type: 'new' },
+        }),
+      });
+      if (res.ok) {
+        toast.success(`Moved to "${targetStage}"`);
+        setAssemblyInfo({ stage: targetStage, batchId: '', batchName: '' });
+      } else {
+        toast.error('Move failed');
+      }
+    } finally {
+      setMovingStage(false);
+    }
+  };
+
+  const handleMoveToNext = () => {
+    const currentStage = assemblyInfo?.stage;
+    const currentIndex = currentStage ? ASSEMBLY_STAGES.indexOf(currentStage) : -1;
+    const nextStage: AssemblyStage =
+      currentIndex === -1 || currentIndex >= ASSEMBLY_STAGES.length - 1
+        ? ASSEMBLY_STAGES[0]
+        : ASSEMBLY_STAGES[currentIndex + 1];
+    moveToStage(nextStage);
+  };
+
   if (!draftProduct) return null;
 
   const activeOtas = OTA_CHANNELS.filter((channel) => {
@@ -305,6 +362,47 @@ export function ProductDetailSheet({
                   </span>
                 )}
               </SheetDescription>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-r-none border-r-0"
+                  disabled={movingStage}
+                  onClick={handleMoveToNext}
+                >
+                  <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                  {assemblyInfo?.stage
+                    ? `Move to ${ASSEMBLY_STAGES[ASSEMBLY_STAGES.indexOf(assemblyInfo.stage) + 1] ?? 'next'}`
+                    : 'Add to Assembly'}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-l-none px-2"
+                      disabled={movingStage}
+                      aria-label="Select stage"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {ASSEMBLY_STAGES.map((stage) => (
+                      <DropdownMenuItem key={stage} onClick={() => moveToStage(stage)}>
+                        {stage}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              {assemblyInfo?.stage && (
+                <span className="text-xs text-[hsl(var(--text-tertiary))]">
+                  Currently in: {assemblyInfo.stage}
+                </span>
+              )}
             </div>
           </div>
 
