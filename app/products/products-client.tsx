@@ -19,7 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import type { TourProduct } from '@/lib/types';
+import { ASSEMBLY_STAGES } from '@/lib/types';
+import type { TourProduct, AssemblyStage } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
 type ViewMode = 'table' | 'cards';
@@ -158,6 +159,34 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     if (activeViewId === id) setActiveViewId('default');
   }, [customViews, activeViewId]);
 
+  const handleMoveToNextStage = useCallback(async (product: TourProduct) => {
+    const res = await fetch(`/api/assembly/product/${product.rowIndex}`);
+    const info = res.ok ? await res.json() : null;
+
+    const currentStage = info?.stage as AssemblyStage | undefined;
+    const currentIndex = currentStage ? ASSEMBLY_STAGES.indexOf(currentStage) : -1;
+    const nextStage: AssemblyStage =
+      currentIndex === -1 || currentIndex >= ASSEMBLY_STAGES.length - 1
+        ? ASSEMBLY_STAGES[0]
+        : ASSEMBLY_STAGES[currentIndex + 1];
+
+    const moveRes = await fetch('/api/assembly/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rowIndexes: [product.rowIndex],
+        targetStage: nextStage,
+        batchStrategy: { type: 'new' },
+      }),
+    });
+
+    if (moveRes.ok) {
+      toast.success(`Moved to "${nextStage}"`);
+    } else {
+      toast.error('Move failed');
+    }
+  }, []);
+
   const totalCount = products?.length ?? 0;
   const filteredCount = searchedProducts.length;
 
@@ -279,6 +308,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
             onRowSelectionChange={setRowSelection}
             onDeleteRequest={(product) => setDeleteTarget(product)}
             onEditRequest={(product) => setSelectedProduct(product)}
+            onMoveToNextStage={handleMoveToNextStage}
             onRowClick={(product) => setSelectedProduct(product)}
             columnVisibility={columnVisibility}
           />

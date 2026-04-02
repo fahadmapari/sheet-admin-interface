@@ -14,7 +14,7 @@ import {
   type Row,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, ExternalLink } from 'lucide-react';
+import { ArrowRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
@@ -100,6 +100,7 @@ const EXTRA_COLUMNS: ColumnDef<TourProduct>[] = buildExtraColumns();
 function buildColumns(
   onDeleteRequest: (product: TourProduct) => void,
   onEditRequest: (product: TourProduct) => void,
+  onMoveToNextStage: (product: TourProduct) => void,
 ): ColumnDef<TourProduct>[] {
   return [
     {
@@ -193,6 +194,7 @@ function buildColumns(
           product={row.original}
           onDeleteRequest={onDeleteRequest}
           onEditRequest={onEditRequest}
+          onMoveToNextStage={onMoveToNextStage}
         />
       ),
       enableSorting: false,
@@ -205,10 +207,12 @@ function RowActionsMenu({
   product,
   onDeleteRequest,
   onEditRequest,
+  onMoveToNextStage,
 }: {
   product: TourProduct;
   onDeleteRequest: (product: TourProduct) => void;
   onEditRequest: (product: TourProduct) => void;
+  onMoveToNextStage: (product: TourProduct) => void;
 }) {
   return (
     <DropdownMenu>
@@ -226,6 +230,15 @@ function RowActionsMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => onEditRequest(product)}>
           Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveToNextStage(product);
+          }}
+        >
+          <ArrowRight className="mr-2 h-3.5 w-3.5" />
+          Move to Next Stage
         </DropdownMenuItem>
         <DropdownMenuItem
           className="text-red-700 focus:text-red-700 dark:text-red-300 dark:focus:text-red-300"
@@ -262,6 +275,7 @@ interface ProductTableProps {
   onRowSelectionChange: (updater: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void;
   onDeleteRequest: (product: TourProduct) => void;
   onEditRequest: (product: TourProduct) => void;
+  onMoveToNextStage: (product: TourProduct) => void;
   onRowClick: (product: TourProduct) => void;
   columnVisibility?: VisibilityState;
 }
@@ -274,6 +288,7 @@ export function ProductTable({
   onRowSelectionChange,
   onDeleteRequest,
   onEditRequest,
+  onMoveToNextStage,
   onRowClick,
   columnVisibility = {},
 }: ProductTableProps) {
@@ -281,8 +296,8 @@ export function ProductTable({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const columns = useMemo(
-    () => buildColumns(onDeleteRequest, onEditRequest),
-    [onDeleteRequest, onEditRequest],
+    () => buildColumns(onDeleteRequest, onEditRequest, onMoveToNextStage),
+    [onDeleteRequest, onEditRequest, onMoveToNextStage],
   );
 
   const table = useReactTable({
