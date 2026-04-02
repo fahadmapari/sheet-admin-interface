@@ -364,51 +364,6 @@ export function ProductDetailSheet({
                 )}
               </SheetDescription>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <div className="flex">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-r-none border-r-0"
-                  disabled={movingStage || assemblyInfo === undefined}
-                  onClick={handleMoveToNext}
-                >
-                  <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-                  {assemblyInfo?.stage
-                    ? (() => {
-                        const idx = ASSEMBLY_STAGES.indexOf(assemblyInfo.stage);
-                        const next = ASSEMBLY_STAGES[idx + 1];
-                        return next ? `Move to ${next}` : `Re-enter Review`;
-                      })()
-                    : 'Add to Assembly'}
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-l-none px-2"
-                      disabled={movingStage || assemblyInfo === undefined}
-                      aria-label="Select stage"
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {ASSEMBLY_STAGES.map((stage) => (
-                      <DropdownMenuItem key={stage} onClick={() => moveToStage(stage)}>
-                        {stage}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              {assemblyInfo?.stage && (
-                <span className="text-xs text-[hsl(var(--text-tertiary))]">
-                  Currently in: {assemblyInfo.stage}
-                </span>
-              )}
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -506,12 +461,59 @@ export function ProductDetailSheet({
         </ScrollArea>
 
         <div className="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] px-6 py-4">
-          <p className="text-xs text-[hsl(var(--text-secondary))]">
-            Row {draftProduct.rowIndex}
-          </p>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
+          <div className="min-w-0">
+            <p className="text-xs text-[hsl(var(--text-secondary))]">
+              Row {draftProduct.rowIndex}
+            </p>
+            {assemblyInfo?.stage && (
+              <span className="text-xs text-[hsl(var(--text-tertiary))]">
+                Currently in: {assemblyInfo.stage}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex">
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-r-none border-r-0"
+                disabled={movingStage || assemblyInfo === undefined}
+                onClick={handleMoveToNext}
+              >
+                <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                {assemblyInfo?.stage
+                  ? (() => {
+                      const idx = ASSEMBLY_STAGES.indexOf(assemblyInfo.stage);
+                      const next = ASSEMBLY_STAGES[idx + 1];
+                      return next ? `Move to ${next}` : `Re-enter Review`;
+                    })()
+                  : 'Add to Assembly'}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-l-none px-2"
+                    disabled={movingStage || assemblyInfo === undefined}
+                    aria-label="Select stage"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {ASSEMBLY_STAGES.map((stage) => (
+                    <DropdownMenuItem key={stage} onClick={() => moveToStage(stage)}>
+                      {stage}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
