@@ -275,8 +275,9 @@ export function ProductDetailSheet({
         }),
       });
       if (res.ok) {
+        const data = await res.json() as { ok: boolean; batchId: string };
         toast.success(`Moved to "${targetStage}"`);
-        setAssemblyInfo({ stage: targetStage, batchId: '', batchName: '' });
+        setAssemblyInfo({ stage: targetStage, batchId: data.batchId, batchName: '' });
       } else {
         toast.error('Move failed');
       }
@@ -369,12 +370,16 @@ export function ProductDetailSheet({
                   size="sm"
                   variant="outline"
                   className="rounded-r-none border-r-0"
-                  disabled={movingStage}
+                  disabled={movingStage || assemblyInfo === undefined}
                   onClick={handleMoveToNext}
                 >
                   <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
                   {assemblyInfo?.stage
-                    ? `Move to ${ASSEMBLY_STAGES[ASSEMBLY_STAGES.indexOf(assemblyInfo.stage) + 1] ?? 'next'}`
+                    ? (() => {
+                        const idx = ASSEMBLY_STAGES.indexOf(assemblyInfo.stage);
+                        const next = ASSEMBLY_STAGES[idx + 1];
+                        return next ? `Move to ${next}` : `Re-enter Review`;
+                      })()
                     : 'Add to Assembly'}
                 </Button>
                 <DropdownMenu>
@@ -383,7 +388,7 @@ export function ProductDetailSheet({
                       size="sm"
                       variant="outline"
                       className="rounded-l-none px-2"
-                      disabled={movingStage}
+                      disabled={movingStage || assemblyInfo === undefined}
                       aria-label="Select stage"
                     >
                       <ChevronDown className="h-3.5 w-3.5" />

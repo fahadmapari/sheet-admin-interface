@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
+import { ObjectId, type Document } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import { ASSEMBLY_STAGES, type AssemblyStage } from '@/lib/types';
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     // 1. Remove rowIndexes from any current batch
     await col.updateMany(
       { productRowIndexes: { $in: rowIndexes } },
-      { $pull: { productRowIndexes: { $in: rowIndexes } } as never },
+      { $pull: { productRowIndexes: { $in: rowIndexes } } as Document },
     );
 
     // 2. Delete empty batches
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       targetBatchId = new ObjectId(batchStrategy.batchId);
       await col.updateOne(
         { _id: targetBatchId },
-        { $push: { productRowIndexes: { $each: rowIndexes } } as never },
+        { $push: { productRowIndexes: { $each: rowIndexes } } as Document },
       );
     } else {
       const batchName = batchStrategy.name ?? todayIso();
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         if (existing) {
           await col.updateOne(
             { _id: existing._id },
-            { $push: { productRowIndexes: { $each: rowIndexes } } as never },
+            { $push: { productRowIndexes: { $each: rowIndexes } } as Document },
           );
           targetBatchId = existing._id;
         } else {
@@ -86,11 +86,14 @@ export async function POST(req: NextRequest) {
     // 4. Sync sheet if target is "Ready for Upload"
     if (targetStage === 'Ready for Upload') {
       const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
-      await fetch(`${baseUrl}/api/products/bulk`, {
+      const sheetRes = await fetch(`${baseUrl}/api/products/bulk`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rowIndexes, field: 'readyForUpload', value: 'TRUE' }),
       });
+      if (!sheetRes.ok) {
+        console.warn('[assembly/move] Sheet sync failed for "Ready for Upload":', await sheetRes.text());
+      }
     }
 
     return NextResponse.json({ ok: true, batchId: targetBatchId.toString() });

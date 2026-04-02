@@ -54,10 +54,11 @@ export function MoveToStageDialog({
   useEffect(() => {
     if (open) {
       setBatchName(todayIso());
-      setMode('new');
       setExistingBatchId('');
+      // Default to 'existing' if batches already exist in the target stage
+      setMode(existingBatches.length > 0 ? 'existing' : 'new');
     }
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {
     setLoading(true);

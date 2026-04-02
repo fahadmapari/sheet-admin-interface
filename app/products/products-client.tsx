@@ -182,10 +182,13 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
 
     if (moveRes.ok) {
       toast.success(`Moved to "${nextStage}"`);
+      if (nextStage === 'Ready for Upload') {
+        mutate('/api/products');
+      }
     } else {
       toast.error('Move failed');
     }
-  }, []);
+  }, [mutate]);
 
   const totalCount = products?.length ?? 0;
   const filteredCount = searchedProducts.length;
