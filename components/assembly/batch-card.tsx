@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, parseLinkField } from '@/lib/utils';
 import type { AssemblyBatch, TourProduct } from '@/lib/types';
 
 interface BatchCardProps {
@@ -28,7 +28,7 @@ export function BatchCard({ batch, products, onProductClick }: BatchCardProps) {
   return (
     <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]">
       <button
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[hsl(var(--surface))] transition-colors rounded-lg"
+        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface))]"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
       >
@@ -55,36 +55,57 @@ export function BatchCard({ batch, products, onProductClick }: BatchCardProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[hsl(var(--border))]">
-                  <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))] pr-4">Product</th>
-                  <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))] pr-4">City</th>
-                  <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))] pr-4">Country</th>
-                  <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">Status</th>
+                  <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                    Product
+                  </th>
+                  <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                    City
+                  </th>
+                  <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                    Country
+                  </th>
+                  <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {batchProducts.map((product) => (
-                  <tr
-                    key={product.rowIndex}
-                    className={cn(
-                      'cursor-pointer border-b border-[hsl(var(--border))] last:border-0',
-                      'hover:bg-[hsl(var(--surface))] transition-colors',
-                    )}
-                    onClick={() => onProductClick(product)}
-                  >
-                    <td className="py-2 pr-4 font-medium text-[hsl(var(--text-primary))] max-w-[220px] truncate">
-                      {product.productName || `${product.city}, ${product.country}`}
-                    </td>
-                    <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.city}</td>
-                    <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.country}</td>
-                    <td className="py-2">
-                      {product.productStatus ? (
-                        <Badge variant="outline" className="text-xs">{product.productStatus}</Badge>
-                      ) : (
-                        <span className="text-[hsl(var(--text-tertiary))]">—</span>
+                {batchProducts.map((product) => {
+                  const linkParsed = product.link ? parseLinkField(product.link) : null;
+                  const displayName =
+                    product.productName ||
+                    linkParsed?.text ||
+                    product.link ||
+                    `${product.city}, ${product.country}`;
+
+                  return (
+                    <tr
+                      key={product.rowIndex}
+                      className={cn(
+                        'cursor-pointer border-b border-[hsl(var(--border))] last:border-0',
+                        'transition-colors hover:bg-[hsl(var(--surface))]',
                       )}
-                    </td>
-                  </tr>
-                ))}
+                      onClick={() => onProductClick(product)}
+                    >
+                      <td className="max-w-[220px] truncate py-2 pr-4 font-medium text-[hsl(var(--text-primary))]">
+                        {displayName}
+                      </td>
+                      <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.city}</td>
+                      <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">
+                        {product.country}
+                      </td>
+                      <td className="py-2">
+                        {product.productStatus ? (
+                          <Badge variant="outline" className="text-xs">
+                            {product.productStatus}
+                          </Badge>
+                        ) : (
+                          <span className="text-[hsl(var(--text-tertiary))]">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
