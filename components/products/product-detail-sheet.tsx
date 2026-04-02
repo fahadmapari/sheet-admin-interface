@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, ChevronDown, Clock, ExternalLink, MapPin, Users, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Users, X } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, NUMBER_FIELDS } from '@/lib/constants';
 import { getProductStatusClasses } from '@/lib/design-system';
@@ -195,19 +195,20 @@ interface EditableFieldValueProps {
   product: TourProduct;
   field: keyof Omit<TourProduct, 'rowIndex'>;
   onSaved: (field: keyof Omit<TourProduct, 'rowIndex'>, value: string) => void;
+  readOnly?: boolean;
 }
 
-function EditableFieldValue({ product, field, onSaved }: EditableFieldValueProps) {
+function EditableFieldValue({ product, field, onSaved, readOnly }: EditableFieldValueProps) {
   const value = product[field];
 
   if (field === 'productStatus') {
-    return <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />;
+    return <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />;
   }
 
   if (BOOLEAN_FIELDS.has(field)) {
     return (
       <div className="flex justify-end">
-        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
       </div>
     );
   }
@@ -216,14 +217,14 @@ function EditableFieldValue({ product, field, onSaved }: EditableFieldValueProps
     const active = value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
     return (
       <span className={active ? 'text-[hsl(var(--text-primary))]' : 'text-[hsl(var(--text-secondary))]'}>
-        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
       </span>
     );
   }
 
   return (
     <div className="min-w-0 max-w-[260px] text-right">
-      <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} />
+      <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
     </div>
   );
 }
@@ -242,10 +243,15 @@ export function ProductDetailSheet({
   onSaved,
 }: ProductDetailSheetProps) {
   const [draftProduct, setDraftProduct] = useState<TourProduct | null>(product);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     setDraftProduct(product);
   }, [product]);
+
+  useEffect(() => {
+    setEditMode(false);
+  }, [product?.rowIndex]);
 
   const [assemblyInfo, setAssemblyInfo] = useState<ProductAssemblyInfo | null | undefined>(undefined);
   const [movingStage, setMovingStage] = useState(false);
@@ -404,14 +410,27 @@ export function ProductDetailSheet({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={draftProduct.productStatus} />
-            {draftProduct.productType && <Badge variant="default">{draftProduct.productType}</Badge>}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={draftProduct.productStatus} />
+              {draftProduct.productType && <Badge variant="default">{draftProduct.productType}</Badge>}
+            </div>
+            <Button
+              size="sm"
+              variant={editMode ? 'default' : 'outline'}
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => setEditMode((prev) => !prev)}
+            >
+              <Pencil className="h-3 w-3" />
+              {editMode ? 'Done' : 'Edit'}
+            </Button>
           </div>
 
-          <p className="text-xs text-[hsl(var(--text-secondary))]">
-            Click any value to edit. Changes save automatically.
-          </p>
+          {editMode && (
+            <p className="text-xs text-[hsl(var(--text-secondary))]">
+              Click any value to edit. Changes save automatically.
+            </p>
+          )}
         </div>
 
         <ScrollArea className="flex-1">
@@ -453,6 +472,7 @@ export function ProductDetailSheet({
                           product={draftProduct}
                           field={field.key as keyof Omit<TourProduct, 'rowIndex'>}
                           onSaved={handleFieldSaved}
+                          readOnly={!editMode}
                         />
                       </div>
                     ))}
@@ -487,6 +507,7 @@ export function ProductDetailSheet({
                             product={draftProduct}
                             field={channel.field as keyof Omit<TourProduct, 'rowIndex'>}
                             onSaved={(field, next) => handleFieldSaved(field as keyof Omit<TourProduct, 'rowIndex'>, next)}
+                            readOnly={!editMode}
                           />
                         </div>
                       </div>

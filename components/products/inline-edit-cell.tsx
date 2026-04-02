@@ -27,6 +27,7 @@ interface InlineEditCellProps {
   product: TourProduct;
   field: keyof Omit<TourProduct, 'rowIndex'>;
   onSaved: (field: string, value: string) => void;
+  readOnly?: boolean;
 }
 
 const LONG_TEXT_FIELDS = new Set<keyof TourProduct>([
@@ -39,7 +40,6 @@ const LONG_TEXT_FIELDS = new Set<keyof TourProduct>([
 const LINK_FIELDS = new Set<keyof TourProduct>(['link']);
 const IMAGE_LINKS_FIELDS = new Set<keyof TourProduct>(['imageLinks']);
 
-
 function buildLinkField(text: string, url: string): string {
   const t = text.trim();
   const u = url.trim();
@@ -47,7 +47,7 @@ function buildLinkField(text: string, url: string): string {
   return u || t;
 }
 
-function LinkEditCell({ product, field, onSaved }: InlineEditCellProps) {
+function LinkEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const strValue = rawValue ? String(rawValue) : '';
   const initial = parseLinkField(strValue);
@@ -139,8 +139,8 @@ function LinkEditCell({ product, field, onSaved }: InlineEditCellProps) {
     const displayText = text || url;
     return (
       <button
-        className="relative w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
-        onClick={() => setEditing(true)}
+        className={cn("relative w-full rounded p-0.5 text-left transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
+        onClick={() => { if (!readOnly) setEditing(true); }}
       >
         <span className="flex items-center gap-1">
           {displayText ? (
@@ -200,7 +200,7 @@ function LinkEditCell({ product, field, onSaved }: InlineEditCellProps) {
   );
 }
 
-function ImageLinksCell({ product, field, onSaved }: InlineEditCellProps) {
+function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const strValue = rawValue ? String(rawValue) : '';
   const [editing, setEditing] = useState(false);
@@ -299,8 +299,8 @@ function ImageLinksCell({ product, field, onSaved }: InlineEditCellProps) {
 
   return (
     <div
-      className="relative cursor-pointer rounded p-0.5 transition-colors hover:bg-[hsl(var(--surface))]"
-      onClick={() => setEditing(true)}
+      className={cn("relative rounded p-0.5 transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
+      onClick={() => { if (!readOnly) setEditing(true); }}
     >
       {links.length > 0 ? (
         <div className="flex flex-col items-end gap-1">
@@ -378,7 +378,7 @@ function fieldValueToString(
   return String(value);
 }
 
-export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps) {
+export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState(() => fieldValueToString(field, rawValue));
@@ -387,21 +387,18 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
   const isMountedRef = useRef(true);
   const savingRef = useRef(false);
 
-  // Keep inputValue in sync if product changes externally
   useEffect(() => {
     if (!editing) {
       setInputValue(fieldValueToString(field, rawValue));
     }
   }, [rawValue, field, editing]);
 
-  // Focus the input when entering edit mode
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.focus();
     }
   }, [editing]);
 
-  // Track mounted state
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -412,10 +409,9 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
   const save = useCallback(
     async (valueToSave: string) => {
       if (!isMountedRef.current) return;
-      if (savingRef.current) return; // prevent concurrent saves
+      if (savingRef.current) return;
       savingRef.current = true;
       setSaving(true);
-      // Optimistic update — notify parent immediately so UI reflects change
       onSaved(field, valueToSave);
       try {
         const res = await fetch(`/api/products/${product.rowIndex}`, {
@@ -436,7 +432,6 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
         if (isMountedRef.current) {
           const msg = err instanceof Error ? err.message : String(err);
           toast.error(`Failed to save: ${msg}`);
-          // Revert optimistic update
           onSaved(field, fieldValueToString(field, rawValue));
           setInputValue(fieldValueToString(field, rawValue));
         }
@@ -480,10 +475,9 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
       <div className="relative flex items-center justify-center">
         <Switch
           checked={checked}
-          disabled={saving}
+          disabled={saving || readOnly}
           onCheckedChange={(next) => {
-            const val = next ? 'TRUE' : 'FALSE';
-            save(val);
+            save(next ? 'TRUE' : 'FALSE');
           }}
         />
         {saving && (
@@ -500,8 +494,8 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     if (!editing) {
       return (
         <button
-          className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
-          onClick={() => setEditing(true)}
+          className={cn("w-full rounded p-0.5 text-left transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
+          onClick={() => { if (!readOnly) setEditing(true); }}
         >
           {getDisplayValue(field, rawValue)}
         </button>
@@ -551,8 +545,8 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     if (!editing) {
       return (
         <button
-          className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
-          onClick={() => setEditing(true)}
+          className={cn("w-full rounded p-0.5 text-left transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
+          onClick={() => { if (!readOnly) setEditing(true); }}
         >
           {getDisplayValue(field, rawValue)}
         </button>
@@ -602,8 +596,8 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
     if (!editing) {
       return (
         <button
-          className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
-          onClick={() => setEditing(true)}
+          className={cn("w-full rounded p-0.5 text-left transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
+          onClick={() => { if (!readOnly) setEditing(true); }}
         >
           {getDisplayValue(field, rawValue)}
         </button>
@@ -623,20 +617,20 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
 
   // Image links — multi-link display with textarea edit
   if (IMAGE_LINKS_FIELDS.has(field as keyof TourProduct)) {
-    return <ImageLinksCell product={product} field={field} onSaved={onSaved} />;
+    return <ImageLinksCell product={product} field={field} onSaved={onSaved} readOnly={readOnly} />;
   }
 
   // Link fields — dual text+URL inputs
   if (LINK_FIELDS.has(field as keyof TourProduct)) {
-    return <LinkEditCell product={product} field={field} onSaved={onSaved} />;
+    return <LinkEditCell product={product} field={field} onSaved={onSaved} readOnly={readOnly} />;
   }
 
   // Default — text Input
   if (!editing) {
     return (
       <button
-        className="w-full cursor-pointer rounded p-0.5 text-left transition-colors hover:bg-[hsl(var(--surface))]"
-        onClick={() => setEditing(true)}
+        className={cn("w-full rounded p-0.5 text-left transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
+        onClick={() => { if (!readOnly) setEditing(true); }}
       >
         {getDisplayValue(field, rawValue)}
       </button>
