@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { X } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -12,8 +12,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PIC_VALUES, PRODUCT_STATUSES } from '@/lib/constants';
-import type { TourProduct } from '@/lib/types';
+import { ASSEMBLY_STAGES, type AssemblyStage, type TourProduct } from '@/lib/types';
 import { DeleteConfirmDialog } from './delete-confirm-dialog';
+import { MoveToStageDialog } from '@/components/assembly/move-to-stage-dialog';
 
 interface BulkActionsToolbarProps {
   selectedProducts: TourProduct[];
@@ -27,6 +28,8 @@ export function BulkActionsToolbar({
   onMutate,
 }: BulkActionsToolbarProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveTargetStage, setMoveTargetStage] = useState<AssemblyStage | null>(null);
 
   if (selectedProducts.length === 0) return null;
 
@@ -59,6 +62,35 @@ export function BulkActionsToolbar({
       onClearSelection();
     } else {
       toast.error('Bulk delete failed');
+    }
+  };
+
+  const handleStageSelect = (stage: AssemblyStage) => {
+    setMoveTargetStage(stage);
+    setMoveDialogOpen(true);
+  };
+
+  const handleMoveConfirm = async (
+    strategy: { type: 'new'; name: string } | { type: 'existing'; batchId: string },
+  ) => {
+    const rowIndexes = selectedProducts.map((p) => p.rowIndex);
+    const res = await fetch('/api/assembly/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rowIndexes,
+        targetStage: moveTargetStage,
+        batchStrategy: strategy,
+      }),
+    });
+    if (res.ok) {
+      toast.success(
+        `Moved ${rowIndexes.length} product${rowIndexes.length !== 1 ? 's' : ''} to "${moveTargetStage}"`,
+      );
+      onMutate();
+      onClearSelection();
+    } else {
+      toast.error('Move failed');
     }
   };
 
@@ -114,6 +146,22 @@ export function BulkActionsToolbar({
 
         <div className="mx-1 h-4 w-px bg-[hsl(var(--border))]" />
 
+        <Select onValueChange={(value) => handleStageSelect(value as AssemblyStage)}>
+          <SelectTrigger className="w-48">
+            <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+            <SelectValue placeholder="Move to Stage…" />
+          </SelectTrigger>
+          <SelectContent>
+            {ASSEMBLY_STAGES.map((stage) => (
+              <SelectItem key={stage} value={stage}>
+                {stage}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="mx-1 h-4 w-px bg-[hsl(var(--border))]" />
+
         <Button
           variant="destructive"
           size="sm"
@@ -139,6 +187,13 @@ export function BulkActionsToolbar({
         onOpenChange={setDeleteDialogOpen}
         count={selectedProducts.length}
         onConfirm={handleBulkDelete}
+      />
+
+      <MoveToStageDialog
+        open={moveDialogOpen}
+        onOpenChange={setMoveDialogOpen}
+        targetStage={moveTargetStage}
+        onConfirm={handleMoveConfirm}
       />
     </>
   );
