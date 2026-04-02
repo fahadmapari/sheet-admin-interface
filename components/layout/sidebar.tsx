@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, Settings } from 'lucide-react';
+import { LayoutDashboard, Layers, Package, Settings } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const navGroups = [
     items: [
       { href: '/', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/products', label: 'Products', icon: Package },
+      { href: '/assembly', label: 'Assembly Line', icon: Layers },
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
