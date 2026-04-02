@@ -1,6 +1,7 @@
 'use client';
 
 import { Clock, ExternalLink, MapPin, Pencil } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { TourProduct } from '@/lib/types';
 import { getProductStatusClasses } from '@/lib/design-system';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -41,9 +42,16 @@ function ProductCard({ product, onClick }: { product: TourProduct; onClick: () =
             const displayName = product.productName || linkParsed?.text || product.link || `${product.city}, ${product.country}`;
             return (
               <div className="flex items-start gap-1">
-                <h3 className="line-clamp-2 text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
-                  {displayName}
-                </h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <h3 className="line-clamp-2 text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
+                        {displayName}
+                      </h3>
+                    </TooltipTrigger>
+                    <TooltipContent>{displayName}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 {linkUrl && (
                   <a
                     href={linkUrl}

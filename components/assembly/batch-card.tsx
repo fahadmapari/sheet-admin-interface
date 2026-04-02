@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowRight, ChevronDown, ChevronRight, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -156,7 +157,14 @@ export function BatchCard({
                       onClick={() => onProductClick(product)}
                     >
                       <td className="max-w-[220px] truncate py-2 pr-4 font-medium text-[hsl(var(--text-primary))]">
-                        {displayName}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="truncate block">{displayName}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>{displayName}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </td>
                       <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.city}</td>
                       <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">

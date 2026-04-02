@@ -15,6 +15,7 @@ import {
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, ExternalLink } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
@@ -136,9 +137,16 @@ function buildColumns(
         return (
           <div className="min-w-0 max-w-[280px] flex items-start gap-1">
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
-                {displayName}
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="truncate text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
+                      {displayName}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>{displayName}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {p.duration && (
                 <div className="mt-0.5 text-xs text-[hsl(var(--text-secondary))]">{p.duration}</div>
               )}

@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PIC_VALUES, PRODUCT_STATUSES } from '@/lib/constants';
+import { PRODUCT_STATUSES } from '@/lib/constants';
 import { ASSEMBLY_STAGES, type AssemblyStage, type TourProduct } from '@/lib/types';
 import { DeleteConfirmDialog } from './delete-confirm-dialog';
 import { MoveToStageDialog } from '@/components/assembly/move-to-stage-dialog';
@@ -102,19 +102,6 @@ export function BulkActionsToolbar({
         </span>
 
         <div className="mx-1 h-4 w-px bg-[hsl(var(--border))]" />
-
-        <Select onValueChange={(value) => applyBulkField('pic', value)}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Set PIC…" />
-          </SelectTrigger>
-          <SelectContent>
-            {PIC_VALUES.map((pic) => (
-              <SelectItem key={pic} value={pic}>
-                {pic}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         <Select onValueChange={(value) => applyBulkField('productStatus', value)}>
           <SelectTrigger className="w-44">
