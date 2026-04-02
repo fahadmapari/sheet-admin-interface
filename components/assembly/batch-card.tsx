@@ -1,23 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Package } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronRight, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn, parseLinkField } from '@/lib/utils';
-import type { AssemblyBatch, TourProduct } from '@/lib/types';
+import { ASSEMBLY_STAGES, type AssemblyBatch, type TourProduct } from '@/lib/types';
 
 interface BatchCardProps {
   batch: AssemblyBatch;
   products: TourProduct[];
+  isMoving: boolean;
+  onMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
   onProductClick: (product: TourProduct) => void;
 }
 
-export function BatchCard({ batch, products, onProductClick }: BatchCardProps) {
+export function BatchCard({
+  batch,
+  products,
+  isMoving,
+  onMoveToNextStage,
+  onProductClick,
+}: BatchCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const batchProducts = products.filter((p) =>
     batch.productRowIndexes.includes(p.rowIndex),
   );
+  const stageIndex = ASSEMBLY_STAGES.indexOf(batch.stage);
+  const nextStage = stageIndex >= 0 ? ASSEMBLY_STAGES[stageIndex + 1] : null;
 
   const dateLabel = new Date(batch.createdAt).toLocaleDateString(undefined, {
     year: 'numeric',
@@ -27,25 +38,44 @@ export function BatchCard({ batch, products, onProductClick }: BatchCardProps) {
 
   return (
     <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]">
-      <button
-        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-[hsl(var(--surface))]"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-      >
-        {expanded ? (
-          <ChevronDown className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
-        )}
-        <Package className="h-4 w-4 shrink-0 text-[hsl(var(--text-secondary))]" />
-        <span className="flex-1 text-sm font-medium text-[hsl(var(--text-primary))]">
-          {batch.name}
-        </span>
+      <div className="flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-[hsl(var(--surface))]">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+        >
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
+          ) : (
+            <ChevronRight className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
+          )}
+          <Package className="h-4 w-4 shrink-0 text-[hsl(var(--text-secondary))]" />
+          <span className="flex-1 truncate text-sm font-medium text-[hsl(var(--text-primary))]">
+            {batch.name}
+          </span>
+        </button>
         <span className="text-xs text-[hsl(var(--text-tertiary))]">{dateLabel}</span>
-        <Badge variant="secondary" className="ml-2 text-xs">
+        <Badge variant="secondary" className="text-xs">
           {batch.productRowIndexes.length}
         </Badge>
-      </button>
+        {nextStage ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="ml-2 h-8"
+            disabled={isMoving}
+            onClick={(event) => {
+              event.stopPropagation();
+              void onMoveToNextStage(batch);
+            }}
+          >
+            <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+            {isMoving ? 'Moving...' : `Move to ${nextStage}`}
+          </Button>
+        ) : null}
+      </div>
 
       {expanded && (
         <div className="border-t border-[hsl(var(--border))] px-4 py-2">

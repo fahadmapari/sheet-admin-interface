@@ -48,30 +48,20 @@ export async function POST(req: NextRequest) {
       targetBatchId = new ObjectId(batchStrategy.batchId);
       await col.updateOne(
         { _id: targetBatchId },
-        { $push: { productRowIndexes: { $each: rowIndexes } } as Document },
+        { $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document },
       );
     } else {
       const batchName = batchStrategy.name ?? todayIso();
+      const existing = await col.findOne({ stage: targetStage, name: batchName });
 
-      // For unnamed new batches (single moves), reuse today's batch in target stage if it exists
-      const shouldReuse = !batchStrategy.name;
-      if (shouldReuse) {
-        const existing = await col.findOne({ stage: targetStage, name: batchName });
-        if (existing) {
-          await col.updateOne(
-            { _id: existing._id },
-            { $push: { productRowIndexes: { $each: rowIndexes } } as Document },
-          );
-          targetBatchId = existing._id;
-        } else {
-          const res = await col.insertOne({
-            name: batchName,
-            stage: targetStage,
-            productRowIndexes: rowIndexes,
-            createdAt: new Date(),
-          });
-          targetBatchId = res.insertedId;
-        }
+      // Reuse an existing batch with the same stage+name so partial moves and
+      // whole-batch moves continue to consolidate into one visible batch.
+      if (existing) {
+        await col.updateOne(
+          { _id: existing._id },
+          { $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document },
+        );
+        targetBatchId = existing._id;
       } else {
         const res = await col.insertOne({
           name: batchName,

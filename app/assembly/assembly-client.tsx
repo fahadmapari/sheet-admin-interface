@@ -3,10 +3,17 @@
 import { useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { Layers } from 'lucide-react';
+import { toast } from 'sonner';
 import { StageSection } from '@/components/assembly/stage-section';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
 import { fetcher } from '@/lib/fetcher';
-import { ASSEMBLY_STAGES, type AssemblyResponse, type TourProduct } from '@/lib/types';
+import {
+  ASSEMBLY_STAGES,
+  type AssemblyBatch,
+  type AssemblyResponse,
+  type AssemblyStage,
+  type TourProduct,
+} from '@/lib/types';
 
 export function AssemblyClient() {
   const { mutate } = useSWRConfig();
@@ -18,6 +25,46 @@ export function AssemblyClient() {
   });
 
   const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
+  const [movingBatchId, setMovingBatchId] = useState<string | null>(null);
+
+  const getNextStage = (stage: AssemblyStage): AssemblyStage | null => {
+    const currentIndex = ASSEMBLY_STAGES.indexOf(stage);
+    if (currentIndex === -1 || currentIndex >= ASSEMBLY_STAGES.length - 1) {
+      return null;
+    }
+    return ASSEMBLY_STAGES[currentIndex + 1];
+  };
+
+  const handleBatchMoveToNextStage = async (batch: AssemblyBatch) => {
+    const nextStage = getNextStage(batch.stage);
+    if (!nextStage) return;
+
+    setMovingBatchId(batch._id);
+    try {
+      const moveRes = await fetch('/api/assembly/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rowIndexes: batch.productRowIndexes,
+          targetStage: nextStage,
+          batchStrategy: { type: 'new', name: batch.name },
+        }),
+      });
+
+      if (!moveRes.ok) {
+        toast.error('Batch move failed');
+        return;
+      }
+
+      toast.success(`Moved batch "${batch.name}" to "${nextStage}"`);
+      mutate('/api/assembly');
+      if (nextStage === 'Ready for Upload') {
+        mutate('/api/products');
+      }
+    } finally {
+      setMovingBatchId(null);
+    }
+  };
 
   if (assemblyError) {
     return (
@@ -56,6 +103,8 @@ export function AssemblyClient() {
               stage={stage}
               batches={assemblyData?.[stage]?.batches ?? []}
               products={products ?? []}
+              movingBatchId={movingBatchId}
+              onBatchMoveToNextStage={handleBatchMoveToNextStage}
               onProductClick={(product) => setSelectedProduct(product)}
             />
           ))}
