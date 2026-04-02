@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchAllRows, fetchColumnHyperlinks, appendRow, updateCellHyperlink } from '@/lib/sheets';
+import { fetchAllRows, fetchColumnHyperlinks, fetchColumnRichTextLinks, appendRow, updateCellHyperlink } from '@/lib/sheets';
 import { rowToProduct, productToRow, parseLinkField } from '@/lib/utils';
 import type { TourProduct } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const LINK_COL_INDEX = 5; // column F — "link" field
+const LINK_COL_INDEX = 5;        // column F — "link" field
+const IMAGE_LINKS_COL_INDEX = 13; // column N — "imageLinks" field
 
 export async function GET() {
   try {
-    const [rows, linkHyperlinks] = await Promise.all([
+    const [rows, linkHyperlinks, imageLinksRichText] = await Promise.all([
       fetchAllRows(),
       fetchColumnHyperlinks(LINK_COL_INDEX),
+      fetchColumnRichTextLinks(IMAGE_LINKS_COL_INDEX),
     ]);
     // Row 0 is the header — skip it. Data starts at row index 1 (array[1]).
     // Sheet rowIndex is 1-based: array[1] = sheet row 2 (first data row)
@@ -19,7 +21,7 @@ export async function GET() {
       .slice(1) // skip header
       .map((row, i) => {
         const rowIndex = i + 2; // i=0 → sheet row 2
-        return rowToProduct(row, rowIndex, linkHyperlinks.get(rowIndex));
+        return rowToProduct(row, rowIndex, linkHyperlinks.get(rowIndex), imageLinksRichText.get(rowIndex));
       });
     return NextResponse.json(products);
   } catch (err) {

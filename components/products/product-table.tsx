@@ -37,21 +37,61 @@ function StatusBadge({ status }: { status: string | null }) {
 
 function buildExtraColumns(): ColumnDef<TourProduct>[] {
   return COLUMN_GROUPS.flatMap((group) =>
-    (group.fields as readonly string[]).map((fieldId) => ({
-      id: fieldId,
-      accessorKey: fieldId,
-      header: FIELD_LABELS[fieldId as keyof typeof FIELD_LABELS] ?? fieldId,
-      cell: ({ row }: { row: Row<TourProduct> }) => {
-        const value = row.original[fieldId as keyof TourProduct];
-        if (value === null || value === undefined || value === '') {
-          return <span className="text-[hsl(var(--text-tertiary))]">–</span>;
-        }
-        if (typeof value === 'boolean') {
-          return <span className="text-xs text-[hsl(var(--text-secondary))]">{value ? 'Yes' : 'No'}</span>;
-        }
-        return <span className="text-sm text-[hsl(var(--text-primary))] truncate block max-w-[200px]">{String(value)}</span>;
-      },
-    }))
+    (group.fields as readonly string[]).map((fieldId) => {
+      if (fieldId === 'imageLinks') {
+        return {
+          id: fieldId,
+          accessorKey: fieldId,
+          header: FIELD_LABELS[fieldId as keyof typeof FIELD_LABELS] ?? fieldId,
+          cell: ({ row }: { row: Row<TourProduct> }) => {
+            const value = row.original.imageLinks;
+            if (!value) return <span className="text-[hsl(var(--text-tertiary))]">–</span>;
+            const links = value
+              .split(/\r?\n/)
+              .map((l) => l.trim())
+              .filter(Boolean)
+              .map(parseLinkField);
+            return (
+              <div className="flex flex-col gap-0.5 max-w-[200px]">
+                {links.map((link, i) =>
+                  link.url ? (
+                    <a
+                      key={i}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      <span className="truncate">{link.text || link.url}</span>
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                    </a>
+                  ) : (
+                    <span key={i} className="text-sm text-[hsl(var(--text-primary))] truncate">{link.text}</span>
+                  )
+                )}
+              </div>
+            );
+          },
+        };
+      }
+
+      return {
+        id: fieldId,
+        accessorKey: fieldId,
+        header: FIELD_LABELS[fieldId as keyof typeof FIELD_LABELS] ?? fieldId,
+        cell: ({ row }: { row: Row<TourProduct> }) => {
+          const value = row.original[fieldId as keyof TourProduct];
+          if (value === null || value === undefined || value === '') {
+            return <span className="text-[hsl(var(--text-tertiary))]">–</span>;
+          }
+          if (typeof value === 'boolean') {
+            return <span className="text-xs text-[hsl(var(--text-secondary))]">{value ? 'Yes' : 'No'}</span>;
+          }
+          return <span className="text-sm text-[hsl(var(--text-primary))] truncate block max-w-[200px]">{String(value)}</span>;
+        },
+      };
+    })
   );
 }
 

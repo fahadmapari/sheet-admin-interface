@@ -323,6 +323,77 @@ export async function updateCellHyperlink(
 }
 
 /**
+ * Fetch rich text links for a single column (0-based colIndex) across all data rows.
+ * Returns a Map<rowIndex (1-based), normalized string>.
+ *
+ * For a cell with a single hyperlink:   "Display Text||https://url"
+ * For a cell with multiple hyperlinks:  "Text1||url1\nText2||url2"
+ * For plain text with no links:         the plain text
+ *
+ * Only entries with content are included.
+ */
+export async function fetchColumnRichTextLinks(colIndex: number): Promise<Map<number, string>> {
+  const sheets = getSheetsClient();
+  const colLetter = colIndexToLetter(colIndex);
+  const range = `'${NET_RATES_SHEET}'!${colLetter}2:${colLetter}`;
+
+  try {
+    const response = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+      ranges: [range],
+      includeGridData: true,
+    });
+
+    const result = new Map<number, string>();
+    const rowData = response.data.sheets?.[0]?.data?.[0]?.rowData ?? [];
+
+    rowData.forEach((row, idx) => {
+      const cell = row.values?.[0];
+      if (!cell) return;
+
+      const stringValue =
+        cell.userEnteredValue?.stringValue ??
+        cell.effectiveValue?.stringValue ??
+        '';
+      if (!stringValue) return;
+
+      const sheetRowIndex = idx + 2;
+      const textFormatRuns = cell.textFormatRuns ?? [];
+
+      if (textFormatRuns.length === 0) {
+        // No rich text runs — fall back to cell-level hyperlink
+        const hyperlink = cell.hyperlink;
+        result.set(sheetRowIndex, hyperlink ? `${stringValue}||${hyperlink}` : stringValue);
+        return;
+      }
+
+      // Build segments from textFormatRuns; each run covers
+      // [startIndex, nextRun.startIndex) within stringValue.
+      const segments: string[] = [];
+      for (let i = 0; i < textFormatRuns.length; i++) {
+        const run = textFormatRuns[i];
+        const nextRun = textFormatRuns[i + 1];
+        const start = run.startIndex ?? 0;
+        const end = nextRun?.startIndex ?? stringValue.length;
+        const text = stringValue.slice(start, end).trim();
+        const url = run.format?.link?.uri ?? '';
+        if (!text) continue;
+        segments.push(url ? `${text}||${url}` : text);
+      }
+
+      if (segments.length > 0) {
+        result.set(sheetRowIndex, segments.join('\n'));
+      }
+    });
+
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to fetch rich text links for column ${colLetter}: ${message}`);
+  }
+}
+
+/**
  * Batch update multiple rows at once for efficiency.
  * updates is an array of { rowIndex: number, values: string[] }.
  */

@@ -37,6 +37,7 @@ const LONG_TEXT_FIELDS = new Set<keyof TourProduct>([
 ]);
 
 const LINK_FIELDS = new Set<keyof TourProduct>(['link']);
+const IMAGE_LINKS_FIELDS = new Set<keyof TourProduct>(['imageLinks']);
 
 
 function buildLinkField(text: string, url: string): string {
@@ -190,6 +191,140 @@ function LinkEditCell({ product, field, onSaved }: InlineEditCellProps) {
         onKeyDown={handleKeyDown}
         onBlur={() => commitAndExit(text, url)}
       />
+      {saving && (
+        <span className="absolute inset-0 flex items-center justify-center bg-background/50">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ImageLinksCell({ product, field, onSaved }: InlineEditCellProps) {
+  const rawValue = product[field];
+  const strValue = rawValue ? String(rawValue) : '';
+  const [editing, setEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(strValue);
+  const [saving, setSaving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const isMountedRef = useRef(true);
+  const savingRef = useRef(false);
+
+  useEffect(() => {
+    if (!editing) setInputValue(strValue);
+  }, [strValue, editing]);
+
+  useEffect(() => {
+    if (editing && textareaRef.current) textareaRef.current.focus();
+  }, [editing]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const save = useCallback(
+    async (valueToSave: string) => {
+      if (!isMountedRef.current || savingRef.current) return;
+      savingRef.current = true;
+      setSaving(true);
+      onSaved(field, valueToSave);
+      try {
+        const res = await fetch(`/api/products/${product.rowIndex}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            field,
+            value: valueToSave,
+            expectedLinkTitle: parseLinkField(product.link ?? '').text,
+          }),
+        });
+        if (!isMountedRef.current) return;
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error ?? `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
+          onSaved(field, strValue);
+          setInputValue(strValue);
+        }
+      } finally {
+        savingRef.current = false;
+        if (isMountedRef.current) setSaving(false);
+      }
+    },
+    [field, product.rowIndex, product.link, strValue, onSaved],
+  );
+
+  const commitAndExit = useCallback(
+    (value: string) => {
+      setEditing(false);
+      if (value !== strValue) save(value);
+    },
+    [strValue, save],
+  );
+
+  if (editing) {
+    return (
+      <div className="relative w-full">
+        <Textarea
+          ref={textareaRef as RefObject<HTMLTextAreaElement>}
+          className="min-h-[60px] text-xs resize-none w-full"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setInputValue(strValue);
+              setEditing(false);
+            }
+          }}
+          onBlur={() => commitAndExit(inputValue)}
+        />
+        {saving && (
+          <span className="absolute inset-0 flex items-center justify-center bg-background/50">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  const links = strValue
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map(parseLinkField);
+
+  return (
+    <div
+      className="relative cursor-pointer rounded p-0.5 transition-colors hover:bg-[hsl(var(--surface))]"
+      onClick={() => setEditing(true)}
+    >
+      {links.length > 0 ? (
+        <div className="flex flex-col items-end gap-1">
+          {links.map((link, i) =>
+            link.url ? (
+              <a
+                key={i}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
+              >
+                <span>{link.text || link.url}</span>
+                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+              </a>
+            ) : (
+              <span key={i} className="text-sm text-[hsl(var(--text-primary))]">{link.text}</span>
+            )
+          )}
+        </div>
+      ) : (
+        <span className="text-xs text-[hsl(var(--text-tertiary))]">—</span>
+      )}
       {saving && (
         <span className="absolute inset-0 flex items-center justify-center bg-background/50">
           <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
@@ -484,6 +619,11 @@ export function InlineEditCell({ product, field, onSaved }: InlineEditCellProps)
         onBlur={handleBlur}
       />
     );
+  }
+
+  // Image links — multi-link display with textarea edit
+  if (IMAGE_LINKS_FIELDS.has(field as keyof TourProduct)) {
+    return <ImageLinksCell product={product} field={field} onSaved={onSaved} />;
   }
 
   // Link fields — dual text+URL inputs

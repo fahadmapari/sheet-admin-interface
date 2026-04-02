@@ -49,7 +49,7 @@ export function parseLinkField(value: string): { text: string; url: string } {
 
 // Convert a raw sheet row (string[]) to a TourProduct
 // rowIndex is the 1-based sheet row number
-export function rowToProduct(row: string[], rowIndex: number, linkHyperlink?: string): TourProduct {
+export function rowToProduct(row: string[], rowIndex: number, linkHyperlink?: string, imageLinksRichText?: string): TourProduct {
   const get = (col: number) => row[col];
   const linkText = toText(get(5));
 
@@ -78,7 +78,7 @@ export function rowToProduct(row: string[], rowIndex: number, linkHyperlink?: st
     notes: toText(get(10)),
     isOk: toText(get(11)),
     ssOk: toBoolean(get(12)),
-    imageLinks: toText(get(13)),
+    imageLinks: imageLinksRichText ?? toText(get(13)),
     maxPax: toText(get(14)),
     guide: toBoolean(get(15)),
     driver: toBoolean(get(16)),
