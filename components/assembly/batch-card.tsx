@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowRight, ChevronDown, ChevronRight, Package } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Circle, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, parseLinkField } from '@/lib/utils';
@@ -38,6 +38,30 @@ export function BatchCard({
   );
   const stageIndex = ASSEMBLY_STAGES.indexOf(batch.stage);
   const nextStage = stageIndex >= 0 ? ASSEMBLY_STAGES[stageIndex + 1] : null;
+
+  function isProductReady(product: TourProduct): boolean {
+    switch (batch.stage) {
+      case 'In Review':
+        return !!product.isOk && product.isOk.trim() !== '';
+      case '2nd Review':
+        return !!product.ssOk;
+      case 'Buying Price':
+        return !!product.totalBuyingPrice && product.totalBuyingPrice.trim() !== '';
+      case 'Selling Price':
+        return (
+          !!product.b2bPriceOnRequest &&
+          product.b2bPriceOnRequest.trim() !== '' &&
+          !!product.b2cPriceOnRequest &&
+          product.b2cPriceOnRequest.trim() !== ''
+        );
+      case 'Ready for Upload':
+        return !!product.productLink && product.productLink.trim() !== '';
+      default:
+        return false;
+    }
+  }
+
+  const showReadiness = batch.stage !== 'Uploaded';
 
   const dateLabel = new Date(batch.createdAt).toLocaleDateString(undefined, {
     year: 'numeric',
@@ -136,6 +160,11 @@ export function BatchCard({
                   <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
                     Status
                   </th>
+                  {showReadiness && (
+                    <th className="py-1.5 pl-3 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                      Ready
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -179,6 +208,15 @@ export function BatchCard({
                           <span className="text-[hsl(var(--text-tertiary))]">-</span>
                         )}
                       </td>
+                      {showReadiness && (
+                        <td className="py-2 pl-3">
+                          {isProductReady(product) ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Circle className="h-4 w-4 text-[hsl(var(--text-tertiary))] opacity-40" />
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
