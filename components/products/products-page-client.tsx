@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { ProductsClient } from '@/app/products/products-client';
+import { ProductsClient } from '@/app/(app)/products/products-client';
 import { DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
 
 export function ProductsPageClient() {
