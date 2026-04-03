@@ -298,16 +298,6 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
         onViewDelete={handleViewDelete}
         onViewAdd={handleViewAdd}
       />
-      <FilterBar filters={filters} onFiltersChange={setFilters} />
-
-      {activeView === 'table' && (
-        <BulkActionsToolbar
-          selectedProducts={selectedProducts}
-          onClearSelection={() => setRowSelection({})}
-          onMutate={() => mutate('/api/products')}
-        />
-      )}
-
       <div className="flex flex-col gap-2">
         {!isLoading && (
           <div className="flex items-center gap-2">
@@ -334,6 +324,16 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
           )}
         </div>
       </div>
+
+      <FilterBar filters={filters} onFiltersChange={setFilters} />
+
+      {activeView === 'table' && (
+        <BulkActionsToolbar
+          selectedProducts={selectedProducts}
+          onClearSelection={() => setRowSelection({})}
+          onMutate={() => mutate('/api/products')}
+        />
+      )}
 
       {activeView === 'table' ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
