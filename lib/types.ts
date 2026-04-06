@@ -158,3 +158,19 @@ export interface ProductAssemblyInfo {
   batchId: string;
   batchName: string;
 }
+
+export interface AppNotification {
+  _id: string;
+  recipientEmail: string;
+  batchId: string;
+  batchName: string;
+  productCount: number;
+  stage: AssemblyStage;
+  createdAt: string; // ISO string
+  read: boolean;
+}
+
+export interface NotificationSubscription {
+  email: string;
+  stages: AssemblyStage[];
+}
