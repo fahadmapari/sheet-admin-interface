@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId, type Document } from 'mongodb';
-import { getDb } from '@/lib/mongodb';
-import { ASSEMBLY_STAGES, type AssemblyStage } from '@/lib/types';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { fanOutNotifications } from '@/lib/notifications';
+import { ObjectId, type Document } from 'mongodb';
+import { getDb } from '@/lib/mongodb';
+import { ASSEMBLY_STAGES, type AssemblyStage } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +24,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as MoveBody;
     const { rowIndexes, targetStage, batchStrategy } = body;
-
-    // actorEmail comes from NextAuth session — always lowercase from Google OAuth
-    const session = await getServerSession(authOptions);
-    const actorEmail = session?.user?.email ?? '';
 
     if (!Array.isArray(rowIndexes) || rowIndexes.length === 0) {
       return NextResponse.json({ error: 'rowIndexes must be a non-empty array' }, { status: 400 });
@@ -92,6 +88,10 @@ export async function POST(req: NextRequest) {
         console.warn('[assembly/move] Sheet sync failed for "Ready for Upload":', await sheetRes.text());
       }
     }
+
+    // actorEmail comes from NextAuth session — always lowercase from Google OAuth
+    const session = await getServerSession(authOptions);
+    const actorEmail = session?.user?.email ?? '';
 
     // Fan out notifications (fire-and-forget — failure must not block the move)
     try {
