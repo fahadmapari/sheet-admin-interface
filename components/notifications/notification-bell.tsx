@@ -50,7 +50,13 @@ export function NotificationBell() {
     try {
       const res = await fetch('/api/notifications/mark-read', { method: 'POST' });
       if (!res.ok) throw new Error(res.statusText);
-      await mutate();
+      await mutate(
+        (current) =>
+          current
+            ? { notifications: current.notifications.map((n) => ({ ...n, read: true })) }
+            : current,
+        { revalidate: true },
+      );
     } catch {
       toast.error('Failed to mark notifications as read');
     }

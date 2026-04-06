@@ -32,6 +32,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid targetStage' }, { status: 400 });
     }
 
+    // actorEmail comes from NextAuth session — always lowercase from Google OAuth
+    const session = await getServerSession(authOptions);
+    const actorEmail = session?.user?.email ?? '';
+
     const db = await getDb();
     const col = db.collection('assembly_batches');
 
@@ -88,10 +92,6 @@ export async function POST(req: NextRequest) {
         console.warn('[assembly/move] Sheet sync failed for "Ready for Upload":', await sheetRes.text());
       }
     }
-
-    // actorEmail comes from NextAuth session — always lowercase from Google OAuth
-    const session = await getServerSession(authOptions);
-    const actorEmail = session?.user?.email ?? '';
 
     // Fan out notifications (fire-and-forget — failure must not block the move)
     try {
