@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bell, Menu } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { Menu } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MobileSidebar } from '@/components/layout/sidebar';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { StageSubscriptionSettings } from '@/components/notifications/stage-subscription-settings';
 
 function formatSegment(segment: string) {
   if (/^\d+$/.test(segment)) return `Row ${segment}`;
@@ -36,6 +39,7 @@ function formatSegment(segment: string) {
 
 export function Header() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   const segments = useMemo(() => {
     const parts = pathname.split('/').filter(Boolean);
@@ -49,6 +53,16 @@ export function Header() {
       href: `/${parts.slice(0, index + 1).join('/')}`,
     }));
   }, [pathname]);
+
+  const userName = session?.user?.name ?? 'User';
+  const userEmail = session?.user?.email ?? '';
+  const userImage = session?.user?.image ?? undefined;
+  const initials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <header className="sticky top-0 z-[var(--z-header)] flex h-12 items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background)_/_0.8)] px-4 backdrop-blur md:px-6">
@@ -82,23 +96,25 @@ export function Header() {
 
       <div className="flex items-center gap-1">
         <ThemeToggle />
-        <Button variant="ghost" size="icon" aria-label="Notifications">
-          <Bell className="h-4 w-4" strokeWidth={1.5} />
-        </Button>
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="overflow-hidden rounded-full">
               <Avatar className="h-7 w-7">
-                <AvatarImage alt="User avatar" />
-                <AvatarFallback>FA</AvatarFallback>
+                <AvatarImage src={userImage} alt={userName} />
+                <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="space-y-0.5">
-              <div className="text-sm font-medium text-[hsl(var(--text-primary))]">Fahad</div>
-              <div className="text-xs text-[hsl(var(--text-secondary))]">Admin workspace</div>
+              <div className="text-sm font-medium text-[hsl(var(--text-primary))]">
+                {userName}
+              </div>
+              <div className="text-xs text-[hsl(var(--text-secondary))]">{userEmail}</div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <StageSubscriptionSettings />
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/settings">Settings</Link>
