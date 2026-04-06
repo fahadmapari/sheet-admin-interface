@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
+import { type AppNotification, type AssemblyStage } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,11 +21,15 @@ export async function GET() {
       .limit(50)
       .toArray();
 
-    const notifications = raw.map((n) => ({
-      ...n,
+    const notifications: AppNotification[] = raw.map((n) => ({
       _id: n._id.toString(),
-      createdAt:
-        n.createdAt instanceof Date ? n.createdAt.toISOString() : (n.createdAt as string),
+      recipientEmail: n.recipientEmail as string,
+      batchId: n.batchId as string,
+      batchName: n.batchName as string,
+      productCount: n.productCount as number,
+      stage: n.stage as AssemblyStage,
+      createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : (n.createdAt as string),
+      read: n.read as boolean,
     }));
 
     return NextResponse.json({ notifications });

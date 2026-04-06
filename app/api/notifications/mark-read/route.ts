@@ -13,14 +13,14 @@ export async function POST() {
     }
 
     const db = await getDb();
-    await db
+    const result = await db
       .collection('notifications')
       .updateMany(
         { recipientEmail: session.user.email, read: false },
         { $set: { read: true } },
       );
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, modifiedCount: result.modifiedCount });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
