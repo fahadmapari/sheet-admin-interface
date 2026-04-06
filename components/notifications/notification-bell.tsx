@@ -1,0 +1,75 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+import useSWR from 'swr';
+import { Bell } from 'lucide-react';
+import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { NotificationDropdown } from '@/components/notifications/notification-dropdown';
+import { fetcher } from '@/lib/fetcher';
+import type { AppNotification } from '@/lib/types';
+
+export function NotificationBell() {
+  const { data, isLoading, mutate } = useSWR<{ notifications: AppNotification[] }>(
+    '/api/notifications',
+    fetcher,
+    { refreshInterval: 30_000 },
+  );
+
+  const notifications = data?.notifications ?? [];
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Track IDs seen in the previous poll to detect newly arrived notifications
+  const prevIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const currentIds = new Set(notifications.map((n) => n._id));
+
+    if (prevIdsRef.current.size > 0) {
+      for (const n of notifications) {
+        if (!prevIdsRef.current.has(n._id) && !n.read) {
+          toast.info(
+            `Batch "${n.batchName}" (${n.productCount} product${
+              n.productCount !== 1 ? 's' : ''
+            }) moved to ${n.stage}`,
+          );
+        }
+      }
+    }
+
+    prevIdsRef.current = currentIds;
+  }, [notifications]);
+
+  const handleMarkAllRead = async () => {
+    await fetch('/api/notifications/mark-read', { method: 'POST' });
+    await mutate();
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Notifications"
+          className="relative"
+        >
+          <Bell className="h-4 w-4" strokeWidth={1.5} />
+          {unreadCount > 0 && (
+            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="p-0">
+        <NotificationDropdown
+          notifications={notifications}
+          isLoading={isLoading}
+          onMarkAllRead={handleMarkAllRead}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
