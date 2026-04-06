@@ -59,6 +59,7 @@ export function Header() {
   const userImage = session?.user?.image ?? undefined;
   const initials = userName
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .toUpperCase()
