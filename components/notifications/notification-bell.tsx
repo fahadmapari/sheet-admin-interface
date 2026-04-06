@@ -22,19 +22,24 @@ export function NotificationBell() {
 
   // Track IDs seen in the previous poll to detect newly arrived notifications
   const prevIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
     const currentIds = new Set(notifications.map((n) => n._id));
 
-    if (prevIdsRef.current.size > 0) {
-      for (const n of notifications) {
-        if (!prevIdsRef.current.has(n._id) && !n.read) {
-          toast.info(
-            `Batch "${n.batchName}" (${n.productCount} product${
-              n.productCount !== 1 ? 's' : ''
-            }) moved to ${n.stage}`,
-          );
-        }
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      prevIdsRef.current = currentIds;
+      return;
+    }
+
+    for (const n of notifications) {
+      if (!prevIdsRef.current.has(n._id) && !n.read) {
+        toast.info(
+          `Batch "${n.batchName}" (${n.productCount} product${
+            n.productCount !== 1 ? 's' : ''
+          }) moved to ${n.stage}`,
+        );
       }
     }
 
@@ -42,8 +47,13 @@ export function NotificationBell() {
   }, [notifications]);
 
   const handleMarkAllRead = async () => {
-    await fetch('/api/notifications/mark-read', { method: 'POST' });
-    await mutate();
+    try {
+      const res = await fetch('/api/notifications/mark-read', { method: 'POST' });
+      if (!res.ok) throw new Error(res.statusText);
+      await mutate();
+    } catch {
+      toast.error('Failed to mark notifications as read');
+    }
   };
 
   return (
