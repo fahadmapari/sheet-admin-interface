@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { fetcher } from '@/lib/fetcher';
 
 export function StageSubscriptionSettings() {
-  const { data, mutate } = useSWR<{ stages: AssemblyStage[] }>(
+  const { data, mutate, isLoading } = useSWR<{ stages: AssemblyStage[] }>(
     '/api/notifications/subscriptions',
     fetcher,
   );
@@ -21,11 +21,12 @@ export function StageSubscriptionSettings() {
 
     await mutate(
       async () => {
-        await fetch('/api/notifications/subscriptions', {
+        const res = await fetch('/api/notifications/subscriptions', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stages: next }),
         });
+        if (!res.ok) throw new Error(res.statusText);
         return { stages: next };
       },
       { optimisticData: { stages: next }, rollbackOnError: true },
@@ -52,6 +53,7 @@ export function StageSubscriptionSettings() {
             id={`stage-sub-${stage}`}
             checked={subscribedStages.includes(stage)}
             onCheckedChange={(checked) => handleToggle(stage, checked)}
+            disabled={isLoading}
           />
         </div>
       ))}
