@@ -355,7 +355,7 @@ export function ProductTable({
   return (
     <div
       ref={containerRef}
-      className="flex min-h-0 flex-1 overflow-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]"
+      className="flex items-start min-h-0 flex-1 overflow-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]"
     >
       <table className="w-full border-collapse text-sm table-auto">
         <thead className="sticky top-0 z-10">
