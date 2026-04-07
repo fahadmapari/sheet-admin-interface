@@ -43,6 +43,7 @@ export function MoveToStageDialog({
   const [batchName, setBatchName] = useState(todayIso());
   const [existingBatchId, setExistingBatchId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [modeInitialized, setModeInitialized] = useState(false);
 
   const { data: assemblyData } = useSWR<AssemblyResponse>(
     open ? '/api/assembly' : null,
@@ -51,14 +52,22 @@ export function MoveToStageDialog({
 
   const existingBatches = targetStage ? (assemblyData?.[targetStage]?.batches ?? []) : [];
 
+  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setBatchName(todayIso());
       setExistingBatchId('');
-      // Default to 'existing' if batches already exist in the target stage
-      setMode(existingBatches.length > 0 ? 'existing' : 'new');
+      setModeInitialized(false);
     }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Set default mode once data loads (may arrive after dialog opens)
+  useEffect(() => {
+    if (open && assemblyData && !modeInitialized) {
+      setMode(existingBatches.length > 0 ? 'existing' : 'new');
+      setModeInitialized(true);
+    }
+  }, [open, assemblyData, modeInitialized, existingBatches.length]);
 
   const handleConfirm = async () => {
     setLoading(true);
