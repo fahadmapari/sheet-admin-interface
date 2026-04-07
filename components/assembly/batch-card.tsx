@@ -85,9 +85,23 @@ export function BatchCard({
     day: 'numeric',
   });
 
-  // Intercepts batch move: checks readiness, shows dialog if needed
+  const isForwardMove = (targetStage: AssemblyStage) =>
+    ASSEMBLY_STAGES.indexOf(targetStage) > stageIndex;
+
+  // Intercepts batch move: checks readiness only when moving forward
   const handleBatchMoveClick = (targetStage: AssemblyStage, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!isForwardMove(targetStage)) {
+      // Moving backward — no readiness check
+      if (targetStage === nextStage) {
+        void onMoveToNextStage(batch);
+      } else {
+        void onMoveToStage(batch, targetStage);
+      }
+      return;
+    }
+
     const readyProducts = batchProducts.filter(isProductReady);
     const notReadyCount = batchProducts.length - readyProducts.length;
 
@@ -104,7 +118,8 @@ export function BatchCard({
     setPendingMove({ type: 'batch', targetStage, readyProducts, notReadyCount });
   };
 
-  // Intercepts per-product move: checks readiness, shows dialog if not ready
+  // Intercepts per-product move: checks readiness only when moving forward
+  // (per-product move button always targets nextStage, which is always forward)
   const handleProductMoveClick = (product: TourProduct, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!nextStage) return;
