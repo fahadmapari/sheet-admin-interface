@@ -26,6 +26,7 @@ export function AssemblyClient() {
 
   const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
   const [movingBatchId, setMovingBatchId] = useState<string | null>(null);
+  const [movingProductRowIndex, setMovingProductRowIndex] = useState<number | null>(null);
 
   const getNextStage = (stage: AssemblyStage): AssemblyStage | null => {
     const currentIndex = ASSEMBLY_STAGES.indexOf(stage);
@@ -74,6 +75,37 @@ export function AssemblyClient() {
     await moveBatchToStage(batch, targetStage);
   };
 
+  const handleProductMoveToNextStage = async (product: TourProduct, batch: AssemblyBatch) => {
+    const nextStage = getNextStage(batch.stage);
+    if (!nextStage) return;
+
+    setMovingProductRowIndex(product.rowIndex);
+    try {
+      const moveRes = await fetch('/api/assembly/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rowIndexes: [product.rowIndex],
+          targetStage: nextStage,
+          batchStrategy: { type: 'new', name: batch.name },
+        }),
+      });
+
+      if (!moveRes.ok) {
+        toast.error('Move failed');
+        return;
+      }
+
+      toast.success(`Moved product to "${nextStage}"`);
+      mutate('/api/assembly');
+      if (nextStage === 'Ready for Upload') {
+        mutate('/api/products');
+      }
+    } finally {
+      setMovingProductRowIndex(null);
+    }
+  };
+
   if (assemblyError) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/15 dark:text-red-300">
@@ -112,8 +144,12 @@ export function AssemblyClient() {
               batches={assemblyData?.[stage]?.batches ?? []}
               products={products ?? []}
               movingBatchId={movingBatchId}
+              movingProductRowIndex={movingProductRowIndex}
               onBatchMoveToNextStage={handleBatchMoveToNextStage}
               onBatchMoveToStage={handleBatchMoveToStage}
+              onMoveProductToNextStage={(product, batch) =>
+                handleProductMoveToNextStage(product, batch)
+              }
               onProductClick={(product) => setSelectedProduct(product)}
             />
           ))}

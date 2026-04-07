@@ -12,26 +12,42 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ASSEMBLY_STAGES, type AssemblyBatch, type AssemblyStage, type TourProduct } from '@/lib/types';
 
 interface BatchCardProps {
   batch: AssemblyBatch;
   products: TourProduct[];
   isMoving: boolean;
+  movingProductRowIndex: number | null;
   onMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
   onMoveToStage: (batch: AssemblyBatch, targetStage: AssemblyStage) => Promise<void>;
+  onMoveProductToNextStage: (product: TourProduct) => Promise<void>;
   onProductClick: (product: TourProduct) => void;
 }
+
+type PendingMove =
+  | { type: 'batch'; targetStage: AssemblyStage; readyProducts: TourProduct[]; notReadyCount: number }
+  | { type: 'product'; product: TourProduct; targetStage: AssemblyStage };
 
 export function BatchCard({
   batch,
   products,
   isMoving,
+  movingProductRowIndex,
   onMoveToNextStage,
   onMoveToStage,
+  onMoveProductToNextStage,
   onProductClick,
 }: BatchCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
 
   const batchProducts = products.filter((p) =>
     batch.productRowIndexes.includes(p.rowIndex),
@@ -69,162 +85,291 @@ export function BatchCard({
     day: 'numeric',
   });
 
+  // Intercepts batch move: checks readiness, shows dialog if needed
+  const handleBatchMoveClick = (targetStage: AssemblyStage, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const readyProducts = batchProducts.filter(isProductReady);
+    const notReadyCount = batchProducts.length - readyProducts.length;
+
+    if (notReadyCount === 0) {
+      // All ready — proceed directly
+      if (targetStage === nextStage) {
+        void onMoveToNextStage(batch);
+      } else {
+        void onMoveToStage(batch, targetStage);
+      }
+      return;
+    }
+
+    setPendingMove({ type: 'batch', targetStage, readyProducts, notReadyCount });
+  };
+
+  // Intercepts per-product move: checks readiness, shows dialog if not ready
+  const handleProductMoveClick = (product: TourProduct, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!nextStage) return;
+
+    if (isProductReady(product)) {
+      void onMoveProductToNextStage(product);
+      return;
+    }
+
+    setPendingMove({ type: 'product', product, targetStage: nextStage });
+  };
+
+  const confirmMove = async () => {
+    if (!pendingMove) return;
+
+    if (pendingMove.type === 'batch') {
+      const { targetStage, readyProducts } = pendingMove;
+      if (readyProducts.length > 0) {
+        const filteredBatch: AssemblyBatch = {
+          ...batch,
+          productRowIndexes: readyProducts.map((p) => p.rowIndex),
+        };
+        if (targetStage === nextStage) {
+          await onMoveToNextStage(filteredBatch);
+        } else {
+          await onMoveToStage(filteredBatch, targetStage);
+        }
+      }
+    } else {
+      await onMoveProductToNextStage(pendingMove.product);
+    }
+
+    setPendingMove(null);
+  };
+
+  const isNoneReady =
+    pendingMove?.type === 'batch' && pendingMove.readyProducts.length === 0;
+
   return (
-    <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]">
-      <div className="flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-[hsl(var(--surface))]">
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-        >
-          {expanded ? (
-            <ChevronDown className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
-          ) : (
-            <ChevronRight className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
-          )}
-          <Package className="h-4 w-4 shrink-0 text-[hsl(var(--text-secondary))]" />
-          <span className="flex-1 truncate text-sm font-medium text-[hsl(var(--text-primary))]">
-            {batch.name}
-          </span>
-        </button>
-        <span className="text-xs text-[hsl(var(--text-tertiary))]">{dateLabel}</span>
-        <Badge variant="secondary" className="text-xs">
-          {batch.productRowIndexes.length}
-        </Badge>
-        {nextStage ? (
-          <div className="ml-2 flex">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-r-none border-r-0"
-              disabled={isMoving}
-              onClick={(event) => {
-                event.stopPropagation();
-                void onMoveToNextStage(batch);
-              }}
-            >
-              <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-              {isMoving ? 'Moving...' : `Move to ${nextStage}`}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-l-none px-2"
-                  disabled={isMoving}
-                  aria-label="Select stage for batch"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {ASSEMBLY_STAGES.map((stage) => (
-                  <DropdownMenuItem
-                    key={stage}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void onMoveToStage(batch, stage);
-                    }}
+    <>
+      <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]">
+        <div className="flex items-center gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-[hsl(var(--surface))]">
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+          >
+            {expanded ? (
+              <ChevronDown className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
+            ) : (
+              <ChevronRight className="h-4 w-4 shrink-0 text-[hsl(var(--text-tertiary))]" />
+            )}
+            <Package className="h-4 w-4 shrink-0 text-[hsl(var(--text-secondary))]" />
+            <span className="flex-1 truncate text-sm font-medium text-[hsl(var(--text-primary))]">
+              {batch.name}
+            </span>
+          </button>
+          <span className="text-xs text-[hsl(var(--text-tertiary))]">{dateLabel}</span>
+          <Badge variant="secondary" className="text-xs">
+            {batch.productRowIndexes.length}
+          </Badge>
+          {nextStage ? (
+            <div className="ml-2 flex">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-r-none border-r-0"
+                disabled={isMoving}
+                onClick={(e) => handleBatchMoveClick(nextStage, e)}
+              >
+                <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                {isMoving ? 'Moving...' : `Move to ${nextStage}`}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-l-none px-2"
+                    disabled={isMoving}
+                    aria-label="Select stage for batch"
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    {stage}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ) : null}
-      </div>
-
-      {expanded && (
-        <div className="border-t border-[hsl(var(--border))] px-4 py-2">
-          {batchProducts.length === 0 ? (
-            <p className="py-2 text-sm text-[hsl(var(--text-tertiary))]">No products loaded.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[hsl(var(--border))]">
-                  <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                    Product
-                  </th>
-                  <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                    City
-                  </th>
-                  <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                    Country
-                  </th>
-                  <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                    Status
-                  </th>
-                  {showReadiness && (
-                    <th className="py-1.5 pl-3 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                      Ready
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {batchProducts.map((product) => {
-                  const linkParsed = product.link ? parseLinkField(product.link) : null;
-                  const displayName =
-                    product.productName ||
-                    linkParsed?.text ||
-                    product.link ||
-                    `${product.city}, ${product.country}`;
-
-                  return (
-                    <tr
-                      key={product.rowIndex}
-                      className={cn(
-                        'cursor-pointer border-b border-[hsl(var(--border))] last:border-0',
-                        'transition-colors hover:bg-[hsl(var(--surface))]',
-                      )}
-                      onClick={() => onProductClick(product)}
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {ASSEMBLY_STAGES.map((stage) => (
+                    <DropdownMenuItem
+                      key={stage}
+                      onClick={(e) => handleBatchMoveClick(stage, e)}
                     >
-                      <td className="max-w-[220px] truncate py-2 pr-4 font-medium text-[hsl(var(--text-primary))]">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="truncate block">{displayName}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>{displayName}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </td>
-                      <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.city}</td>
-                      <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">
-                        {product.country}
-                      </td>
-                      <td className="py-2">
-                        {product.productStatus ? (
-                          <Badge variant="outline" className="text-xs">
-                            {product.productStatus}
-                          </Badge>
-                        ) : (
-                          <span className="text-[hsl(var(--text-tertiary))]">-</span>
+                      {stage}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : null}
+        </div>
+
+        {expanded && (
+          <div className="border-t border-[hsl(var(--border))] px-4 py-2">
+            {batchProducts.length === 0 ? (
+              <p className="py-2 text-sm text-[hsl(var(--text-tertiary))]">No products loaded.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[hsl(var(--border))]">
+                    <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                      Product
+                    </th>
+                    <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                      City
+                    </th>
+                    <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                      Country
+                    </th>
+                    <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                      Status
+                    </th>
+                    {showReadiness && (
+                      <th className="py-1.5 pl-3 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                        Ready
+                      </th>
+                    )}
+                    {nextStage && (
+                      <th className="py-1.5 pl-3 text-right text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                        Move
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {batchProducts.map((product) => {
+                    const linkParsed = product.link ? parseLinkField(product.link) : null;
+                    const displayName =
+                      product.productName ||
+                      linkParsed?.text ||
+                      product.link ||
+                      `${product.city}, ${product.country}`;
+                    const isThisProductMoving = movingProductRowIndex === product.rowIndex;
+
+                    return (
+                      <tr
+                        key={product.rowIndex}
+                        className={cn(
+                          'cursor-pointer border-b border-[hsl(var(--border))] last:border-0',
+                          'transition-colors hover:bg-[hsl(var(--surface))]',
                         )}
-                      </td>
-                      {showReadiness && (
-                        <td className="py-2 pl-3">
-                          {isProductReady(product) ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        onClick={() => onProductClick(product)}
+                      >
+                        <td className="max-w-[220px] truncate py-2 pr-4 font-medium text-[hsl(var(--text-primary))]">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="truncate block">{displayName}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>{displayName}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </td>
+                        <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.city}</td>
+                        <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">
+                          {product.country}
+                        </td>
+                        <td className="py-2">
+                          {product.productStatus ? (
+                            <Badge variant="outline" className="text-xs">
+                              {product.productStatus}
+                            </Badge>
                           ) : (
-                            <Circle className="h-4 w-4 text-[hsl(var(--text-tertiary))] opacity-40" />
+                            <span className="text-[hsl(var(--text-tertiary))]">-</span>
                           )}
                         </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-    </div>
+                        {showReadiness && (
+                          <td className="py-2 pl-3">
+                            {isProductReady(product) ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Circle className="h-4 w-4 text-[hsl(var(--text-tertiary))] opacity-40" />
+                            )}
+                          </td>
+                        )}
+                        {nextStage && (
+                          <td className="py-2 pl-3 text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              disabled={isThisProductMoving || isMoving}
+                              onClick={(e) => handleProductMoveClick(product, e)}
+                            >
+                              <ArrowRight className="mr-1 h-3 w-3" />
+                              {isThisProductMoving ? '...' : 'Move'}
+                            </Button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Readiness warning dialog */}
+      <Dialog open={pendingMove !== null} onOpenChange={(open) => { if (!open) setPendingMove(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {pendingMove?.type === 'product' ? 'Move product' : 'Move batch'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2 text-sm text-[hsl(var(--text-secondary))]">
+            {pendingMove?.type === 'batch' && (
+              isNoneReady ? (
+                <p>
+                  No products in this batch are ready to be moved to{' '}
+                  <span className="font-medium text-[hsl(var(--text-primary))]">{pendingMove.targetStage}</span>.
+                </p>
+              ) : (
+                <p>
+                  <span className="font-medium text-[hsl(var(--text-primary))]">{pendingMove?.notReadyCount}</span>{' '}
+                  product{pendingMove?.notReadyCount !== 1 ? 's are' : ' is'} not ready and will be skipped.
+                  Only{' '}
+                  <span className="font-medium text-[hsl(var(--text-primary))]">{pendingMove?.readyProducts.length}</span>{' '}
+                  ready product{pendingMove?.readyProducts.length !== 1 ? 's' : ''} will be moved to{' '}
+                  <span className="font-medium text-[hsl(var(--text-primary))]">{pendingMove?.targetStage}</span>.
+                </p>
+              )
+            )}
+            {pendingMove?.type === 'product' && (
+              <p>
+                This product is not ready for{' '}
+                <span className="font-medium text-[hsl(var(--text-primary))]">{pendingMove.targetStage}</span>.
+                Move it anyway?
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingMove(null)}>
+              Cancel
+            </Button>
+            {!isNoneReady && (
+              <Button onClick={() => void confirmMove()}>
+                {pendingMove?.type === 'batch' ? 'Move ready products' : 'Move anyway'}
+              </Button>
+            )}
+            {isNoneReady && (
+              <Button variant="outline" onClick={() => setPendingMove(null)}>
+                OK
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
