@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { fanOutNotifications } from '@/lib/notifications';
 import { ObjectId, type Document } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
@@ -31,10 +29,6 @@ export async function POST(req: NextRequest) {
     if (!ASSEMBLY_STAGES.includes(targetStage)) {
       return NextResponse.json({ error: 'Invalid targetStage' }, { status: 400 });
     }
-
-    // actorEmail comes from NextAuth session — always lowercase from Google OAuth
-    const session = await getServerSession(authOptions);
-    const actorEmail = session?.user?.email ?? '';
 
     const db = await getDb();
     const col = db.collection('assembly_batches');
@@ -101,7 +95,6 @@ export async function POST(req: NextRequest) {
         batchName: movedBatch?.name ?? '',
         productCount: rowIndexes.length,
         targetStage,
-        actorEmail,
       });
     } catch (notifErr) {
       console.warn('[assembly/move] Notification fan-out failed:', notifErr);

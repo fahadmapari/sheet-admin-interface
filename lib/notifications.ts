@@ -7,19 +7,17 @@ export async function fanOutNotifications({
   batchName,
   productCount,
   targetStage,
-  actorEmail,
 }: {
   batchId: string;
   batchName: string;
   productCount: number;
   targetStage: AssemblyStage;
-  actorEmail: string;
 }): Promise<void> {
   const db = await getDb();
 
   const subscribers = await db
     .collection('notification_subscriptions')
-    .find({ stages: targetStage, email: { $ne: actorEmail } })
+    .find({ stages: targetStage })
     .toArray();
 
   if (subscribers.length === 0) return;

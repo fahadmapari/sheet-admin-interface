@@ -18,8 +18,8 @@ export function NotificationDropdown({
   onMarkAllRead,
 }: NotificationDropdownProps) {
   return (
-    <div className="w-[380px]">
-      <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-3 py-2">
+    <div className="flex max-h-[min(480px,80vh)] w-full flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b border-[hsl(var(--border))] px-3 py-2">
         <span className="text-sm font-medium">Notifications</span>
         <Button
           variant="ghost"
@@ -31,7 +31,7 @@ export function NotificationDropdown({
           Mark all as read
         </Button>
       </div>
-      <ScrollArea className="max-h-[400px]">
+      <ScrollArea className="min-h-0 flex-1">
         {isLoading ? (
           <div className="space-y-1 p-2">
             {[1, 2, 3].map((i) => (
@@ -47,11 +47,11 @@ export function NotificationDropdown({
             {notifications.map((n) => (
               <div
                 key={n._id}
-                className={`rounded-md px-3 py-2.5 text-sm ${
+                className={`overflow-hidden rounded-md px-3 py-2.5 text-sm ${
                   !n.read ? 'bg-[hsl(var(--surface))]' : ''
                 }`}
               >
-                <p className="font-medium text-[hsl(var(--text-primary))]">
+                <p className="break-words font-medium text-[hsl(var(--text-primary))]">
                   Batch &ldquo;{n.batchName}&rdquo; ({n.productCount} product
                   {n.productCount !== 1 ? 's' : ''}) moved to {n.stage}
                 </p>

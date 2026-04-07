@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <ThemeProvider>
             {children}
             <Toaster
-              position="top-right"
+              position="bottom-right"
               toastOptions={{
                 classNames: {
                   toast:

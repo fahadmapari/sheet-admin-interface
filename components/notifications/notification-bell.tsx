@@ -73,13 +73,13 @@ export function NotificationBell() {
         >
           <Bell className="h-4 w-4" strokeWidth={1.5} />
           {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+            <span className="absolute right-1 top-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] font-medium text-white">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="p-0">
+      <PopoverContent align="end" className="w-[min(380px,calc(100vw-1rem))] overflow-x-hidden p-0">
         <NotificationDropdown
           notifications={notifications}
           isLoading={isLoading}
