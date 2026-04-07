@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MobileSidebar } from '@/components/layout/sidebar';
 import { NotificationBell } from '@/components/notifications/notification-bell';
-import { StageSubscriptionSettings } from '@/components/notifications/stage-subscription-settings';
 
 function formatSegment(segment: string) {
   if (/^\d+$/.test(segment)) return `Row ${segment}`;
@@ -114,8 +113,6 @@ export function Header() {
               </div>
               <div className="text-xs text-[hsl(var(--text-secondary))]">{userEmail}</div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <StageSubscriptionSettings />
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/settings">Settings</Link>

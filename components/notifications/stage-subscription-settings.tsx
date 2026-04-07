@@ -34,7 +34,7 @@ export function StageSubscriptionSettings() {
   };
 
   return (
-    <div className="space-y-1 px-1 py-1">
+    <div className="space-y-1">
       <p className="px-2 pb-1 text-xs font-medium text-[hsl(var(--text-secondary))]">
         Notify me when a batch reaches
       </p>
