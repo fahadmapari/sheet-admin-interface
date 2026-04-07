@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Users, X } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, NUMBER_FIELDS } from '@/lib/constants';
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { InlineEditCell } from './inline-edit-cell';
 import {
   DropdownMenu,
@@ -46,6 +45,16 @@ const OTA_CHANNELS: { field: keyof TourProduct; label: string }[] = [
   { field: 'otaKlook', label: 'Klook' },
   { field: 'otaToristy', label: 'Toristy' },
   { field: 'otaTourHQ', label: 'TourHQ' },
+];
+
+const TAB_SECTIONS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'tour', label: 'Tour Config' },
+  { id: 'provider', label: 'Provider & Costs' },
+  { id: 'validity', label: 'Validity' },
+  { id: 'content', label: 'Content' },
+  { id: 'upload', label: 'Upload / Notes / OTA' },
 ];
 
 const DETAIL_SECTIONS: {
@@ -244,6 +253,9 @@ export function ProductDetailSheet({
 }: ProductDetailSheetProps) {
   const [draftProduct, setDraftProduct] = useState<TourProduct | null>(product);
   const [editMode, setEditMode] = useState(false);
+  const [activeSection, setActiveSection] = useState('overview');
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setDraftProduct(product);
@@ -340,6 +352,49 @@ export function ProductDetailSheet({
     }
   };
 
+  const isProgrammaticScrollRef = useRef(false);
+  const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleScroll = useCallback(() => {
+    if (isProgrammaticScrollRef.current) return;
+    const container = scrollAreaRef.current;
+    if (!container) return;
+    const containerTop = container.getBoundingClientRect().top;
+    // 'notes' and 'ota' are grouped under the 'upload' tab
+    const allIds = [...DETAIL_SECTIONS.map((s) => s.id), 'notes', 'ota'];
+    const TAB_ID: Record<string, string> = { notes: 'upload', ota: 'upload' };
+    let active = allIds[0];
+    for (const id of allIds) {
+      const el = sectionRefs.current[id];
+      if (el && el.getBoundingClientRect().top - containerTop <= 40) {
+        active = TAB_ID[id] ?? id;
+      }
+    }
+    setActiveSection(active);
+  }, []);
+
+  function scrollToSection(id: string) {
+    const container = scrollAreaRef.current;
+    const el = sectionRefs.current[id];
+    if (!container || !el) return;
+    setActiveSection(id);
+    isProgrammaticScrollRef.current = true;
+    if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+
+    const unlock = () => { isProgrammaticScrollRef.current = false; };
+
+    if ('onscrollend' in container) {
+      container.addEventListener('scrollend', unlock, { once: true });
+      // Safety fallback in case scrollend doesn't fire
+      programmaticScrollTimerRef.current = setTimeout(unlock, 2000);
+    } else {
+      programmaticScrollTimerRef.current = setTimeout(unlock, 1000);
+    }
+
+    const offset = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 16;
+    container.scrollTo({ top: offset, behavior: 'smooth' });
+  }
+
   if (!draftProduct) return null;
 
   const activeOtas = OTA_CHANNELS.filter((channel) => {
@@ -363,7 +418,7 @@ export function ProductDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-2xl w-full p-0 flex flex-col" side="right">
+      <SheetContent className="sm:max-w-4xl w-full p-0 flex flex-col" side="right">
         <div className="space-y-3 border-b border-[hsl(var(--border))] px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
@@ -433,10 +488,32 @@ export function ProductDetailSheet({
           )}
         </div>
 
-        <ScrollArea className="flex-1">
+        <div className="flex overflow-x-auto border-b border-[hsl(var(--border))] scrollbar-hide">
+          {TAB_SECTIONS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => scrollToSection(tab.id)}
+              className={[
+                'shrink-0 whitespace-nowrap px-4 py-2.5 text-sm transition-colors',
+                activeSection === tab.id
+                  ? 'border-b-2 border-[hsl(var(--text-primary))] font-medium text-[hsl(var(--text-primary))]'
+                  : 'text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-secondary))]',
+              ].join(' ')}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div ref={scrollAreaRef} className="flex-1 overflow-y-auto scrollbar-hide" onScroll={handleScroll}>
           <div className="space-y-6 px-6 py-4">
             {DETAIL_SECTIONS.map((section) => (
-              <div key={section.id}>
+              <div
+                key={section.id}
+                data-section-id={section.id}
+                ref={(el) => { sectionRefs.current[section.id] = el; }}
+              >
                 <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
                   {section.label}
                 </h3>
@@ -460,7 +537,10 @@ export function ProductDetailSheet({
               </div>
             ))}
 
-            <div>
+            <div
+              data-section-id="ota"
+              ref={(el) => { sectionRefs.current['ota'] = el; }}
+            >
               <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
                 OTA Distribution ({activeOtas.length}/{OTA_CHANNELS.length})
               </h3>
@@ -496,7 +576,7 @@ export function ProductDetailSheet({
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] px-6 py-4">
           <div className="min-w-0">

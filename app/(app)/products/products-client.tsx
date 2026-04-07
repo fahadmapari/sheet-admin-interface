@@ -48,16 +48,16 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const [singleMoveDialogOpen, setSingleMoveDialogOpen] = useState(false);
   const [singleMoveProduct, setSingleMoveProduct] = useState<TourProduct | null>(null);
   const [activeViewId, setActiveViewId] = useState<string>('default');
-  const [customViews, setCustomViews] = useState<CustomView[]>(() => {
-    if (typeof window === 'undefined') return [];
+  const [customViews, setCustomViews] = useState<CustomView[]>([]);
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem('sheet-admin:custom-views');
-      return stored ? (JSON.parse(stored) as CustomView[]) : [];
+      if (stored) setCustomViews(JSON.parse(stored) as CustomView[]);
     } catch (e) {
       console.warn('sheet-admin: failed to parse custom-views from localStorage', e);
-      return [];
     }
-  });
+  }, []);
   const selectedProductRowIndex = selectedProduct?.rowIndex ?? null;
 
   const updateUrl = useCallback((newFilters: Filters, newSearch: string) => {
