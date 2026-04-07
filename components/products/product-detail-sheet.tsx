@@ -435,27 +435,6 @@ export function ProductDetailSheet({
 
         <ScrollArea className="flex-1">
           <div className="space-y-6 px-6 py-4">
-            {(draftProduct.b2bPriceInstant || draftProduct.b2cPriceInstant) && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3">
-                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
-                    B2B Instant
-                  </div>
-                  <div className="mt-1 text-xl font-semibold tracking-tight">
-                    {draftProduct.b2bPriceInstant || '—'}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3">
-                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[hsl(var(--text-tertiary))]">
-                    B2C Instant
-                  </div>
-                  <div className="mt-1 text-xl font-semibold tracking-tight">
-                    {draftProduct.b2cPriceInstant || '—'}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {DETAIL_SECTIONS.map((section) => (
               <div key={section.id}>
                 <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
