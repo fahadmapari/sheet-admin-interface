@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -23,22 +24,147 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { PRODUCT_STATUSES, PIC_VALUES } from '@/lib/constants';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { PRODUCT_STATUSES } from '@/lib/constants';
+import type { TourProduct } from '@/lib/types';
 
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+// ---------------------------------------------------------------------------
+// ComboboxInput — searchable dropdown that also accepts free-text values
+// ---------------------------------------------------------------------------
+interface ComboboxInputProps {
+  id?: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+}
+
+function ComboboxInput({
+  id,
+  value,
+  onChange,
+  options,
+  placeholder = 'Select or type…',
+  searchPlaceholder = 'Search…',
+}: ComboboxInputProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!query) return options;
+    const q = query.toLowerCase();
+    return options.filter((o) => o.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const showCreate =
+    query.trim() !== '' &&
+    !options.some((o) => o.toLowerCase() === query.trim().toLowerCase());
+
+  function select(val: string) {
+    onChange(val);
+    setQuery('');
+    setOpen(false);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          id={id}
+          type="button"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            'flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background',
+            'focus:outline-none focus:ring-1 focus:ring-ring',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            !value && 'text-muted-foreground',
+          )}
+        >
+          <span className="truncate">{value || placeholder}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="p-0"
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
+        align="start"
+        onWheel={(e) => e.stopPropagation()}
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList>
+            {filtered.length === 0 && !showCreate && (
+              <CommandEmpty>No results found.</CommandEmpty>
+            )}
+            {filtered.length > 0 && (
+              <CommandGroup>
+                {filtered.map((option) => (
+                  <CommandItem
+                    key={option}
+                    value={option}
+                    onSelect={() => select(option)}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        value === option ? 'opacity-100' : 'opacity-0',
+                      )}
+                    />
+                    {option}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {showCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value={`__create__${query}`}
+                  onSelect={() => select(query.trim())}
+                >
+                  <span className="text-muted-foreground mr-2">Use</span>
+                  &ldquo;{query.trim()}&rdquo;
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Schema & form
+// ---------------------------------------------------------------------------
 const schema = z.object({
   country: z.string().min(1, 'Country is required'),
   city: z.string().min(1, 'City is required'),
   productType: z.string().min(1, 'Product type is required'),
   linkTitle: z.string().optional(),
   linkUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  productName: z.string().optional(),
   duration: z.string().optional(),
   productStatus: z.string().optional(),
-  pic: z.string().optional(),
-  notes: z.string().optional(),
-  readyForUpload: z.boolean().optional().default(false),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -50,6 +176,21 @@ interface ProductFormProps {
 
 export function ProductForm({ open, onClose }: ProductFormProps) {
   const { mutate } = useSWRConfig();
+  const { data: products } = useSWR<TourProduct[]>('/api/products', fetcher);
+
+  // Derive unique sorted option lists from existing data
+  const countryOptions = useMemo(
+    () => [...new Set((products ?? []).map((p) => p.country).filter(Boolean) as string[])].sort(),
+    [products],
+  );
+  const cityOptions = useMemo(
+    () => [...new Set((products ?? []).map((p) => p.city).filter(Boolean) as string[])].sort(),
+    [products],
+  );
+  const productTypeOptions = useMemo(
+    () => [...new Set((products ?? []).map((p) => p.productType).filter(Boolean) as string[])].sort(),
+    [products],
+  );
 
   const {
     register,
@@ -59,9 +200,6 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      readyForUpload: false,
-    },
   });
 
   useEffect(() => {
@@ -108,10 +246,19 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
               <Label htmlFor="country">
                 Country <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="country"
-                placeholder="e.g. France"
-                {...register('country')}
+              <Controller
+                name="country"
+                control={control}
+                render={({ field }) => (
+                  <ComboboxInput
+                    id="country"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    options={countryOptions}
+                    placeholder="Select or type a country…"
+                    searchPlaceholder="Search countries…"
+                  />
+                )}
               />
               {errors.country && (
                 <p className="text-xs text-destructive">{errors.country.message}</p>
@@ -123,10 +270,19 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
               <Label htmlFor="city">
                 City <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="city"
-                placeholder="e.g. Paris"
-                {...register('city')}
+              <Controller
+                name="city"
+                control={control}
+                render={({ field }) => (
+                  <ComboboxInput
+                    id="city"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    options={cityOptions}
+                    placeholder="Select or type a city…"
+                    searchPlaceholder="Search cities…"
+                  />
+                )}
               />
               {errors.city && (
                 <p className="text-xs text-destructive">{errors.city.message}</p>
@@ -138,10 +294,19 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
               <Label htmlFor="productType">
                 Product Type <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="productType"
-                placeholder="e.g. Day Tour"
-                {...register('productType')}
+              <Controller
+                name="productType"
+                control={control}
+                render={({ field }) => (
+                  <ComboboxInput
+                    id="productType"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    options={productTypeOptions}
+                    placeholder="Select or type a product type…"
+                    searchPlaceholder="Search product types…"
+                  />
+                )}
               />
               {errors.productType && (
                 <p className="text-xs text-destructive">{errors.productType.message}</p>
@@ -170,16 +335,6 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
                   <p className="text-xs text-destructive">{errors.linkUrl.message}</p>
                 )}
               </div>
-            </div>
-
-            {/* Product Name */}
-            <div className="space-y-1.5">
-              <Label htmlFor="productName">Product Name</Label>
-              <Input
-                id="productName"
-                placeholder="e.g. Eiffel Tower Guided Tour"
-                {...register('productName')}
-              />
             </div>
 
             {/* Duration */}
@@ -215,62 +370,6 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-              />
-            </div>
-
-            {/* PIC */}
-            <div className="space-y-1.5">
-              <Label htmlFor="pic">PIC</Label>
-              <Controller
-                name="pic"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? '__none__'}
-                    onValueChange={(val) => field.onChange(val === '__none__' ? undefined : val)}
-                  >
-                    <SelectTrigger id="pic">
-                      <SelectValue placeholder="Select PIC…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— None —</SelectItem>
-                      {PIC_VALUES.map((pic) => (
-                        <SelectItem key={pic} value={pic}>
-                          {pic}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Any additional notes…"
-                rows={3}
-                {...register('notes')}
-              />
-            </div>
-
-            {/* Ready for Upload */}
-            <div className="flex items-center justify-between rounded-md border px-4 py-3">
-              <Label htmlFor="readyForUpload" className="cursor-pointer">
-                Ready for Upload
-              </Label>
-              <Controller
-                name="readyForUpload"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    id="readyForUpload"
-                    checked={field.value ?? false}
-                    onCheckedChange={field.onChange}
-                  />
                 )}
               />
             </div>
