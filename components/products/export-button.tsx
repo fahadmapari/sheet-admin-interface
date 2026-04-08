@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Loader2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -93,6 +93,7 @@ export function ExportButton({ products, columnVisibility }: ExportButtonProps) 
 
   async function exportToGoogleSheets() {
     setExportingToSheets(true);
+    const toastId = toast.loading('Creating Google Sheet…');
     try {
       const fields = visibleFields.map((f) => FIELD_LABELS[f] ?? f);
       const rows = products.map((p) =>
@@ -110,10 +111,19 @@ export function ExportButton({ products, columnVisibility }: ExportButtonProps) 
       if (!res.ok) {
         throw new Error(data.error ?? 'Export failed');
       }
-      window.open(data.url!, '_blank');
-      toast.success('Opened in Google Sheets');
+      toast.success('Google Sheet ready', {
+        id: toastId,
+        duration: 10000,
+        action: {
+          label: 'Open',
+          onClick: () => window.open(data.url!, '_blank'),
+        },
+      });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Export to Google Sheets failed');
+      toast.error(err instanceof Error ? err.message : 'Export to Google Sheets failed', {
+        id: toastId,
+        duration: 8000,
+      });
     } finally {
       setExportingToSheets(false);
     }
@@ -138,9 +148,6 @@ export function ExportButton({ products, columnVisibility }: ExportButtonProps) 
           onClick={exportToGoogleSheets}
           disabled={exportingToSheets}
         >
-          {exportingToSheets ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : null}
           Export to Google Sheets
         </DropdownMenuItem>
       </DropdownMenuContent>

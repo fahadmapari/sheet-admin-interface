@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { createAndShareSpreadsheet } from '@/lib/sheets';
+import { createSpreadsheetAsUser } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +9,12 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (!session.accessToken) {
+    return NextResponse.json(
+      { error: 'Missing Drive access — please sign out and sign back in' },
+      { status: 401 },
+    );
   }
 
   try {
@@ -30,7 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Too many rows (max 5000)' }, { status: 400 });
     }
 
-    const url = await createAndShareSpreadsheet(title, fields, rows, session.user.email);
+    const url = await createSpreadsheetAsUser(session.accessToken, title, fields, rows);
     return NextResponse.json({ url });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
