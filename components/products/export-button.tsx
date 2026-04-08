@@ -106,14 +106,12 @@ export function ExportButton({ products, columnVisibility }: ExportButtonProps) 
         body: JSON.stringify({ title, fields, rows }),
       });
 
+      const data = await res.json() as { url?: string; error?: string };
       if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error ?? 'Export failed');
+        throw new Error(data.error ?? 'Export failed');
       }
-
-      const { url } = await res.json();
-      window.open(url, '_blank');
-      toast.success(`Opened in Google Sheets`);
+      window.open(data.url!, '_blank');
+      toast.success('Opened in Google Sheets');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Export to Google Sheets failed');
     } finally {
