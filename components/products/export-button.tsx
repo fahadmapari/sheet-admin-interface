@@ -1,6 +1,7 @@
 'use client';
 
-import { Download } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -88,6 +89,38 @@ async function exportXlsx(products: TourProduct[], visibleFields: Array<keyof Om
 export function ExportButton({ products, columnVisibility }: ExportButtonProps) {
   const visibleFields = getVisibleFields(columnVisibility);
 
+  const [exportingToSheets, setExportingToSheets] = useState(false);
+
+  async function exportToGoogleSheets() {
+    setExportingToSheets(true);
+    try {
+      const fields = visibleFields.map((f) => FIELD_LABELS[f] ?? f);
+      const rows = products.map((p) =>
+        visibleFields.map((f) => getCellValue(p, f)),
+      );
+      const title = `Products export ${new Date().toISOString().slice(0, 10)}`;
+
+      const res = await fetch('/api/export/google-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, fields, rows }),
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error ?? 'Export failed');
+      }
+
+      const { url } = await res.json();
+      window.open(url, '_blank');
+      toast.success(`Opened in Google Sheets`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Export to Google Sheets failed');
+    } finally {
+      setExportingToSheets(false);
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -102,6 +135,15 @@ export function ExportButton({ products, columnVisibility }: ExportButtonProps) 
         </DropdownMenuItem>
         <DropdownMenuItem onClick={async () => { await exportXlsx(products, visibleFields); toast.success(`Exported ${products.length} rows as XLSX`); }}>
           Export as XLSX
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={exportToGoogleSheets}
+          disabled={exportingToSheets}
+        >
+          {exportingToSheets ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : null}
+          Export to Google Sheets
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
