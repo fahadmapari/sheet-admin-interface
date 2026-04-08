@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { AccessControlDoc } from '@/lib/access-control';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 interface Props {
   initialData: AccessControlDoc;
   currentUserEmail: string;
@@ -17,6 +19,7 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
   const [allowedInput, setAllowedInput] = useState('');
   const [adminInput, setAdminInput] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   async function save(patch: Partial<AccessControlDoc>) {
     const next: AccessControlDoc = {
@@ -32,12 +35,15 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
     if (res.ok) {
       const updated: AccessControlDoc = await res.json();
       setData(updated);
+      setError(null);
+    } else {
+      setError('Failed to save. Please try again.');
     }
   }
 
   function addAllowed() {
     const email = allowedInput.trim().toLowerCase();
-    if (!email || data.allowedEmails.includes(email)) return;
+    if (!email || !EMAIL_RE.test(email) || data.allowedEmails.includes(email)) return;
     startTransition(async () => {
       await save({ allowedEmails: [...data.allowedEmails, email] });
       setAllowedInput('');
@@ -50,7 +56,7 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
 
   function addAdmin() {
     const email = adminInput.trim().toLowerCase();
-    if (!email || data.adminEmails.includes(email)) return;
+    if (!email || !EMAIL_RE.test(email) || data.adminEmails.includes(email)) return;
     startTransition(async () => {
       await save({ adminEmails: [...data.adminEmails, email] });
       setAdminInput('');
@@ -66,6 +72,9 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
 
   return (
     <div className="flex flex-col gap-8 max-w-lg">
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
       {/* Allow All */}
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Sign-in Access</h2>
