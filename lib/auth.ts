@@ -20,8 +20,10 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      const allowed = process.env.ALLOWED_EMAILS?.split(",").map((e) => e.trim()).filter(Boolean) ?? [];
-      return allowed.includes(user.email ?? "");
+      const { getAccessControl } = await import('./access-control');
+      const { allowAll, allowedEmails } = await getAccessControl();
+      if (allowAll) return true;
+      return allowedEmails.includes(user.email ?? '');
     },
     async jwt({ token, account }) {
       if (account?.access_token) {
