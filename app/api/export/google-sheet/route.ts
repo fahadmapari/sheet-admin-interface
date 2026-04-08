@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { createAndShareSpreadsheet } from '@/lib/sheets';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -15,6 +17,18 @@ export async function POST(req: NextRequest) {
       fields: string[];
       rows: string[][];
     };
+
+    if (
+      typeof title !== 'string' ||
+      !Array.isArray(fields) ||
+      !Array.isArray(rows)
+    ) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    if (rows.length > 5000) {
+      return NextResponse.json({ error: 'Too many rows (max 5000)' }, { status: 400 });
+    }
 
     const url = await createAndShareSpreadsheet(title, fields, rows, session.user.email);
     return NextResponse.json({ url });
