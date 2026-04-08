@@ -1,5 +1,5 @@
 import 'server-only';
-import { google, sheets_v4 } from 'googleapis';
+import { google, sheets_v4, drive_v3 } from 'googleapis';
 import { parseLinkField } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -17,6 +17,7 @@ function requireEnv(name: string): string {
 // ---------------------------------------------------------------------------
 
 let _sheetsClient: sheets_v4.Sheets | null = null;
+let _driveClient: drive_v3.Drive | null = null;
 
 export function getSheetsClient(): sheets_v4.Sheets {
   if (_sheetsClient) return _sheetsClient;
@@ -31,6 +32,23 @@ export function getSheetsClient(): sheets_v4.Sheets {
 
   _sheetsClient = google.sheets({ version: 'v4', auth });
   return _sheetsClient;
+}
+
+export function getDriveClient(): drive_v3.Drive {
+  if (_driveClient) return _driveClient;
+
+  const auth = new google.auth.GoogleAuth({
+    credentials: {
+      client_email: requireEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL'),
+      private_key: requireEnv('GOOGLE_PRIVATE_KEY').replace(/\\n/g, '\n'),
+    },
+    scopes: [
+      'https://www.googleapis.com/auth/drive.file',
+    ],
+  });
+
+  _driveClient = google.drive({ version: 'v3', auth });
+  return _driveClient;
 }
 
 // ---------------------------------------------------------------------------
@@ -448,4 +466,50 @@ export async function findRowByProductName(title: string): Promise<number | null
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to find row by product name "${title}": ${message}`);
   }
+}
+
+/**
+ * Create a new Google Spreadsheet, populate it with headers + rows,
+ * share it as an editor with userEmail, and return its edit URL.
+ */
+export async function createAndShareSpreadsheet(
+  title: string,
+  headers: string[],
+  rows: string[][],
+  userEmail: string,
+): Promise<string> {
+  const sheets = getSheetsClient();
+  const drive = getDriveClient();
+
+  // 1. Create the spreadsheet
+  const createRes = await sheets.spreadsheets.create({
+    requestBody: { properties: { title } },
+  });
+  const spreadsheetId = createRes.data.spreadsheetId;
+  if (!spreadsheetId) throw new Error('Failed to create spreadsheet: no ID returned');
+
+  // 2. Write headers + data rows
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      valueInputOption: 'RAW',
+      data: [{ range: 'Sheet1!A1', values: [headers, ...rows] }],
+    },
+  });
+
+  // 3. Share with user as editor (best-effort — log and continue on failure)
+  try {
+    await drive.permissions.create({
+      fileId: spreadsheetId,
+      requestBody: {
+        type: 'user',
+        role: 'writer',
+        emailAddress: userEmail,
+      },
+    });
+  } catch (err) {
+    console.warn('createAndShareSpreadsheet: failed to share with user, sheet is still accessible via service account:', err);
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 }
