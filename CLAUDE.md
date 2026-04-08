@@ -18,7 +18,6 @@ MONGODB_URI=
 NEXTAUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-ALLOWED_EMAILS=email1@x.com,email2@x.com   # Comma-separated allowlist
 GOOGLE_SERVICE_ACCOUNT_EMAIL=              # Service account for server-side Sheets access
 GOOGLE_PRIVATE_KEY=                        # Must include literal \n; lib/sheets.ts replaces them
 SPREADSHEET_ID=                            # Google Sheets document ID
@@ -78,7 +77,7 @@ components/
 
 - **GOOGLE_PRIVATE_KEY**: Store with literal `\n` in env; `lib/sheets.ts` calls `.replace(/\\n/g, '\n')` at runtime.
 - **Export to Google Sheets**: Uses the *user's* OAuth access token (scope: `drive.file`) — not the service account — so the exported spreadsheet lands in the user's own Drive.
-- **Auth allowlist**: `ALLOWED_EMAILS` is checked in the `signIn` callback; missing or empty = nobody can log in.
+- **Auth allowlist**: Stored in the `accesscontrol` MongoDB collection (single document). On first sign-in attempt, auto-seeded with `adminEmails: ["btechy4@gmail.com"]`. Use the Access tab in Settings (admin-only) to manage allowed emails and admins.
 - **Middleware**: All routes except `/api/auth/**`, `/_next/**`, `/login` require an active session (`middleware.ts`).
 - **Sheet row deletion**: Uses `batchUpdate` with `deleteDimension` (requires numeric sheet ID, not name) — `getSheetId()` caches the lookup.
 - **SWR + server components**: Client pages use SWR for data fetching; server-only code imports are guarded with `import 'server-only'`.
