@@ -1,17 +1,35 @@
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { getAccessControl } from '@/lib/access-control';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StageSubscriptionSettings } from '@/components/notifications/stage-subscription-settings';
+import { AccessControlSettings } from '@/components/settings/access-control-settings';
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await getServerSession(authOptions);
+  const accessControl = await getAccessControl();
+  const showAccessTab =
+    !!session?.user?.email && accessControl.adminEmails.includes(session.user.email);
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold">Settings</h1>
       <Tabs defaultValue="notifications">
         <TabsList>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          {showAccessTab && <TabsTrigger value="access">Access</TabsTrigger>}
         </TabsList>
         <TabsContent value="notifications" className="mt-4">
           <StageSubscriptionSettings />
         </TabsContent>
+        {showAccessTab && (
+          <TabsContent value="access" className="mt-4">
+            <AccessControlSettings
+              initialData={accessControl}
+              currentUserEmail={session!.user!.email!}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
