@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
       const { getAccessControl } = await import('./access-control');
       const { allowAll, allowedEmails } = await getAccessControl();
       if (allowAll) return true;
-      return allowedEmails.includes(user.email ?? '');
+      return allowedEmails.includes((user.email ?? '').toLowerCase());
     },
     async jwt({ token, account }) {
       if (account?.access_token) {
