@@ -501,6 +501,7 @@ export async function createAndShareSpreadsheet(
   try {
     await drive.permissions.create({
       fileId: spreadsheetId,
+      sendNotificationEmail: false,
       requestBody: {
         type: 'user',
         role: 'writer',
