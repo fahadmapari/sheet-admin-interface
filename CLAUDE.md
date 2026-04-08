@@ -1,0 +1,84 @@
+# sheet-admin
+
+Next.js 14 admin app for managing tour products. Google Sheets ("NET RATES") is the primary data store; MongoDB stores assembly batches and notifications. Auth via NextAuth + Google OAuth with an email allowlist.
+
+## Commands
+
+```bash
+npm run dev      # Start dev server (http://localhost:3000)
+npm run build    # Production build
+npm run start    # Start production server
+npm run lint     # ESLint
+```
+
+## Environment Variables
+
+```env
+MONGODB_URI=
+NEXTAUTH_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+ALLOWED_EMAILS=email1@x.com,email2@x.com   # Comma-separated allowlist
+GOOGLE_SERVICE_ACCOUNT_EMAIL=              # Service account for server-side Sheets access
+GOOGLE_PRIVATE_KEY=                        # Must include literal \n; lib/sheets.ts replaces them
+SPREADSHEET_ID=                            # Google Sheets document ID
+```
+
+## Architecture
+
+```
+app/
+  (auth)/          # Login page (unauthenticated)
+  (app)/           # Authenticated routes
+    products/      # Main product list + editing
+    assembly/      # Batch workflow (In Review → Uploaded)
+    settings/
+    shareables/
+    sources/
+  api/
+    products/      # CRUD for TourProduct rows
+    assembly/      # Assembly batch management
+    export/        # google-sheet: creates spreadsheet in user's Drive
+    filters/       # Dropdown filter options
+    stats/         # Dashboard counts
+    notifications/
+    inventory-update/
+
+lib/
+  sheets.ts        # All Google Sheets I/O (service account)
+  mongodb.ts       # MongoDB client (database: "sheet-admin")
+  auth.ts          # NextAuth config
+  types.ts         # TourProduct (70 fields), AssemblyBatch, AppNotification
+  constants.ts
+  fetcher.ts       # SWR fetcher helper
+
+components/
+  ui/              # shadcn/ui primitives
+  products/        # Product table, filters, edit forms
+  assembly/        # Kanban-style batch board
+  dashboard/
+  layout/
+  notifications/
+```
+
+## Data Model
+
+**Google Sheets ("NET RATES")** — 70 columns A–BR, mapped to `TourProduct` in `lib/types.ts`.
+- Row 1 = header; data rows start at row 2.
+- `rowIndex` is always **1-based** throughout the codebase.
+- Column F (index 5) = product link field, used as the product name identifier.
+- Link fields use the format `Display Text||https://url` (pipe-separated).
+
+**MongoDB** (`sheet-admin` database):
+- `assemblybatches` — `AssemblyBatch` documents (stages: In Review → 2nd Review → Buying Price → Selling Price → Ready for Upload → Uploaded)
+- `notifications` — `AppNotification` documents
+- `notificationsubscriptions` — per-email stage subscriptions
+
+## Gotchas
+
+- **GOOGLE_PRIVATE_KEY**: Store with literal `\n` in env; `lib/sheets.ts` calls `.replace(/\\n/g, '\n')` at runtime.
+- **Export to Google Sheets**: Uses the *user's* OAuth access token (scope: `drive.file`) — not the service account — so the exported spreadsheet lands in the user's own Drive.
+- **Auth allowlist**: `ALLOWED_EMAILS` is checked in the `signIn` callback; missing or empty = nobody can log in.
+- **Middleware**: All routes except `/api/auth/**`, `/_next/**`, `/login` require an active session (`middleware.ts`).
+- **Sheet row deletion**: Uses `batchUpdate` with `deleteDimension` (requires numeric sheet ID, not name) — `getSheetId()` caches the lookup.
+- **SWR + server components**: Client pages use SWR for data fetching; server-only code imports are guarded with `import 'server-only'`.
