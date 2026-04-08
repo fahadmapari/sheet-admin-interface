@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
   const [data, setData] = useState<AccessControlDoc>(initialData);
   const [allowedInput, setAllowedInput] = useState('');
   const [adminInput, setAdminInput] = useState('');
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function save(patch: Partial<AccessControlDoc>) {
@@ -27,47 +27,48 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
       allowedEmails: patch.allowedEmails ?? data.allowedEmails,
       adminEmails: patch.adminEmails ?? data.adminEmails,
     };
-    const res = await fetch('/api/access-control', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(next),
-    });
-    if (res.ok) {
-      const updated: AccessControlDoc = await res.json();
-      setData(updated);
-      setError(null);
-    } else {
-      setError('Failed to save. Please try again.');
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/access-control', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next),
+      });
+      if (res.ok) {
+        const updated: AccessControlDoc = await res.json();
+        setData(updated);
+        setError(null);
+      } else {
+        setError('Failed to save. Please try again.');
+      }
+    } finally {
+      setIsSaving(false);
     }
   }
 
-  function addAllowed() {
+  async function addAllowed() {
     const email = allowedInput.trim().toLowerCase();
     if (!email || !EMAIL_RE.test(email) || data.allowedEmails.includes(email)) return;
-    startTransition(async () => {
-      await save({ allowedEmails: [...data.allowedEmails, email] });
-      setAllowedInput('');
-    });
+    await save({ allowedEmails: [...data.allowedEmails, email] });
+    setAllowedInput('');
   }
 
   function removeAllowed(email: string) {
-    startTransition(() => save({ allowedEmails: data.allowedEmails.filter((e) => e !== email) }));
+    save({ allowedEmails: data.allowedEmails.filter((e) => e !== email) });
   }
 
-  function addAdmin() {
+  async function addAdmin() {
     const email = adminInput.trim().toLowerCase();
     if (!email || !EMAIL_RE.test(email) || data.adminEmails.includes(email)) return;
-    startTransition(async () => {
-      await save({ adminEmails: [...data.adminEmails, email] });
-      setAdminInput('');
-    });
+    await save({ adminEmails: [...data.adminEmails, email] });
+    setAdminInput('');
   }
 
   function removeAdmin(email: string) {
     if (email === currentUserEmail) {
       if (!confirm("You'll lose access to this settings tab — are you sure?")) return;
     }
-    startTransition(() => save({ adminEmails: data.adminEmails.filter((e) => e !== email) }));
+    save({ adminEmails: data.adminEmails.filter((e) => e !== email) });
   }
 
   return (
@@ -82,8 +83,8 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
           <Switch
             id="allow-all"
             checked={data.allowAll}
-            onCheckedChange={(checked) => startTransition(() => save({ allowAll: checked }))}
-            disabled={isPending}
+            onCheckedChange={(checked) => save({ allowAll: checked })}
+            disabled={isSaving}
           />
           <Label htmlFor="allow-all">Allow all Google accounts</Label>
         </div>
@@ -106,7 +107,7 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
               <span>{email}</span>
               <button
                 onClick={() => removeAllowed(email)}
-                disabled={isPending || data.allowAll}
+                disabled={isSaving || data.allowAll}
                 className="text-muted-foreground hover:text-destructive disabled:opacity-40 ml-2"
                 aria-label={`Remove ${email}`}
               >
@@ -121,9 +122,9 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
             value={allowedInput}
             onChange={(e) => setAllowedInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addAllowed()}
-            disabled={isPending || data.allowAll}
+            disabled={isSaving || data.allowAll}
           />
-          <Button variant="outline" onClick={addAllowed} disabled={isPending || data.allowAll}>
+          <Button variant="outline" onClick={addAllowed} disabled={isSaving || data.allowAll}>
             Add
           </Button>
         </div>
@@ -144,7 +145,7 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
               </span>
               <button
                 onClick={() => removeAdmin(email)}
-                disabled={isPending}
+                disabled={isSaving}
                 className="text-muted-foreground hover:text-destructive disabled:opacity-40 ml-2"
                 aria-label={`Remove ${email}`}
               >
@@ -159,9 +160,9 @@ export function AccessControlSettings({ initialData, currentUserEmail }: Props) 
             value={adminInput}
             onChange={(e) => setAdminInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addAdmin()}
-            disabled={isPending}
+            disabled={isSaving}
           />
-          <Button variant="outline" onClick={addAdmin} disabled={isPending}>
+          <Button variant="outline" onClick={addAdmin} disabled={isSaving}>
             Add
           </Button>
         </div>

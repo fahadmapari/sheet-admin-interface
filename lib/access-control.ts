@@ -54,5 +54,5 @@ export async function updateAccessControl(patch: Partial<AccessControlDoc>): Pro
 
 export async function isAdmin(email: string): Promise<boolean> {
   const doc = await getAccessControl();
-  return doc.adminEmails.includes(email);
+  return doc.adminEmails.includes(email.toLowerCase());
 }

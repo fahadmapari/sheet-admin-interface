@@ -9,7 +9,7 @@ export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
   const accessControl = await getAccessControl();
   const showAccessTab =
-    !!session?.user?.email && accessControl.adminEmails.includes(session.user.email);
+    !!session?.user?.email && accessControl.adminEmails.includes(session.user.email.toLowerCase());
 
   return (
     <div className="flex flex-col gap-6">
