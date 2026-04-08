@@ -3,21 +3,18 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Layers, Package, Settings } from 'lucide-react';
+import { LayoutDashboard, Layers, Package, Settings, BookOpen, Share2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const navGroups = [
-  {
-    label: 'Workspace',
-    items: [
-      { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/products', label: 'Products', icon: Package },
-      { href: '/assembly', label: 'Assembly Line', icon: Layers },
-      { href: '/settings', label: 'Settings', icon: Settings },
-    ],
-  },
+const navItems = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/products', label: 'Products', icon: Package },
+  { href: '/assembly', label: 'Assembly Line', icon: Layers },
+  { href: '/sources', label: 'Sources', icon: BookOpen },
+  { href: '/shareables', label: 'Shareables', icon: Share2 },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ] as const;
 
 function SidebarLogo() {
@@ -43,36 +40,29 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex-1 overflow-y-auto px-3 py-4">
-      {navGroups.map((group) => (
-        <div key={group.label}>
-          <div className="mb-1 mt-5 px-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))] first:mt-0">
-            {group.label}
-          </div>
-          <div className="space-y-1">
-            {group.items.map(({ href, label, icon: Icon }) => {
-              const isActive =
-                href === '/' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+      <div className="space-y-1">
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const isActive =
+            href === '/' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={onNavigate}
-                  className={cn(
-                    'flex h-8 items-center gap-2 rounded-md px-3 text-sm text-[hsl(var(--text-secondary))] transition-colors',
-                    'hover:bg-[hsl(var(--surface))] hover:text-[hsl(var(--text-primary))]',
-                    isActive &&
-                      'bg-[hsl(var(--surface-raised))] font-medium text-[hsl(var(--text-primary))]',
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                  <span className="truncate">{label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNavigate}
+              className={cn(
+                'flex h-8 items-center gap-2 rounded-md px-3 text-sm text-[hsl(var(--text-secondary))] transition-colors',
+                'hover:bg-[hsl(var(--surface))] hover:text-[hsl(var(--text-primary))]',
+                isActive &&
+                  'bg-[hsl(var(--surface-raised))] font-medium text-[hsl(var(--text-primary))]',
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+              <span className="truncate">{label}</span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
