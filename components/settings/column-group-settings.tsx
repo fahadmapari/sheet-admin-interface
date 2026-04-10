@@ -66,6 +66,7 @@ export function ColumnGroupSettings() {
     setTimeout(() => {
       setEditingLabelId(id);
       setLabelInput(label);
+      labelInputRef.current = label;
     }, 50);
   }
 

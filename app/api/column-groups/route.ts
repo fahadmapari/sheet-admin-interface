@@ -36,7 +36,8 @@ export async function PUT(req: NextRequest) {
       typeof g === 'object' && g !== null &&
       typeof (g as any).id === 'string' && (g as any).id.length > 0 &&
       typeof (g as any).label === 'string' && (g as any).label.length > 0 &&
-      Array.isArray((g as any).fields);
+      Array.isArray((g as any).fields) &&
+      (g as any).fields.every((f: unknown) => typeof f === 'string' && f.length > 0);
 
     if (!Array.isArray(body?.groups) || !body.groups.every(isValidGroup)) {
       return NextResponse.json({ error: 'Invalid body: expected { groups: [...] }' }, { status: 400 });
