@@ -67,6 +67,9 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     newFilters.productTypes.forEach(t => params.append('type', t));
     newFilters.statuses.forEach(s => params.append('status', s));
     if (newFilters.readyForUpload !== 'all') params.set('ready', newFilters.readyForUpload);
+    if (newFilters.written !== 'all') params.set('written', newFilters.written);
+    if (newFilters.ssOk !== 'all') params.set('ssOk', newFilters.ssOk);
+    if (newFilters.isOk !== 'all') params.set('isOk', newFilters.isOk);
     if (newSearch) params.set('q', newSearch);
     const qs = params.toString();
     router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
@@ -108,6 +111,12 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
       if (filters.statuses.length && !filters.statuses.includes(p.productStatus ?? '')) return false;
       if (filters.readyForUpload === 'yes' && !p.readyForUpload) return false;
       if (filters.readyForUpload === 'no' && p.readyForUpload) return false;
+      if (filters.written === 'yes' && !p.written) return false;
+      if (filters.written === 'no' && p.written) return false;
+      if (filters.ssOk === 'yes' && !p.ssOk) return false;
+      if (filters.ssOk === 'no' && p.ssOk) return false;
+      if (filters.isOk === 'yes' && !p.isOk) return false;
+      if (filters.isOk === 'no' && p.isOk) return false;
       return true;
     });
   }, [products, filters]);
@@ -298,14 +307,8 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
         onViewDelete={handleViewDelete}
         onViewAdd={handleViewAdd}
       />
-      <div className="flex flex-col gap-2">
-        {!isLoading && (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">{filteredCount} visible</Badge>
-            {globalSearch && <Badge variant="info">Search: {globalSearch}</Badge>}
-          </div>
-        )}
-        <div className="relative w-full">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--text-tertiary))]" />
           <Input
             className="w-full pl-8 pr-8"
@@ -323,6 +326,9 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
             </button>
           )}
         </div>
+        {!isLoading && (
+          <Badge variant="outline" className="shrink-0">{filteredCount} visible</Badge>
+        )}
       </div>
 
       <FilterBar filters={filters} onFiltersChange={setFilters} />

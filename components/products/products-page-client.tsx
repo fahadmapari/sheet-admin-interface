@@ -17,6 +17,9 @@ export function ProductsPageClient() {
     productTypes: searchParams.getAll('type'),
     statuses: searchParams.getAll('status'),
     readyForUpload: (searchParams.get('ready') ?? 'all') as 'all' | 'yes' | 'no',
+    written: (searchParams.get('written') ?? 'all') as 'all' | 'yes' | 'no',
+    ssOk: (searchParams.get('ssOk') ?? 'all') as 'all' | 'yes' | 'no',
+    isOk: (searchParams.get('isOk') ?? 'all') as 'all' | 'yes' | 'no',
   };
   const initialSearch = searchParams.get('q') ?? '';
 
