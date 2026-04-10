@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { COLUMN_GROUPS, FIELD_LABELS } from '@/lib/constants';
+import { FIELD_LABELS } from '@/lib/constants';
+import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 
 export type CustomView = {
   id: string;
@@ -121,6 +122,7 @@ function AddCustomViewDialog({
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
     new Set(['product', 'location', 'type', 'status']),
   );
+  const { groups: columnGroups } = useColumnGroups();
 
   useEffect(() => {
     if (open) {
@@ -186,7 +188,7 @@ function AddCustomViewDialog({
                 </div>
               </div>
 
-              {COLUMN_GROUPS.map((group) => (
+              {columnGroups.map((group) => (
                 <div key={group.id}>
                   <p className="mb-1.5 text-xs font-medium uppercase tracking-[0.08em] text-[hsl(var(--text-tertiary))]">
                     {group.label}
