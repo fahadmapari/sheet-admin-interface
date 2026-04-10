@@ -12,11 +12,11 @@ import { useSWRConfig } from 'swr';
 import type { TourProduct } from '@/lib/types';
 import {
   BOOLEAN_FIELDS,
-  COLUMN_GROUPS,
   FIELD_LABELS,
   PIC_VALUES,
   PRODUCT_STATUSES,
 } from '@/lib/constants';
+import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 import { getProductStatusClasses } from '@/lib/design-system';
 
 import { Button } from '@/components/ui/button';
@@ -478,6 +478,8 @@ export function ProductDetailClient({
 
   const { mutate } = useSWRConfig();
 
+  const { groups: columnGroups } = useColumnGroups();
+
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues, reset]);
@@ -544,10 +546,10 @@ export function ProductDetailClient({
         {renderActionButtons()}
       </div>
 
-      <Tabs defaultValue={COLUMN_GROUPS[0].id}>
+      <Tabs defaultValue={columnGroups[0]?.id ?? ''}>
         <div className="overflow-x-auto pb-1">
           <TabsList className="flex h-auto w-max flex-wrap gap-0.5">
-            {COLUMN_GROUPS.map((group) => (
+            {columnGroups.map((group) => (
               <TabsTrigger key={group.id} value={group.id} className="px-2.5 py-1.5 text-xs">
                 {group.label}
               </TabsTrigger>
@@ -555,7 +557,7 @@ export function ProductDetailClient({
           </TabsList>
         </div>
 
-        {COLUMN_GROUPS.map((group) => (
+        {columnGroups.map((group) => (
           <TabsContent key={group.id} value={group.id} className="mt-4">
             <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-5">
               <h2 className="mb-4 text-sm font-medium text-[hsl(var(--text-secondary))]">
