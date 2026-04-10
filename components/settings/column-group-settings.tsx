@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Plus, RotateCcw, Trash2, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,8 @@ export function ColumnGroupSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [labelInput, setLabelInput] = useState('');
+  // Ref keeps commitLabel free of stale closures when called from async blur handlers
+  const labelInputRef = useRef('');
 
   const groups = draft ?? editableGroups;
   const isDirty = draft !== null;
@@ -39,16 +41,18 @@ export function ColumnGroupSettings() {
   function beginEdit(group: ColumnGroup) {
     setEditingLabelId(group.id);
     setLabelInput(group.label);
+    labelInputRef.current = group.label;
   }
 
   function commitLabel(groupId: string) {
-    if (!labelInput.trim()) {
+    const value = labelInputRef.current.trim();
+    if (!value) {
       setEditingLabelId(null);
       return;
     }
     setDraft((prev) =>
       (prev ?? editableGroups).map((g) =>
-        g.id === groupId ? { ...g, label: labelInput.trim() } : g
+        g.id === groupId ? { ...g, label: value } : g
       )
     );
     setEditingLabelId(null);
@@ -182,7 +186,7 @@ export function ColumnGroupSettings() {
                 <Input
                   autoFocus
                   value={labelInput}
-                  onChange={(e) => setLabelInput(e.target.value)}
+                  onChange={(e) => { setLabelInput(e.target.value); labelInputRef.current = e.target.value; }}
                   onBlur={() => commitLabel(group.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitLabel(group.id);
@@ -287,15 +291,7 @@ export function ColumnGroupSettings() {
                         {groups.map((g) => (
                           <DropdownMenuItem
                             key={g.id}
-                            onClick={() => {
-                              setDraft((prev) =>
-                                (prev ?? editableGroups).map((gr) =>
-                                  gr.id === g.id
-                                    ? { ...gr, fields: [...gr.fields, field] }
-                                    : gr
-                                )
-                              );
-                            }}
+                            onClick={() => moveField(field, 'others', g.id)}
                           >
                             Move to: {g.label}
                           </DropdownMenuItem>
