@@ -454,6 +454,7 @@ function FieldRenderer({
 // ---------------------------------------------------------------------------
 
 interface LinkEntry {
+  id: string;
   text: string;
   url: string;
 }
@@ -470,7 +471,7 @@ function parseEntries(value: string | null | undefined): LinkEntry[] {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
-    .map(parseLinkField);
+    .map((l) => ({ ...parseLinkField(l), id: crypto.randomUUID() }));
 }
 
 function ImageLinksEditor({
@@ -502,13 +503,13 @@ function ImageLinksEditor({
   }
 
   function handleAdd() {
-    updateEntries([...entries, { text: '', url: '' }]);
+    updateEntries([...entries, { text: '', url: '', id: crypto.randomUUID() }]);
   }
 
   return (
     <div className="space-y-2">
       {entries.map((entry, i) => (
-        <div key={i} className="flex gap-2 items-center">
+        <div key={entry.id} className="flex gap-2 items-center">
           <Input
             className="flex-1"
             placeholder="Label"
