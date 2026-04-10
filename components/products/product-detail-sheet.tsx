@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Users, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRight, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Users, X } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
-import { BOOLEAN_FIELDS, NUMBER_FIELDS } from '@/lib/constants';
+import { BOOLEAN_FIELDS, FIELD_LABELS, NUMBER_FIELDS } from '@/lib/constants';
+import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 import { getProductStatusClasses } from '@/lib/design-system';
 import { parseLinkField } from '@/lib/utils';
 import {
@@ -31,141 +32,6 @@ const REQUIRED_STRING_FIELDS = new Set<keyof Omit<TourProduct, 'rowIndex'>>([
   'productType',
 ]);
 
-const OTA_CHANNELS: { field: keyof TourProduct; label: string }[] = [
-  { field: 'otaTravmonde', label: 'Travmonde' },
-  { field: 'otaBookableTours', label: 'Bookable Tours' },
-  { field: 'otaViator', label: 'Viator' },
-  { field: 'otaGyg', label: 'GYG' },
-  { field: 'otaHotelbeds', label: 'Hotelbeds' },
-  { field: 'otaProjectExpedition', label: 'Project Expedition' },
-  { field: 'otaAirbnb', label: 'Airbnb' },
-  { field: 'otaBokun', label: 'Bokun' },
-  { field: 'otaTrekksoft', label: 'Trekksoft' },
-  { field: 'otaTuiMusement', label: 'TUI/Musement' },
-  { field: 'otaKlook', label: 'Klook' },
-  { field: 'otaToristy', label: 'Toristy' },
-  { field: 'otaTourHQ', label: 'TourHQ' },
-];
-
-const TAB_SECTIONS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'pricing', label: 'Pricing' },
-  { id: 'tour', label: 'Tour Config' },
-  { id: 'provider', label: 'Provider & Costs' },
-  { id: 'validity', label: 'Validity' },
-  { id: 'content', label: 'Content' },
-  { id: 'upload', label: 'Upload / Notes / OTA' },
-];
-
-const DETAIL_SECTIONS: {
-  id: string;
-  label: string;
-  fields: { key: keyof TourProduct; label: string }[];
-}[] = [
-  {
-    id: 'overview',
-    label: 'Overview',
-    fields: [
-      { key: 'productName', label: 'Product Name' },
-      { key: 'productType', label: 'Type' },
-      { key: 'duration', label: 'Duration' },
-      { key: 'productStatus', label: 'Status' },
-      { key: 'pic', label: 'PIC' },
-      { key: 'link', label: 'Link / Title' },
-      { key: 'notes', label: 'Notes' },
-      { key: 'department', label: 'Department' },
-      { key: 'region', label: 'Region' },
-    ],
-  },
-  {
-    id: 'pricing',
-    label: 'Pricing',
-    fields: [
-      { key: 'b2bPriceInstant', label: 'B2B Instant' },
-      { key: 'b2bPriceOnRequest', label: 'B2B On Request' },
-      { key: 'b2cPriceInstant', label: 'B2C Instant' },
-      { key: 'b2cPriceOnRequest', label: 'B2C On Request' },
-      { key: 'extraHrB2BInstant', label: 'Extra Hr B2B Instant' },
-      { key: 'extraHrB2BRequest', label: 'Extra Hr B2B Request' },
-      { key: 'extraHrB2CInstant', label: 'Extra Hr B2C Instant' },
-      { key: 'extraHrB2CRequest', label: 'Extra Hr B2C Request' },
-    ],
-  },
-  {
-    id: 'tour',
-    label: 'Tour Configuration',
-    fields: [
-      { key: 'maxPax', label: 'Max Pax' },
-      { key: 'guide', label: 'Guide' },
-      { key: 'driver', label: 'Driver' },
-      { key: 'driverGuide', label: 'Driver-Guide' },
-      { key: 'guideWhere', label: 'Guide Where' },
-      { key: 'componentsOfTour', label: 'Components' },
-      { key: 'attractionIncluded', label: 'Attraction Included?' },
-      { key: 'attractionOptional', label: 'Attraction Optional' },
-      { key: 'transportation', label: 'Transportation' },
-      { key: 'attractionsIncluded', label: 'Attractions Included' },
-      { key: 'attractionLink', label: 'Attraction Link' },
-    ],
-  },
-  {
-    id: 'provider',
-    label: 'Provider & Costs',
-    fields: [
-      { key: 'providerPrice', label: 'Provider Price' },
-      { key: 'providerUrl', label: 'Provider URL' },
-      { key: 'centralProviderLinks', label: 'Central Provider Links' },
-      { key: 'centralTransportLinks', label: 'Central Transport Links' },
-      { key: 'transportationPrice', label: 'Transport Price' },
-      { key: 'vatYN', label: 'VAT (Y/N)' },
-      { key: 'vatPercent', label: 'VAT %' },
-      { key: 'totalBuyingPrice', label: 'Total Buying Price' },
-      { key: 'cancellation', label: 'Cancellation' },
-    ],
-  },
-  {
-    id: 'validity',
-    label: 'Validity & Cancellation',
-    fields: [
-      { key: 'tourValidityGeneral', label: 'Validity (General)' },
-      { key: 'tourValiditySpecific', label: 'Validity (Specific)' },
-      { key: 'cancelInstant', label: 'Cancel Instant' },
-      { key: 'cutoffInstant', label: 'Cutoff Instant' },
-      { key: 'cancelOnRequest', label: 'Cancel On Request' },
-      { key: 'cutoffOnRequest', label: 'Cutoff On Request' },
-    ],
-  },
-  {
-    id: 'content',
-    label: 'Content Status',
-    fields: [
-      { key: 'written', label: 'Written' },
-      { key: 'isOk', label: 'IS OK' },
-      { key: 'ssOk', label: 'SS OK' },
-      { key: 'imageLinks', label: 'Image Links' },
-    ],
-  },
-  {
-    id: 'upload',
-    label: 'Upload Workflow',
-    fields: [
-      { key: 'readyForUpload', label: 'Ready for Upload' },
-      { key: 'qualityRemarks', label: 'Quality Remarks' },
-      { key: 'uploadedPic', label: 'Uploaded (PIC)' },
-      { key: 'dateOfDispatch', label: 'Date of Dispatch' },
-      { key: 'dateUploaded', label: 'Date Uploaded' },
-      { key: 'productLink', label: 'Product Link' },
-    ],
-  },
-  {
-    id: 'notes',
-    label: 'Notes',
-    fields: [
-      { key: 'notesGeneral', label: 'Notes (General)' },
-      { key: 'otaMasterSheet', label: 'OTA Master Sheet' },
-    ],
-  },
-];
 
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
@@ -193,12 +59,6 @@ function coercePatchedValue(
   return rawValue;
 }
 
-export function getActiveOtaCount(product: TourProduct): number {
-  return OTA_CHANNELS.filter((channel) => {
-    const value = product[channel.field];
-    return value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
-  }).length;
-}
 
 interface EditableFieldValueProps {
   product: TourProduct;
@@ -251,9 +111,23 @@ export function ProductDetailSheet({
   onOpenChange,
   onSaved,
 }: ProductDetailSheetProps) {
+  const { groups } = useColumnGroups();
+  const sections = useMemo(
+    () =>
+      groups.map((g) => ({
+        id: g.id,
+        label: g.label,
+        fields: g.fields.map((f) => ({
+          key: f as keyof TourProduct,
+          label: FIELD_LABELS[f as keyof typeof FIELD_LABELS] ?? f,
+        })),
+      })),
+    [groups]
+  );
+
   const [draftProduct, setDraftProduct] = useState<TourProduct | null>(product);
   const [editMode, setEditMode] = useState(false);
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState('');
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -360,18 +234,16 @@ export function ProductDetailSheet({
     const container = scrollAreaRef.current;
     if (!container) return;
     const containerTop = container.getBoundingClientRect().top;
-    // 'notes' and 'ota' are grouped under the 'upload' tab
-    const allIds = [...DETAIL_SECTIONS.map((s) => s.id), 'notes', 'ota'];
-    const TAB_ID: Record<string, string> = { notes: 'upload', ota: 'upload' };
-    let active = allIds[0];
-    for (const id of allIds) {
+    const ids = sections.map((s) => s.id);
+    let active = ids[0] ?? '';
+    for (const id of ids) {
       const el = sectionRefs.current[id];
       if (el && el.getBoundingClientRect().top - containerTop <= 40) {
-        active = TAB_ID[id] ?? id;
+        active = id;
       }
     }
     setActiveSection(active);
-  }, []);
+  }, [sections]);
 
   function scrollToSection(id: string) {
     const container = scrollAreaRef.current;
@@ -396,11 +268,6 @@ export function ProductDetailSheet({
   }
 
   if (!draftProduct) return null;
-
-  const activeOtas = OTA_CHANNELS.filter((channel) => {
-    const value = draftProduct[channel.field];
-    return value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
-  });
 
   const handleFieldSaved = (field: keyof Omit<TourProduct, 'rowIndex'>, rawValue: string) => {
     setDraftProduct((current) => {
@@ -489,7 +356,7 @@ export function ProductDetailSheet({
         </div>
 
         <div className="flex overflow-x-auto border-b border-[hsl(var(--border))] scrollbar-hide">
-          {TAB_SECTIONS.map((tab) => (
+          {sections.map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -508,7 +375,7 @@ export function ProductDetailSheet({
 
         <div ref={scrollAreaRef} className="flex-1 overflow-y-auto scrollbar-hide" onScroll={handleScroll}>
           <div className="space-y-6 px-6 py-4">
-            {DETAIL_SECTIONS.map((section) => (
+            {sections.map((section) => (
               <div
                 key={section.id}
                 data-section-id={section.id}
@@ -536,45 +403,6 @@ export function ProductDetailSheet({
                 </div>
               </div>
             ))}
-
-            <div
-              data-section-id="ota"
-              ref={(el) => { sectionRefs.current['ota'] = el; }}
-            >
-              <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-[hsl(var(--text-tertiary))]">
-                OTA Distribution ({activeOtas.length}/{OTA_CHANNELS.length})
-              </h3>
-              <div className="rounded-lg border border-[hsl(var(--border))] p-4">
-                <div className="flex flex-wrap gap-2">
-                  {OTA_CHANNELS.map((channel) => {
-                    const value = draftProduct[channel.field];
-                    const active = value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
-
-                    return (
-                      <div
-                        key={channel.field}
-                        className={
-                          active
-                            ? 'flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/15 dark:text-blue-300'
-                            : 'flex items-center gap-2 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-1 text-[hsl(var(--text-secondary))]'
-                        }
-                      >
-                        {active ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
-                        <span className="text-xs font-medium">{channel.label}</span>
-                        <div className="max-w-[120px] text-xs">
-                          <InlineEditCell
-                            product={draftProduct}
-                            field={channel.field as keyof Omit<TourProduct, 'rowIndex'>}
-                            onSaved={(field, next) => handleFieldSaved(field as keyof Omit<TourProduct, 'rowIndex'>, next)}
-                            readOnly={!editMode}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
