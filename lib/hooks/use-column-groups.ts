@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { COLUMN_GROUPS } from '@/lib/constants';
+import { COLUMN_GROUPS, FIELD_LABELS } from '@/lib/constants';
 import type { ColumnGroupsResponse, ColumnGroup } from '@/lib/column-groups';
 
 const fetcher = (url: string) =>
@@ -8,10 +8,8 @@ const fetcher = (url: string) =>
     return r.json() as Promise<ColumnGroupsResponse>;
   });
 
-// All field keys from the hardcoded defaults
-const ALL_KNOWN_FIELDS = COLUMN_GROUPS.flatMap(
-  (g) => g.fields as readonly string[]
-);
+// All field keys from FIELD_LABELS to ensure any newly added field is captured
+const ALL_KNOWN_FIELDS = Object.keys(FIELD_LABELS) as string[];
 
 function computeGroups(resolved: ColumnGroup[]): ColumnGroup[] {
   const assigned = new Set(resolved.flatMap((g) => g.fields));
@@ -35,11 +33,12 @@ export interface UseColumnGroupsResult {
   groups: ColumnGroup[];
   isDefault: boolean;
   isLoading: boolean;
+  isError: boolean;
   mutate: () => void;
 }
 
 export function useColumnGroups(): UseColumnGroupsResult {
-  const { data, isLoading, mutate } = useSWR<ColumnGroupsResponse>(
+  const { data, isLoading, error, mutate } = useSWR<ColumnGroupsResponse>(
     '/api/column-groups',
     fetcher,
     { dedupingInterval: 30_000 }
@@ -52,6 +51,7 @@ export function useColumnGroups(): UseColumnGroupsResult {
     groups,
     isDefault: data?.isDefault ?? true,
     isLoading,
+    isError: !!error,
     mutate,
   };
 }
