@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { ArrowLeft, ExternalLink, RotateCcw, Save } from 'lucide-react';
+import { ArrowLeft, ExternalLink, RotateCcw, Save, X } from 'lucide-react';
 import { useSWRConfig } from 'swr';
 
 import type { TourProduct } from '@/lib/types';
@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { parseLinkField } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Zod schema
@@ -444,6 +445,101 @@ function FieldRenderer({
         {...register(fieldName as keyof FormValues)}
       />
       {error && <p className="text-xs text-destructive">{error.message as string}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ImageLinksEditor
+// ---------------------------------------------------------------------------
+
+interface LinkEntry {
+  text: string;
+  url: string;
+}
+
+function serializeEntries(entries: LinkEntry[]): string {
+  return entries
+    .filter((e) => e.text.trim() || e.url.trim())
+    .map((e) => (e.text && e.url ? `${e.text}||${e.url}` : e.url || e.text))
+    .join('\n');
+}
+
+function parseEntries(value: string | null | undefined): LinkEntry[] {
+  return (value ?? '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map(parseLinkField);
+}
+
+function ImageLinksEditor({
+  value,
+  onChange,
+}: {
+  value: string | null | undefined;
+  onChange: (value: string) => void;
+}) {
+  const [entries, setEntries] = useState<LinkEntry[]>(() => parseEntries(value));
+
+  // Sync when the form resets externally
+  useEffect(() => {
+    setEntries(parseEntries(value));
+  }, [value]);
+
+  function updateEntries(next: LinkEntry[]) {
+    setEntries(next);
+    onChange(serializeEntries(next));
+  }
+
+  function handleChange(index: number, key: keyof LinkEntry, val: string) {
+    const next = entries.map((e, i) => (i === index ? { ...e, [key]: val } : e));
+    updateEntries(next);
+  }
+
+  function handleRemove(index: number) {
+    updateEntries(entries.filter((_, i) => i !== index));
+  }
+
+  function handleAdd() {
+    updateEntries([...entries, { text: '', url: '' }]);
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map((entry, i) => (
+        <div key={i} className="flex gap-2 items-center">
+          <Input
+            className="flex-1"
+            placeholder="Label"
+            value={entry.text}
+            onChange={(e) => handleChange(i, 'text', e.target.value)}
+          />
+          <Input
+            className="flex-[2]"
+            placeholder="https://..."
+            value={entry.url}
+            onChange={(e) => handleChange(i, 'url', e.target.value)}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => handleRemove(i)}
+            title="Remove"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleAdd}
+      >
+        + Add image link
+      </Button>
     </div>
   );
 }
