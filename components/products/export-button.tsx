@@ -11,7 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { VisibilityState } from '@tanstack/react-table';
-import { COLUMN_GROUPS, FIELD_LABELS } from '@/lib/constants';
+import { FIELD_LABELS } from '@/lib/constants';
+import { useColumnGroups } from '@/lib/hooks/use-column-groups';
+import type { ColumnGroup } from '@/lib/column-groups';
 import type { TourProduct } from '@/lib/types';
 
 interface ExportButtonProps {
@@ -27,8 +29,11 @@ const COMPOSITE_TO_FIELDS: Record<string, Array<keyof Omit<TourProduct, 'rowInde
   status: ['productStatus'],
 };
 
-function getVisibleFields(columnVisibility: VisibilityState): Array<keyof Omit<TourProduct, 'rowIndex'>> {
-  const allFields = COLUMN_GROUPS.flatMap((g) => g.fields as unknown as Array<keyof Omit<TourProduct, 'rowIndex'>>);
+function getVisibleFields(
+  columnVisibility: VisibilityState,
+  groups: ColumnGroup[]
+): Array<keyof Omit<TourProduct, 'rowIndex'>> {
+  const allFields = groups.flatMap((g) => g.fields as unknown as Array<keyof Omit<TourProduct, 'rowIndex'>>);
 
   // Collect raw fields contributed by visible composite columns
   const fromComposite = new Set<string>();
@@ -87,7 +92,8 @@ async function exportXlsx(products: TourProduct[], visibleFields: Array<keyof Om
 }
 
 export function ExportButton({ products, columnVisibility }: ExportButtonProps) {
-  const visibleFields = getVisibleFields(columnVisibility);
+  const { groups } = useColumnGroups();
+  const visibleFields = getVisibleFields(columnVisibility, groups);
 
   const [exportingToSheets, setExportingToSheets] = useState(false);
 
