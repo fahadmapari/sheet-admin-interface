@@ -4,6 +4,7 @@ import { getAccessControl } from '@/lib/access-control';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StageSubscriptionSettings } from '@/components/notifications/stage-subscription-settings';
 import { AccessControlSettings } from '@/components/settings/access-control-settings';
+import { ColumnGroupSettings } from '@/components/settings/column-group-settings';
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -18,6 +19,7 @@ export default async function SettingsPage() {
         <TabsList>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           {showAccessTab && <TabsTrigger value="access">Access</TabsTrigger>}
+          {showAccessTab && <TabsTrigger value="column-groups">Column Groups</TabsTrigger>}
         </TabsList>
         <TabsContent value="notifications" className="mt-4">
           <StageSubscriptionSettings />
@@ -28,6 +30,11 @@ export default async function SettingsPage() {
               initialData={accessControl}
               currentUserEmail={session!.user!.email!}
             />
+          </TabsContent>
+        )}
+        {showAccessTab && (
+          <TabsContent value="column-groups" className="mt-4">
+            <ColumnGroupSettings />
           </TabsContent>
         )}
       </Tabs>
