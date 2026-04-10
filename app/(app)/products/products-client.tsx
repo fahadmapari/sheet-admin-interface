@@ -10,7 +10,7 @@ import { ProductCards } from '@/components/products/product-cards';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
 import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
 import { ViewsBar, type CustomView } from '@/components/products/views-bar';
-import { COLUMN_GROUPS } from '@/lib/constants';
+import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 import { ProductForm } from '@/components/products/product-form';
 import { BulkActionsToolbar } from '@/components/products/bulk-actions-toolbar';
 import { DeleteConfirmDialog } from '@/components/products/delete-confirm-dialog';
@@ -25,8 +25,6 @@ import type { TourProduct, AssemblyStage } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
 type ViewMode = 'table' | 'cards';
-
-const ALL_FIELD_IDS = COLUMN_GROUPS.flatMap((g) => g.fields as readonly string[]);
 
 interface ProductsClientProps {
   initialFilters?: Filters;
@@ -134,8 +132,14 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     return searchedProducts.filter((_, i) => rowSelection[i]);
   }, [searchedProducts, rowSelection]);
 
+  const { groups: columnGroups } = useColumnGroups();
+  const allFieldIds = useMemo(
+    () => columnGroups.flatMap((g) => g.fields),
+    [columnGroups]
+  );
+
   const columnVisibility = useMemo((): VisibilityState => {
-    const base: VisibilityState = Object.fromEntries(ALL_FIELD_IDS.map((id) => [id, false]));
+    const base: VisibilityState = Object.fromEntries(allFieldIds.map((id) => [id, false]));
 
     if (activeViewId === 'default') {
       return { ...base, product: true, location: true, type: true, status: true };
@@ -153,9 +157,9 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
       location: cols.has('location'),
       type: cols.has('type'),
       status: cols.has('status'),
-      ...Object.fromEntries(ALL_FIELD_IDS.map((id) => [id, cols.has(id)])),
+      ...Object.fromEntries(allFieldIds.map((id) => [id, cols.has(id)])),
     };
-  }, [activeViewId, customViews]);
+  }, [activeViewId, customViews, allFieldIds]);
 
   const handleViewAdd = useCallback((view: CustomView) => {
     const next = [...customViews, view];
