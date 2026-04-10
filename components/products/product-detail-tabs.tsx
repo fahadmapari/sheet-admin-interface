@@ -336,6 +336,23 @@ function FieldRenderer({
     );
   }
 
+  // imageLinks → structured multi-entry editor
+  if (fieldName === 'imageLinks') {
+    return (
+      <div className="space-y-1.5">
+        <Label className="font-medium">{label}</Label>
+        <Controller
+          name="imageLinks"
+          control={control}
+          render={({ field }) => (
+            <ImageLinksEditor value={field.value} onChange={field.onChange} />
+          )}
+        />
+        {error && <p className="text-xs text-destructive">{error.message as string}</p>}
+      </div>
+    );
+  }
+
   // URL fields → Input type="url" + external link button
   if (URL_FIELDS.has(fieldName)) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
