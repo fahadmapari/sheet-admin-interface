@@ -19,7 +19,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
-import { COLUMN_GROUPS, FIELD_LABELS } from '@/lib/constants';
+import { FIELD_LABELS } from '@/lib/constants';
+import { useColumnGroups } from '@/lib/hooks/use-column-groups';
+import type { ColumnGroup } from '@/lib/column-groups';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -36,8 +38,8 @@ function StatusBadge({ status }: { status: string | null }) {
   return <Badge className={cn('text-xs', getProductStatusClasses(status))}>{status}</Badge>;
 }
 
-function buildExtraColumns(): ColumnDef<TourProduct>[] {
-  return COLUMN_GROUPS.flatMap((group) =>
+function buildExtraColumns(groups: ColumnGroup[]): ColumnDef<TourProduct>[] {
+  return groups.flatMap((group) =>
     (group.fields as readonly string[]).map((fieldId) => {
       if (fieldId === 'imageLinks') {
         return {
@@ -96,9 +98,8 @@ function buildExtraColumns(): ColumnDef<TourProduct>[] {
   );
 }
 
-const EXTRA_COLUMNS: ColumnDef<TourProduct>[] = buildExtraColumns();
-
 function buildColumns(
+  extraColumns: ColumnDef<TourProduct>[],
   onDeleteRequest: (product: TourProduct) => void,
   onEditRequest: (product: TourProduct) => void,
   onMoveToNextStage: (product: TourProduct) => void,
@@ -193,7 +194,7 @@ function buildColumns(
       header: 'Status',
       cell: ({ row }) => <StatusBadge status={row.original.productStatus} />,
     },
-    ...EXTRA_COLUMNS,
+    ...extraColumns,
     {
       id: 'actions',
       header: '',
@@ -303,9 +304,12 @@ export function ProductTable({
   const [sorting, setSorting] = useState<SortingState>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const { groups } = useColumnGroups();
+  const extraColumns = useMemo(() => buildExtraColumns(groups), [groups]);
+
   const columns = useMemo(
-    () => buildColumns(onDeleteRequest, onEditRequest, onMoveToNextStage),
-    [onDeleteRequest, onEditRequest, onMoveToNextStage],
+    () => buildColumns(extraColumns, onDeleteRequest, onEditRequest, onMoveToNextStage),
+    [extraColumns, onDeleteRequest, onEditRequest, onMoveToNextStage],
   );
 
   const table = useReactTable({
