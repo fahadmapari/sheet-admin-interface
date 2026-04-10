@@ -500,9 +500,12 @@ function ImageLinksEditor({
 }) {
   const [entries, setEntries] = useState<LinkEntry[]>(() => parseEntries(value));
 
-  // Sync when the form resets externally
+  // Sync when the form resets externally (not on our own edits)
   useEffect(() => {
-    setEntries(parseEntries(value));
+    if (serializeEntries(entries) !== (value ?? '')) {
+      setEntries(parseEntries(value));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   function updateEntries(next: LinkEntry[]) {
@@ -510,7 +513,7 @@ function ImageLinksEditor({
     onChange(serializeEntries(next));
   }
 
-  function handleChange(index: number, key: keyof LinkEntry, val: string) {
+  function handleChange(index: number, key: 'text' | 'url', val: string) {
     const next = entries.map((e, i) => (i === index ? { ...e, [key]: val } : e));
     updateEntries(next);
   }
