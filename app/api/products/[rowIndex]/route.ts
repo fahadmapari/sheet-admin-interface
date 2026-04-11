@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { updateRow, updateCell, updateCellHyperlink, deleteRow, findRowByProductName, fetchRow } from '@/lib/sheets';
 import { productToRow, parseLinkField } from '@/lib/utils';
-import { FIELD_TO_COL } from '@/lib/constants';
+import { getEffectiveColumnMap } from '@/lib/column-mapping';
 import type { TourProduct } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -15,9 +15,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
-    const body = await req.json() as Omit<TourProduct, 'rowIndex'>;
+    const [colMap, body] = await Promise.all([
+      getEffectiveColumnMap(),
+      req.json() as Promise<Omit<TourProduct, 'rowIndex'>>,
+    ]);
 
-    // Resolve real row index using the link title as the identity anchor
     const linkTitle = parseLinkField(body.link ?? '').text;
     let targetRowIndex = rowIndex;
     if (linkTitle) {
@@ -28,13 +30,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
       targetRowIndex = foundRow;
     }
 
-    // Fetch the current row so we don't blank out fields not covered by this form save
     const currentRow = await fetchRow(targetRowIndex);
     while (currentRow.length < 70) currentRow.push('');
 
-    // Build the row from submitted body, then merge: prefer submitted non-empty values,
-    // keep current sheet value for any field the form left blank
-    const submittedRow = productToRow(body);
+    const submittedRow = productToRow(body, colMap);
     const mergedRow = currentRow.map((currentVal, i) => {
       const submitted = submittedRow[i] ?? '';
       return submitted !== '' ? submitted : currentVal;
@@ -42,10 +41,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     await updateRow(targetRowIndex, mergedRow);
 
-    // Re-apply hyperlink URL for column F (link field) — updateRow cannot write hyperlink metadata
     const { text: linkText, url: linkUrl } = parseLinkField(body.link ?? '');
     if (linkUrl || linkText) {
-      await updateCellHyperlink(targetRowIndex, 5, linkText, linkUrl);
+      await updateCellHyperlink(targetRowIndex, colMap['link'], linkText, linkUrl);
     }
 
     return NextResponse.json({ ok: true });
@@ -61,14 +59,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
-    const body = await req.json() as { field: string; value: string; expectedLinkTitle?: string };
-    const colIndex = FIELD_TO_COL[body.field as keyof typeof FIELD_TO_COL];
+    const [colMap, body] = await Promise.all([
+      getEffectiveColumnMap(),
+      req.json() as Promise<{ field: string; value: string; expectedLinkTitle?: string }>,
+    ]);
+
+    const colIndex = colMap[body.field];
     if (colIndex === undefined) {
       return NextResponse.json({ error: `Unknown field: ${body.field}` }, { status: 400 });
     }
 
-    // Resolve real row index unless the link field itself is being changed
-    // (when editing the link, the title is changing so we can't use it for identity)
     let targetRowIndex = rowIndex;
     if (body.field !== 'link' && body.expectedLinkTitle) {
       const foundRow = await findRowByProductName(body.expectedLinkTitle);
@@ -84,6 +84,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     } else {
       await updateCell(targetRowIndex, colIndex, body.value);
     }
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
