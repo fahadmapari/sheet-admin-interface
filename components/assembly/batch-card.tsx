@@ -178,7 +178,7 @@ export function BatchCard({
               {batch.name}
             </span>
           </button>
-          <span className="text-xs text-[hsl(var(--text-tertiary))]">{dateLabel}</span>
+          <span className="hidden text-xs text-[hsl(var(--text-tertiary))] sm:inline">{dateLabel}</span>
           <Badge variant="secondary" className="text-xs">
             {batch.productRowIndexes.length}
           </Badge>
@@ -193,7 +193,17 @@ export function BatchCard({
                 onClick={(e) => handleBatchMoveClick(nextStage, e)}
               >
                 <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
-                {isMoving ? 'Moving...' : `Move to ${nextStage}`}
+                {isMoving ? (
+                  <>
+                    <span className="sm:hidden">...</span>
+                    <span className="hidden sm:inline">Moving...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="sm:hidden">Move</span>
+                    <span className="hidden sm:inline">Move to {nextStage}</span>
+                  </>
+                )}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -229,104 +239,106 @@ export function BatchCard({
             {batchProducts.length === 0 ? (
               <p className="py-2 text-sm text-[hsl(var(--text-tertiary))]">No products loaded.</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[hsl(var(--border))]">
-                    <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                      Product
-                    </th>
-                    <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                      City
-                    </th>
-                    <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                      Country
-                    </th>
-                    <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                      Status
-                    </th>
-                    {showReadiness && (
-                      <th className="py-1.5 pl-3 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                        Ready
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-sm">
+                  <thead>
+                    <tr className="border-b border-[hsl(var(--border))]">
+                      <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                        Product
                       </th>
-                    )}
-                    {nextStage && (
-                      <th className="py-1.5 pl-3 text-right text-xs font-medium text-[hsl(var(--text-tertiary))]">
-                        Move
+                      <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                        City
                       </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {batchProducts.map((product) => {
-                    const linkParsed = product.link ? parseLinkField(product.link) : null;
-                    const displayName =
-                      product.productName ||
-                      linkParsed?.text ||
-                      product.link ||
-                      `${product.city}, ${product.country}`;
-                    const isThisProductMoving = movingProductRowIndex === product.rowIndex;
+                      <th className="py-1.5 pr-4 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                        Country
+                      </th>
+                      <th className="py-1.5 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                        Status
+                      </th>
+                      {showReadiness && (
+                        <th className="py-1.5 pl-3 text-left text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                          Ready
+                        </th>
+                      )}
+                      {nextStage && (
+                        <th className="py-1.5 pl-3 text-right text-xs font-medium text-[hsl(var(--text-tertiary))]">
+                          Move
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {batchProducts.map((product) => {
+                      const linkParsed = product.link ? parseLinkField(product.link) : null;
+                      const displayName =
+                        product.productName ||
+                        linkParsed?.text ||
+                        product.link ||
+                        `${product.city}, ${product.country}`;
+                      const isThisProductMoving = movingProductRowIndex === product.rowIndex;
 
-                    return (
-                      <tr
-                        key={product.rowIndex}
-                        className={cn(
-                          'cursor-pointer border-b border-[hsl(var(--border))] last:border-0',
-                          'transition-colors hover:bg-[hsl(var(--surface))]',
-                        )}
-                        onClick={() => onProductClick(product)}
-                      >
-                        <td className="max-w-[220px] truncate py-2 pr-4 font-medium text-[hsl(var(--text-primary))]">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="truncate block">{displayName}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>{displayName}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </td>
-                        <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.city}</td>
-                        <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">
-                          {product.country}
-                        </td>
-                        <td className="py-2">
-                          {product.productStatus ? (
-                            <Badge variant="outline" className="text-xs">
-                              {product.productStatus}
-                            </Badge>
-                          ) : (
-                            <span className="text-[hsl(var(--text-tertiary))]">-</span>
+                      return (
+                        <tr
+                          key={product.rowIndex}
+                          className={cn(
+                            'cursor-pointer border-b border-[hsl(var(--border))] last:border-0',
+                            'transition-colors hover:bg-[hsl(var(--surface))]',
                           )}
-                        </td>
-                        {showReadiness && (
-                          <td className="py-2 pl-3">
-                            {isProductReady(product) ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          onClick={() => onProductClick(product)}
+                        >
+                          <td className="max-w-[220px] truncate py-2 pr-4 font-medium text-[hsl(var(--text-primary))]">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="truncate block">{displayName}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>{displayName}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </td>
+                          <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">{product.city}</td>
+                          <td className="py-2 pr-4 text-[hsl(var(--text-secondary))]">
+                            {product.country}
+                          </td>
+                          <td className="py-2">
+                            {product.productStatus ? (
+                              <Badge variant="outline" className="text-xs">
+                                {product.productStatus}
+                              </Badge>
                             ) : (
-                              <Circle className="h-4 w-4 text-[hsl(var(--text-tertiary))] opacity-40" />
+                              <span className="text-[hsl(var(--text-tertiary))]">-</span>
                             )}
                           </td>
-                        )}
-                        {nextStage && (
-                          <td className="py-2 pl-3 text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs"
-                              disabled={isThisProductMoving || isMoving}
-                              onClick={(e) => handleProductMoveClick(product, e)}
-                            >
-                              <ArrowRight className="mr-1 h-3 w-3" />
-                              {isThisProductMoving ? '...' : 'Move'}
-                            </Button>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          {showReadiness && (
+                            <td className="py-2 pl-3">
+                              {isProductReady(product) ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-[hsl(var(--text-tertiary))] opacity-40" />
+                              )}
+                            </td>
+                          )}
+                          {nextStage && (
+                            <td className="py-2 pl-3 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                disabled={isThisProductMoving || isMoving}
+                                onClick={(e) => handleProductMoveClick(product, e)}
+                              >
+                                <ArrowRight className="mr-1 h-3 w-3" />
+                                {isThisProductMoving ? '...' : 'Move'}
+                              </Button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
