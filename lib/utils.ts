@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { TourProduct } from './types';
+import { FIELD_TO_COL } from './constants';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -49,9 +50,15 @@ export function parseLinkField(value: string): { text: string; url: string } {
 
 // Convert a raw sheet row (string[]) to a TourProduct
 // rowIndex is the 1-based sheet row number
-export function rowToProduct(row: string[], rowIndex: number, linkHyperlink?: string, imageLinksRichText?: string): TourProduct {
-  const get = (col: number) => row[col];
-  const linkText = toText(get(5));
+export function rowToProduct(
+  row: string[],
+  rowIndex: number,
+  linkHyperlink?: string,
+  imageLinksRichText?: string,
+  colMap: Record<string, number> = FIELD_TO_COL,
+): TourProduct {
+  const get = (field: string) => row[colMap[field as keyof typeof colMap]];
+  const linkText = toText(get('link'));
 
   // If the cell has an underlying hyperlink, combine as "display text||url"
   let link: string | null;
@@ -65,157 +72,162 @@ export function rowToProduct(row: string[], rowIndex: number, linkHyperlink?: st
 
   return {
     rowIndex,
-    country: toRequiredText(get(0)),
-    city: toRequiredText(get(1)),
-    department: toText(get(2)),
-    region: toText(get(3)),
-    productType: toRequiredText(get(4)),
+    country: toRequiredText(get('country')),
+    city: toRequiredText(get('city')),
+    department: toText(get('department')),
+    region: toText(get('region')),
+    productType: toRequiredText(get('productType')),
     link,
-    duration: toText(get(6)),
-    productStatus: toText(get(7)),
-    productName: toText(get(8)),
-    written: toBoolean(get(9)),
-    notes: toText(get(10)),
-    isOk: toText(get(11)),
-    ssOk: toBoolean(get(12)),
-    imageLinks: imageLinksRichText ?? toText(get(13)),
-    maxPax: toText(get(14)),
-    guide: toBoolean(get(15)),
-    driver: toBoolean(get(16)),
-    driverGuide: toBoolean(get(17)),
-    guideWhere: toText(get(18)),
-    componentsOfTour: toText(get(19)),
-    attractionIncluded: toBoolean(get(20)),
-    attractionOptional: toBoolean(get(21)),
-    transportation: toText(get(22)),
-    attractionsIncluded: toText(get(23)),
-    attractionLink: toText(get(24)),
-    providerPrice: toText(get(25)),
-    providerUrl: toText(get(26)),
-    centralProviderLinks: toText(get(27)),
-    centralTransportLinks: toText(get(28)),
-    transportationPrice: toText(get(29)),
-    vatYN: toText(get(30)),
-    vatPercent: toNumber(get(31)),
-    totalBuyingPrice: toText(get(32)),
-    cancellation: toText(get(33)),
-    pic: toText(get(34)),
-    b2bPriceInstant: toText(get(35)),
-    b2bPriceOnRequest: toText(get(36)),
-    b2cPriceInstant: toText(get(37)),
-    b2cPriceOnRequest: toText(get(38)),
-    extraHrB2BInstant: toText(get(39)),
-    extraHrB2BRequest: toText(get(40)),
-    extraHrB2CInstant: toText(get(41)),
-    extraHrB2CRequest: toText(get(42)),
-    tourValidityGeneral: toText(get(43)),
-    tourValiditySpecific: toText(get(44)),
-    cancelInstant: toText(get(45)),
-    cutoffInstant: toText(get(46)),
-    cancelOnRequest: toText(get(47)),
-    cutoffOnRequest: toText(get(48)),
-    notesGeneral: toText(get(49)),
-    otaMasterSheet: toText(get(50)),
-    otaTravmonde: toText(get(51)),
-    otaBookableTours: toText(get(52)),
-    otaViator: toText(get(53)),
-    otaGyg: toText(get(54)),
-    otaHotelbeds: toText(get(55)),
-    otaProjectExpedition: toText(get(56)),
-    otaAirbnb: toText(get(57)),
-    otaBokun: toText(get(58)),
-    otaTrekksoft: toText(get(59)),
-    otaTuiMusement: toText(get(60)),
-    otaKlook: toText(get(61)),
-    otaToristy: toText(get(62)),
-    otaTourHQ: toText(get(63)),
-    qualityRemarks: toText(get(64)),
-    readyForUpload: toBoolean(get(65)),
-    uploadedPic: toText(get(66)),
-    dateOfDispatch: toText(get(67)),
-    dateUploaded: toText(get(68)),
-    productLink: toText(get(69)),
+    duration: toText(get('duration')),
+    productStatus: toText(get('productStatus')),
+    productName: toText(get('productName')),
+    written: toBoolean(get('written')),
+    notes: toText(get('notes')),
+    isOk: toText(get('isOk')),
+    ssOk: toBoolean(get('ssOk')),
+    imageLinks: imageLinksRichText ?? toText(get('imageLinks')),
+    maxPax: toText(get('maxPax')),
+    guide: toBoolean(get('guide')),
+    driver: toBoolean(get('driver')),
+    driverGuide: toBoolean(get('driverGuide')),
+    guideWhere: toText(get('guideWhere')),
+    componentsOfTour: toText(get('componentsOfTour')),
+    attractionIncluded: toBoolean(get('attractionIncluded')),
+    attractionOptional: toBoolean(get('attractionOptional')),
+    transportation: toText(get('transportation')),
+    attractionsIncluded: toText(get('attractionsIncluded')),
+    attractionLink: toText(get('attractionLink')),
+    providerPrice: toText(get('providerPrice')),
+    providerUrl: toText(get('providerUrl')),
+    centralProviderLinks: toText(get('centralProviderLinks')),
+    centralTransportLinks: toText(get('centralTransportLinks')),
+    transportationPrice: toText(get('transportationPrice')),
+    vatYN: toText(get('vatYN')),
+    vatPercent: toNumber(get('vatPercent')),
+    totalBuyingPrice: toText(get('totalBuyingPrice')),
+    cancellation: toText(get('cancellation')),
+    pic: toText(get('pic')),
+    b2bPriceInstant: toText(get('b2bPriceInstant')),
+    b2bPriceOnRequest: toText(get('b2bPriceOnRequest')),
+    b2cPriceInstant: toText(get('b2cPriceInstant')),
+    b2cPriceOnRequest: toText(get('b2cPriceOnRequest')),
+    extraHrB2BInstant: toText(get('extraHrB2BInstant')),
+    extraHrB2BRequest: toText(get('extraHrB2BRequest')),
+    extraHrB2CInstant: toText(get('extraHrB2CInstant')),
+    extraHrB2CRequest: toText(get('extraHrB2CRequest')),
+    tourValidityGeneral: toText(get('tourValidityGeneral')),
+    tourValiditySpecific: toText(get('tourValiditySpecific')),
+    cancelInstant: toText(get('cancelInstant')),
+    cutoffInstant: toText(get('cutoffInstant')),
+    cancelOnRequest: toText(get('cancelOnRequest')),
+    cutoffOnRequest: toText(get('cutoffOnRequest')),
+    notesGeneral: toText(get('notesGeneral')),
+    otaMasterSheet: toText(get('otaMasterSheet')),
+    otaTravmonde: toText(get('otaTravmonde')),
+    otaBookableTours: toText(get('otaBookableTours')),
+    otaViator: toText(get('otaViator')),
+    otaGyg: toText(get('otaGyg')),
+    otaHotelbeds: toText(get('otaHotelbeds')),
+    otaProjectExpedition: toText(get('otaProjectExpedition')),
+    otaAirbnb: toText(get('otaAirbnb')),
+    otaBokun: toText(get('otaBokun')),
+    otaTrekksoft: toText(get('otaTrekksoft')),
+    otaTuiMusement: toText(get('otaTuiMusement')),
+    otaKlook: toText(get('otaKlook')),
+    otaToristy: toText(get('otaToristy')),
+    otaTourHQ: toText(get('otaTourHQ')),
+    qualityRemarks: toText(get('qualityRemarks')),
+    readyForUpload: toBoolean(get('readyForUpload')),
+    uploadedPic: toText(get('uploadedPic')),
+    dateOfDispatch: toText(get('dateOfDispatch')),
+    dateUploaded: toText(get('dateUploaded')),
+    productLink: toText(get('productLink')),
   };
 }
 
 // Convert a TourProduct back to a flat string[] of 70 values for writing to Sheets
-export function productToRow(product: Omit<TourProduct, 'rowIndex'>): string[] {
+export function productToRow(
+  product: Omit<TourProduct, 'rowIndex'>,
+  colMap: Record<string, number> = FIELD_TO_COL,
+): string[] {
   const row = new Array(70).fill('');
-  const set = (col: number, val: string | number | boolean | null | undefined) => {
+  const set = (field: string, val: string | number | boolean | null | undefined) => {
+    const col = colMap[field as keyof typeof colMap];
+    if (col === undefined) return;
     if (val === null || val === undefined) { row[col] = ''; return; }
     if (typeof val === 'boolean') { row[col] = val ? 'TRUE' : 'FALSE'; return; }
     row[col] = String(val);
   };
-  set(0, product.country);
-  set(1, product.city);
-  set(2, product.department);
-  set(3, product.region);
-  set(4, product.productType);
-  // link field may be "display text||url" — only write display text to the cell
-  set(5, product.link ? parseLinkField(product.link).text || parseLinkField(product.link).url : '');
-  set(6, product.duration);
-  set(7, product.productStatus);
-  set(8, product.productName);
-  set(9, product.written);
-  set(10, product.notes);
-  set(11, product.isOk);
-  set(12, product.ssOk);
-  set(13, product.imageLinks);
-  set(14, product.maxPax);
-  set(15, product.guide);
-  set(16, product.driver);
-  set(17, product.driverGuide);
-  set(18, product.guideWhere);
-  set(19, product.componentsOfTour);
-  set(20, product.attractionIncluded);
-  set(21, product.attractionOptional);
-  set(22, product.transportation);
-  set(23, product.attractionsIncluded);
-  set(24, product.attractionLink);
-  set(25, product.providerPrice);
-  set(26, product.providerUrl);
-  set(27, product.centralProviderLinks);
-  set(28, product.centralTransportLinks);
-  set(29, product.transportationPrice);
-  set(30, product.vatYN);
-  set(31, product.vatPercent);
-  set(32, product.totalBuyingPrice);
-  set(33, product.cancellation);
-  set(34, product.pic);
-  set(35, product.b2bPriceInstant);
-  set(36, product.b2bPriceOnRequest);
-  set(37, product.b2cPriceInstant);
-  set(38, product.b2cPriceOnRequest);
-  set(39, product.extraHrB2BInstant);
-  set(40, product.extraHrB2BRequest);
-  set(41, product.extraHrB2CInstant);
-  set(42, product.extraHrB2CRequest);
-  set(43, product.tourValidityGeneral);
-  set(44, product.tourValiditySpecific);
-  set(45, product.cancelInstant);
-  set(46, product.cutoffInstant);
-  set(47, product.cancelOnRequest);
-  set(48, product.cutoffOnRequest);
-  set(49, product.notesGeneral);
-  set(50, product.otaMasterSheet);
-  set(51, product.otaTravmonde);
-  set(52, product.otaBookableTours);
-  set(53, product.otaViator);
-  set(54, product.otaGyg);
-  set(55, product.otaHotelbeds);
-  set(56, product.otaProjectExpedition);
-  set(57, product.otaAirbnb);
-  set(58, product.otaBokun);
-  set(59, product.otaTrekksoft);
-  set(60, product.otaTuiMusement);
-  set(61, product.otaKlook);
-  set(62, product.otaToristy);
-  set(63, product.otaTourHQ);
-  set(64, product.qualityRemarks);
-  set(65, product.readyForUpload);
-  set(66, product.uploadedPic);
-  set(67, product.dateOfDispatch);
-  set(68, product.dateUploaded);
-  set(69, product.productLink);
+  set('country', product.country);
+  set('city', product.city);
+  set('department', product.department);
+  set('region', product.region);
+  set('productType', product.productType);
+  // link field: only write display text to the cell value; hyperlink is set separately
+  set('link', product.link ? parseLinkField(product.link).text || parseLinkField(product.link).url : '');
+  set('duration', product.duration);
+  set('productStatus', product.productStatus);
+  set('productName', product.productName);
+  set('written', product.written);
+  set('notes', product.notes);
+  set('isOk', product.isOk);
+  set('ssOk', product.ssOk);
+  set('imageLinks', product.imageLinks);
+  set('maxPax', product.maxPax);
+  set('guide', product.guide);
+  set('driver', product.driver);
+  set('driverGuide', product.driverGuide);
+  set('guideWhere', product.guideWhere);
+  set('componentsOfTour', product.componentsOfTour);
+  set('attractionIncluded', product.attractionIncluded);
+  set('attractionOptional', product.attractionOptional);
+  set('transportation', product.transportation);
+  set('attractionsIncluded', product.attractionsIncluded);
+  set('attractionLink', product.attractionLink);
+  set('providerPrice', product.providerPrice);
+  set('providerUrl', product.providerUrl);
+  set('centralProviderLinks', product.centralProviderLinks);
+  set('centralTransportLinks', product.centralTransportLinks);
+  set('transportationPrice', product.transportationPrice);
+  set('vatYN', product.vatYN);
+  set('vatPercent', product.vatPercent);
+  set('totalBuyingPrice', product.totalBuyingPrice);
+  set('cancellation', product.cancellation);
+  set('pic', product.pic);
+  set('b2bPriceInstant', product.b2bPriceInstant);
+  set('b2bPriceOnRequest', product.b2bPriceOnRequest);
+  set('b2cPriceInstant', product.b2cPriceInstant);
+  set('b2cPriceOnRequest', product.b2cPriceOnRequest);
+  set('extraHrB2BInstant', product.extraHrB2BInstant);
+  set('extraHrB2BRequest', product.extraHrB2BRequest);
+  set('extraHrB2CInstant', product.extraHrB2CInstant);
+  set('extraHrB2CRequest', product.extraHrB2CRequest);
+  set('tourValidityGeneral', product.tourValidityGeneral);
+  set('tourValiditySpecific', product.tourValiditySpecific);
+  set('cancelInstant', product.cancelInstant);
+  set('cutoffInstant', product.cutoffInstant);
+  set('cancelOnRequest', product.cancelOnRequest);
+  set('cutoffOnRequest', product.cutoffOnRequest);
+  set('notesGeneral', product.notesGeneral);
+  set('otaMasterSheet', product.otaMasterSheet);
+  set('otaTravmonde', product.otaTravmonde);
+  set('otaBookableTours', product.otaBookableTours);
+  set('otaViator', product.otaViator);
+  set('otaGyg', product.otaGyg);
+  set('otaHotelbeds', product.otaHotelbeds);
+  set('otaProjectExpedition', product.otaProjectExpedition);
+  set('otaAirbnb', product.otaAirbnb);
+  set('otaBokun', product.otaBokun);
+  set('otaTrekksoft', product.otaTrekksoft);
+  set('otaTuiMusement', product.otaTuiMusement);
+  set('otaKlook', product.otaKlook);
+  set('otaToristy', product.otaToristy);
+  set('otaTourHQ', product.otaTourHQ);
+  set('qualityRemarks', product.qualityRemarks);
+  set('readyForUpload', product.readyForUpload);
+  set('uploadedPic', product.uploadedPic);
+  set('dateOfDispatch', product.dateOfDispatch);
+  set('dateUploaded', product.dateUploaded);
+  set('productLink', product.productLink);
   return row;
 }
