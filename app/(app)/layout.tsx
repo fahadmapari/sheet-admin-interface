@@ -10,7 +10,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Header />
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="mx-auto flex h-full min-h-0 w-full max-w-screen-xl flex-1 flex-col overflow-y-auto px-6 py-6">
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-screen-xl flex-1 flex-col overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
             {children}
           </div>
         </main>
