@@ -161,8 +161,8 @@ const schema = z.object({
   country: z.string().min(1, 'Country is required'),
   city: z.string().min(1, 'City is required'),
   productType: z.string().min(1, 'Product type is required'),
-  linkTitle: z.string().optional(),
-  linkUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  linkTitle: z.string().min(1, 'Link title is required'),
+  linkUrl: z.string().url('Must be a valid URL').min(1, 'Link URL is required'),
   duration: z.string().optional(),
   productStatus: z.string().optional(),
 });
@@ -210,9 +210,7 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
 
   const onSubmit = async (data: FormData) => {
     const { linkTitle, linkUrl, ...rest } = data;
-    const title = linkTitle?.trim() ?? '';
-    const url = linkUrl?.trim() ?? '';
-    const link = title && url ? `${title}||${url}` : url || title || undefined;
+    const link = `${linkTitle.trim()}||${linkUrl.trim()}`;
 
     const res = await fetch('/api/products', {
       method: 'POST',
@@ -316,15 +314,22 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
             {/* Link Title + URL */}
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="linkTitle">Link Title</Label>
+                <Label htmlFor="linkTitle">
+                  Link Title <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="linkTitle"
                   placeholder="e.g. Tour Document"
                   {...register('linkTitle')}
                 />
+                {errors.linkTitle && (
+                  <p className="text-xs text-destructive">{errors.linkTitle.message}</p>
+                )}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="linkUrl">Link URL</Label>
+                <Label htmlFor="linkUrl">
+                  Link URL <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="linkUrl"
                   placeholder="https://..."
