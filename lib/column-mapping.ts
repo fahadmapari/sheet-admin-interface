@@ -5,15 +5,20 @@ export { colIndexToLetter, colLetterToIndex } from './column-utils';
 
 const COLLECTION = 'columnmapping';
 
+interface ColumnMappingDoc {
+  overrides: Record<string, number>;
+}
+
 // Returns effective field→colIndex mapping: FIELD_TO_COL defaults merged with MongoDB overrides.
 // Falls back to FIELD_TO_COL if MongoDB is unavailable.
 export async function getEffectiveColumnMap(): Promise<Record<string, number>> {
   try {
     const db = await getDb();
-    const doc = await db.collection(COLLECTION).findOne({});
-    const overrides = (doc?.overrides as Record<string, number>) ?? {};
+    const doc = await db.collection<ColumnMappingDoc>(COLLECTION).findOne({});
+    const overrides = doc?.overrides ?? {};
     return { ...FIELD_TO_COL, ...overrides };
-  } catch {
+  } catch (err) {
+    console.error('[column-mapping] Failed to load overrides, using defaults:', err);
     return { ...FIELD_TO_COL };
   }
 }
@@ -30,7 +35,7 @@ export async function saveColumnMappingOverrides(
     }
   }
   const db = await getDb();
-  await db.collection(COLLECTION).replaceOne({}, { overrides }, { upsert: true });
+  await db.collection<ColumnMappingDoc>(COLLECTION).replaceOne({}, { overrides }, { upsert: true });
 }
 
 // Removes all overrides — app reverts to FIELD_TO_COL defaults.
