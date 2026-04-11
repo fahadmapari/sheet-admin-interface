@@ -104,7 +104,7 @@ export function BulkActionsToolbar({
         <div className="mx-1 h-4 w-px bg-[hsl(var(--border))]" />
 
         <Select onValueChange={(value) => applyBulkField('productStatus', value)}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Set Status…" />
           </SelectTrigger>
           <SelectContent>
@@ -134,7 +134,7 @@ export function BulkActionsToolbar({
         <div className="mx-1 h-4 w-px bg-[hsl(var(--border))]" />
 
         <Select onValueChange={(value) => handleStageSelect(value as AssemblyStage)}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
             <SelectValue placeholder="Move to Stage…" />
           </SelectTrigger>
