@@ -17,12 +17,14 @@ export default async function SettingsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold">Settings</h1>
       <Tabs defaultValue="notifications">
-        <TabsList>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          {showAccessTab && <TabsTrigger value="access">Access</TabsTrigger>}
-          {showAccessTab && <TabsTrigger value="column-groups">Column Groups</TabsTrigger>}
-          {showAccessTab && <TabsTrigger value="column-mapping">Column Mapping</TabsTrigger>}
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            {showAccessTab && <TabsTrigger value="access">Access</TabsTrigger>}
+            {showAccessTab && <TabsTrigger value="column-groups">Column Groups</TabsTrigger>}
+            {showAccessTab && <TabsTrigger value="column-mapping">Column Mapping</TabsTrigger>}
+          </TabsList>
+        </div>
         <TabsContent value="notifications" className="mt-4">
           <StageSubscriptionSettings />
         </TabsContent>
