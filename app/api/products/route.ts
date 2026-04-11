@@ -1,28 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchAllRows, fetchColumnHyperlinks, fetchColumnRichTextLinks, appendRow, updateCellHyperlink } from '@/lib/sheets';
 import { rowToProduct, productToRow, parseLinkField } from '@/lib/utils';
+import { getEffectiveColumnMap } from '@/lib/column-mapping';
 import type { TourProduct } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const LINK_COL_INDEX = 5;        // column F — "link" field
-const IMAGE_LINKS_COL_INDEX = 13; // column N — "imageLinks" field
-
 export async function GET() {
   try {
-    const [rows, linkHyperlinks, imageLinksRichText] = await Promise.all([
+    const [colMap, rows] = await Promise.all([
+      getEffectiveColumnMap(),
       fetchAllRows(),
-      fetchColumnHyperlinks(LINK_COL_INDEX),
-      fetchColumnRichTextLinks(IMAGE_LINKS_COL_INDEX),
     ]);
-    // Row 0 is the header — skip it. Data starts at row index 1 (array[1]).
-    // Sheet rowIndex is 1-based: array[1] = sheet row 2 (first data row)
+
+    const linkColIndex = colMap['link'];
+    const imageLinksColIndex = colMap['imageLinks'];
+
+    const [linkHyperlinks, imageLinksRichText] = await Promise.all([
+      fetchColumnHyperlinks(linkColIndex),
+      fetchColumnRichTextLinks(imageLinksColIndex),
+    ]);
+
     const products: TourProduct[] = rows
-      .slice(1) // skip header
+      .slice(1)
       .map((row, i) => {
-        const rowIndex = i + 2; // i=0 → sheet row 2
-        return rowToProduct(row, rowIndex, linkHyperlinks.get(rowIndex), imageLinksRichText.get(rowIndex));
+        const rowIndex = i + 2;
+        return rowToProduct(
+          row,
+          rowIndex,
+          linkHyperlinks.get(rowIndex),
+          imageLinksRichText.get(rowIndex),
+          colMap,
+        );
       });
+
     return NextResponse.json(products);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -32,15 +43,18 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as Omit<TourProduct, 'rowIndex'>;
-    const rowValues = productToRow(body);
+    const [colMap, body] = await Promise.all([
+      getEffectiveColumnMap(),
+      req.json() as Promise<Omit<TourProduct, 'rowIndex'>>,
+    ]);
+
+    const rowValues = productToRow(body, colMap);
     const newRowIndex = await appendRow(rowValues);
 
-    // If link contains a URL, set the hyperlink on the newly appended row
     if (body.link) {
       const { text, url } = parseLinkField(body.link);
       if (url) {
-        await updateCellHyperlink(newRowIndex, LINK_COL_INDEX, text, url);
+        await updateCellHyperlink(newRowIndex, colMap['link'], text, url);
       }
     }
 
