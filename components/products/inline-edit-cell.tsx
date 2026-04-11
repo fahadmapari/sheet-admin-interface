@@ -3,7 +3,7 @@
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink } from 'lucide-react';
+import { Check, ExternalLink, Plus, X } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -200,28 +200,45 @@ function LinkEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps
   );
 }
 
+interface ImageLinkEntry {
+  id: string;
+  text: string;
+  url: string;
+}
+
+function parseImageEntries(value: string): ImageLinkEntry[] {
+  return value
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => ({ ...parseLinkField(l), id: crypto.randomUUID() }));
+}
+
+function serializeImageEntries(entries: ImageLinkEntry[]): string {
+  return entries
+    .filter((e) => e.text.trim() || e.url.trim())
+    .map((e) => (e.text && e.url ? `${e.text}||${e.url}` : e.url || e.text))
+    .join('\n');
+}
+
 function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const strValue = rawValue ? String(rawValue) : '';
   const [editing, setEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(strValue);
+  const [entries, setEntries] = useState<ImageLinkEntry[]>([]);
   const [saving, setSaving] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isMountedRef = useRef(true);
   const savingRef = useRef(false);
-
-  useEffect(() => {
-    if (!editing) setInputValue(strValue);
-  }, [strValue, editing]);
-
-  useEffect(() => {
-    if (editing && textareaRef.current) textareaRef.current.focus();
-  }, [editing]);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => { isMountedRef.current = false; };
   }, []);
+
+  const openEditor = useCallback(() => {
+    setEntries(parseImageEntries(strValue));
+    setEditing(true);
+  }, [strValue]);
 
   const save = useCallback(
     async (valueToSave: string) => {
@@ -248,7 +265,6 @@ function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellPro
         if (isMountedRef.current) {
           toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
           onSaved(field, strValue);
-          setInputValue(strValue);
         }
       } finally {
         savingRef.current = false;
@@ -259,29 +275,76 @@ function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellPro
   );
 
   const commitAndExit = useCallback(
-    (value: string) => {
+    (currentEntries: ImageLinkEntry[]) => {
       setEditing(false);
-      if (value !== strValue) save(value);
+      const newValue = serializeImageEntries(currentEntries);
+      if (newValue !== strValue) save(newValue);
     },
     [strValue, save],
   );
 
+  const handleEntryChange = (index: number, key: 'text' | 'url', val: string) => {
+    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, [key]: val } : e)));
+  };
+
+  const handleRemove = (index: number) => {
+    setEntries((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAdd = () => {
+    setEntries((prev) => [...prev, { id: crypto.randomUUID(), text: '', url: '' }]);
+  };
+
   if (editing) {
     return (
-      <div className="relative w-full">
-        <Textarea
-          ref={textareaRef as RefObject<HTMLTextAreaElement>}
-          className="min-h-[60px] text-xs resize-none w-full"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setInputValue(strValue);
-              setEditing(false);
-            }
-          }}
-          onBlur={() => commitAndExit(inputValue)}
-        />
+      <div className="relative w-full space-y-1.5 py-1">
+        {entries.map((entry, i) => (
+          <div key={entry.id} className="flex gap-1 items-center">
+            <input
+              type="text"
+              placeholder="Label"
+              className="flex h-7 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={entry.text}
+              onChange={(e) => handleEntryChange(i, 'text', e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') { setEditing(false); } }}
+            />
+            <input
+              type="text"
+              placeholder="https://..."
+              className="flex h-7 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              value={entry.url}
+              onChange={(e) => handleEntryChange(i, 'url', e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') { setEditing(false); } }}
+            />
+            <button
+              type="button"
+              aria-label="Remove entry"
+              className="flex-shrink-0 rounded p-0.5 text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+              onClick={() => handleRemove(i)}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+        <div className="flex gap-1 pt-0.5">
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs text-[hsl(var(--text-secondary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+            onClick={handleAdd}
+          >
+            <Plus className="h-3 w-3" />
+            Add link
+          </button>
+          <button
+            type="button"
+            aria-label="Save"
+            className="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-xs bg-[hsl(var(--surface))] hover:bg-[hsl(var(--surface-hover,var(--surface)))] transition-colors"
+            onClick={() => commitAndExit(entries)}
+          >
+            <Check className="h-3 w-3" />
+            Done
+          </button>
+        </div>
         {saving && (
           <span className="absolute inset-0 flex items-center justify-center bg-background/50">
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
@@ -300,7 +363,7 @@ function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellPro
   return (
     <div
       className={cn("relative rounded p-0.5 transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
-      onClick={() => { if (!readOnly) setEditing(true); }}
+      onClick={() => { if (!readOnly) openEditor(); }}
     >
       {links.length > 0 ? (
         <div className="flex flex-col items-end gap-1">
