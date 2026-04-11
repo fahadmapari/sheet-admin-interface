@@ -36,6 +36,16 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const pathname = usePathname();
 
   const [activeView, setActiveView] = useState<ViewMode>('table');
+
+  // Avoid SSR mismatch: check viewport on client mount only
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setActiveView(e.matches ? 'cards' : 'table');
+    if (mql.matches) setActiveView('cards');
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
   const [filters, setFilters] = useState<Filters>(initialFilters ?? DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState(initialSearch ?? '');
   const [globalSearch, setGlobalSearch] = useState(initialSearch ?? '');
