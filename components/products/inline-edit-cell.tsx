@@ -240,6 +240,18 @@ function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellPro
     setEditing(true);
   }, [strValue]);
 
+  // Auto-open when the sheet switches into edit mode (readOnly: true → false)
+  const prevReadOnlyRef = useRef(readOnly);
+  useEffect(() => {
+    if (prevReadOnlyRef.current === true && readOnly === false) {
+      openEditor();
+    }
+    if (readOnly === true) {
+      setEditing(false);
+    }
+    prevReadOnlyRef.current = readOnly;
+  }, [readOnly, openEditor]);
+
   const save = useCallback(
     async (valueToSave: string) => {
       if (!isMountedRef.current || savingRef.current) return;
