@@ -361,7 +361,7 @@ export function ProductTable({
       ref={containerRef}
       className="flex items-start min-h-0 flex-1 overflow-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]"
     >
-      <table className="w-full border-collapse text-sm table-auto">
+      <table className="w-full min-w-[640px] border-collapse text-sm table-auto">
         <thead className="sticky top-0 z-10">
           <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
             {table.getFlatHeaders().map((header) => (
