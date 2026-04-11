@@ -410,7 +410,7 @@ export function ProductDetailSheet({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] px-6 py-4">
+        <div className="flex flex-col gap-2 border-t border-[hsl(var(--border))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-4">
           <div className="min-w-0">
             <p className="text-xs text-[hsl(var(--text-secondary))]">
               Row {draftProduct.rowIndex}
