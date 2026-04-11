@@ -1,6 +1,7 @@
 import 'server-only';
 import { google, sheets_v4 } from 'googleapis';
 import { parseLinkField } from '@/lib/utils';
+import { colIndexToLetter } from './column-mapping';
 
 // ---------------------------------------------------------------------------
 // Env var helper
@@ -40,22 +41,6 @@ export function getSheetsClient(): sheets_v4.Sheets {
 const SPREADSHEET_ID = requireEnv('SPREADSHEET_ID');
 const NET_RATES_SHEET = 'NET RATES';
 const NET_RATES_RANGE = `'${NET_RATES_SHEET}'!A:BR`;
-
-// ---------------------------------------------------------------------------
-// Helper: column index (0-based) → A1 column letter(s)
-// A=0, B=1, …, Z=25, AA=26, …, BR=69
-// ---------------------------------------------------------------------------
-
-function colIndexToLetter(colIndex: number): string {
-  if (colIndex < 0) throw new Error('colIndexToLetter: colIndex must be >= 0, received ' + colIndex);
-  let letter = '';
-  let n = colIndex;
-  while (n >= 0) {
-    letter = String.fromCharCode((n % 26) + 65) + letter;
-    n = Math.floor(n / 26) - 1;
-  }
-  return letter;
-}
 
 // ---------------------------------------------------------------------------
 // Helper: sheet ID cache + lookup (with promise deduplication)
