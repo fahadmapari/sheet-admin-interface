@@ -71,7 +71,11 @@ function EditableFieldValue({ product, field, onSaved, readOnly }: EditableField
   const value = product[field];
 
   if (field === 'productStatus') {
-    return <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />;
+    return (
+      <div className="flex justify-end">
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
+      </div>
+    );
   }
 
   if (BOOLEAN_FIELDS.has(field)) {
