@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { rowIndex: string } },
+  { params }: { params: Promise<{ rowIndex: string }> },
 ) {
-  const rowIndex = parseInt(params.rowIndex, 10);
+  const { rowIndex: rowIndexStr } = await params;
+  const rowIndex = parseInt(rowIndexStr, 10);
   if (Number.isNaN(rowIndex)) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
