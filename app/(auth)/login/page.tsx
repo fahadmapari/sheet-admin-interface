@@ -7,13 +7,14 @@ const errorMessages: Record<string, string> = {
   Default: "Something went wrong. Try again.",
 };
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
-  const errorMessage = searchParams.error
-    ? (errorMessages[searchParams.error] ?? errorMessages.Default)
+  const { error } = await searchParams;
+  const errorMessage = error
+    ? (errorMessages[error] ?? errorMessages.Default)
     : null;
 
   return (
