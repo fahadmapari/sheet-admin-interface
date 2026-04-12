@@ -144,7 +144,7 @@ function LinkEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps
       >
         <span className="flex items-center gap-1">
           {displayText ? (
-            <span className="max-w-[180px] truncate block text-sm" title={displayText}>
+            <span className="block text-sm break-words" title={displayText}>
               {displayText}
             </span>
           ) : (

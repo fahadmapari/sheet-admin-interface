@@ -15,7 +15,6 @@ import {
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, ExternalLink } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
@@ -55,7 +54,7 @@ function buildExtraColumns(groups: ColumnGroup[]): ColumnDef<TourProduct>[] {
               .filter(Boolean)
               .map(parseLinkField);
             return (
-              <div className="flex flex-col gap-0.5 max-w-[200px]">
+              <div className="flex flex-col gap-0.5 max-w-[220px]">
                 {links.map((link, i) =>
                   link.url ? (
                     <a
@@ -64,13 +63,13 @@ function buildExtraColumns(groups: ColumnGroup[]): ColumnDef<TourProduct>[] {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
+                      className="inline-flex items-start gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
                     >
-                      <span className="truncate">{link.text || link.url}</span>
-                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                      <span className="break-words">{link.text || link.url}</span>
+                      <ExternalLink className="h-3 w-3 flex-shrink-0 mt-0.5" />
                     </a>
                   ) : (
-                    <span key={i} className="text-sm text-[hsl(var(--text-primary))] truncate">{link.text}</span>
+                    <span key={i} className="text-sm text-[hsl(var(--text-primary))] break-words">{link.text}</span>
                   )
                 )}
               </div>
@@ -91,7 +90,7 @@ function buildExtraColumns(groups: ColumnGroup[]): ColumnDef<TourProduct>[] {
           if (typeof value === 'boolean') {
             return <span className="text-xs text-[hsl(var(--text-secondary))]">{value ? 'Yes' : 'No'}</span>;
           }
-          return <span className="text-sm text-[hsl(var(--text-primary))] truncate block max-w-[200px]">{String(value)}</span>;
+          return <span className="text-sm text-[hsl(var(--text-primary))] block max-w-[200px] break-words">{String(value)}</span>;
         },
       };
     })
@@ -138,16 +137,9 @@ function buildColumns(
         return (
           <div className="min-w-0 max-w-[280px] flex items-start gap-1">
             <div className="min-w-0 flex-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="truncate text-sm font-medium leading-tight text-[hsl(var(--text-primary))]">
-                      {displayName}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>{displayName}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="text-sm font-medium leading-tight text-[hsl(var(--text-primary))] break-words">
+                {displayName}
+              </div>
               {p.duration && (
                 <div className="mt-0.5 text-xs text-[hsl(var(--text-secondary))]">{p.duration}</div>
               )}
