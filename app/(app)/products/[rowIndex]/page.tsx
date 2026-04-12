@@ -9,9 +9,10 @@ import { notFound } from 'next/navigation';
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { rowIndex: string };
+  params: Promise<{ rowIndex: string }>;
 }) {
-  const rowIndex = parseInt(params.rowIndex, 10);
+  const { rowIndex: rowIndexStr } = await params;
+  const rowIndex = parseInt(rowIndexStr, 10);
   if (isNaN(rowIndex) || rowIndex < 2) notFound();
 
   const rows = await fetchAllRows();
