@@ -38,7 +38,9 @@ export function getSheetsClient(): sheets_v4.Sheets {
 // Constants
 // ---------------------------------------------------------------------------
 
-const SPREADSHEET_ID = requireEnv('SPREADSHEET_ID');
+function getSpreadsheetId(): string {
+  return requireEnv('SPREADSHEET_ID');
+}
 const NET_RATES_SHEET = 'NET RATES';
 const NET_RATES_RANGE = `'${NET_RATES_SHEET}'!A:BR`;
 
@@ -55,7 +57,7 @@ async function getSheetId(sheetName: string): Promise<number> {
 
   const promise = (async () => {
     const sheets = getSheetsClient();
-    const response = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const response = await sheets.spreadsheets.get({ spreadsheetId: getSpreadsheetId() });
     const sheetsData = response.data.sheets ?? [];
     for (const sheet of sheetsData) {
       const id = sheet.properties?.sheetId;
@@ -91,7 +93,7 @@ export async function fetchAllRows(): Promise<string[][]> {
   const sheets = getSheetsClient();
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       range: NET_RATES_RANGE,
     });
     return (response.data.values ?? []) as string[][];
@@ -110,7 +112,7 @@ export async function fetchRow(rowIndex: number): Promise<string[]> {
   const sheets = getSheetsClient();
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       range: `'${NET_RATES_SHEET}'!A${rowIndex}:BR${rowIndex}`,
     });
     const values = response.data.values;
@@ -131,7 +133,7 @@ export async function updateRow(rowIndex: number, values: string[]): Promise<voi
   const sheets = getSheetsClient();
   try {
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       range: `'${NET_RATES_SHEET}'!A${rowIndex}:BR${rowIndex}`,
       valueInputOption: 'RAW',
       requestBody: { values: [values] },
@@ -156,7 +158,7 @@ export async function updateCell(
   const colLetter = colIndexToLetter(colIndex);
   try {
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       range: `'${NET_RATES_SHEET}'!${colLetter}${rowIndex}`,
       valueInputOption: 'RAW',
       requestBody: { values: [[value]] },
@@ -176,7 +178,7 @@ export async function appendRow(values: string[]): Promise<number> {
   const sheets = getSheetsClient();
   try {
     const response = await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       range: NET_RATES_RANGE,
       valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
@@ -203,7 +205,7 @@ export async function deleteRow(rowIndex: number): Promise<void> {
   try {
     const sheetId = await getSheetId(NET_RATES_SHEET);
     await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       requestBody: {
         requests: [
           {
@@ -238,7 +240,7 @@ export async function fetchColumnHyperlinks(colIndex: number): Promise<Map<numbe
 
   try {
     const response = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       ranges: [range],
       includeGridData: true,
     });
@@ -282,7 +284,7 @@ export async function updateCellHyperlink(
 
   try {
     await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       requestBody: {
         requests: [
           {
@@ -324,7 +326,7 @@ export async function fetchColumnRichTextLinks(colIndex: number): Promise<Map<nu
 
   try {
     const response = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       ranges: [range],
       includeGridData: true,
     });
@@ -395,7 +397,7 @@ export async function batchUpdateRows(
     }));
 
     await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       requestBody: {
         valueInputOption: 'RAW',
         data,
@@ -417,7 +419,7 @@ export async function findRowByProductName(title: string): Promise<number | null
   const sheets = getSheetsClient();
   try {
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: getSpreadsheetId(),
       range: `'${NET_RATES_SHEET}'!F2:F`,
     });
     const values = response.data.values ?? [];
