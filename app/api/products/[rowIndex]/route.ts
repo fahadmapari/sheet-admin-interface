@@ -7,10 +7,11 @@ import type { TourProduct } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-type Params = { params: { rowIndex: string } };
+type Params = { params: Promise<{ rowIndex: string }> };
 
 export async function PUT(req: NextRequest, { params }: Params) {
-  const rowIndex = parseInt(params.rowIndex, 10);
+  const { rowIndex: rowIndexStr } = await params;
+  const rowIndex = parseInt(rowIndexStr, 10);
   if (isNaN(rowIndex) || rowIndex < 2) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
@@ -54,7 +55,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const rowIndex = parseInt(params.rowIndex, 10);
+  const { rowIndex: rowIndexStr } = await params;
+  const rowIndex = parseInt(rowIndexStr, 10);
   if (isNaN(rowIndex) || rowIndex < 2) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
@@ -93,7 +95,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
-  const rowIndex = parseInt(params.rowIndex, 10);
+  const { rowIndex: rowIndexStr } = await params;
+  const rowIndex = parseInt(rowIndexStr, 10);
   if (isNaN(rowIndex) || rowIndex < 2) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
