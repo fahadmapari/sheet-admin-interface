@@ -19,9 +19,9 @@ NEXTAUTH_URL=                              # Required in production (e.g. https:
 NEXTAUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_SERVICE_ACCOUNT_EMAIL=              # Service account for server-side Sheets access
+SPREADSHEET_ID=                            # Shared Google Sheets document ID
+GOOGLE_SERVICE_ACCOUNT_EMAIL=              # Automation-only service account
 GOOGLE_PRIVATE_KEY=                        # Must include literal \n; lib/sheets.ts replaces them
-SPREADSHEET_ID=                            # Google Sheets document ID
 ```
 
 ## Architecture
@@ -48,7 +48,7 @@ app/
     column-mapping/  # Column display mapping config
 
 lib/
-  sheets.ts          # All Google Sheets I/O (service account)
+  sheets.ts          # Google Sheets/Drive I/O (user OAuth for UI, service account for automation)
   mongodb.ts         # MongoDB client (database: "sheet-admin")
   auth.ts            # NextAuth config
   types.ts           # TourProduct (70 fields), AssemblyBatch, AppNotification
@@ -94,7 +94,10 @@ components/
 ## Gotchas
 
 - **GOOGLE_PRIVATE_KEY**: Store with literal `\n` in env; `lib/sheets.ts` calls `.replace(/\\n/g, '\n')` at runtime.
-- **Export to Google Sheets**: Uses the *user's* OAuth access token (scope: `drive.file`) — not the service account — so the exported spreadsheet lands in the user's own Drive.
+- **User OAuth for Sheet UI**: Product reads/writes, filters, stats, dashboard reads, and exports use the signed-in user's Google OAuth token. Each allowed UI user must have access to `SPREADSHEET_ID`.
+- **Service account**: Reserved for automation-only work such as scheduled jobs or recovery scripts. User-facing API routes should not silently fall back to it.
+- **Google consent**: Scope changes require existing users/admins to sign out and sign back in once. The app requests full Drive access so admins can share the configured spreadsheet from Settings.
+- **Export to Google Sheets**: Uses the user's OAuth access token so the exported spreadsheet lands in the user's own Drive.
 - **Auth allowlist**: Stored in the `accesscontrol` MongoDB collection (single document). On first sign-in attempt, auto-seeded with `adminEmails: ["btechy4@gmail.com"]`. Use the Access tab in Settings (admin-only) to manage allowed emails and admins.
 - **Middleware**: All routes except `/api/auth/**`, `/_next/**`, `/login` require an active session (`middleware.ts`).
 - **Sheet row deletion**: Uses `batchUpdate` with `deleteDimension` (requires numeric sheet ID, not name) — `getSheetId()` caches the lookup.

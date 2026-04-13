@@ -1,12 +1,15 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { batchUpdateRows, deleteRow, fetchAllRows } from '@/lib/sheets';
+import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
 import { getEffectiveColumnMap } from '@/lib/column-mapping';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(req: NextRequest) {
   try {
+    const accessToken = await requireGoogleAccessToken();
+    const sheetsAuth = { auth: 'user' as const, accessToken };
     const [colMap, body] = await Promise.all([
       getEffectiveColumnMap(),
       req.json() as Promise<{ rowIndexes: number[]; field: string; value: string }>,
@@ -30,7 +33,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'All rowIndexes must be >= 2' }, { status: 400 });
     }
 
-    const allRows = await fetchAllRows();
+    const allRows = await fetchAllRows(sheetsAuth);
 
     const updates = rowIndexes.map((rowIndex) => {
       const currentRow = [...(allRows[rowIndex - 1] ?? [])];
@@ -39,17 +42,20 @@ export async function PATCH(req: NextRequest) {
       return { rowIndex, values: currentRow };
     });
 
-    await batchUpdateRows(updates);
+    await batchUpdateRows(sheetsAuth, updates);
 
     return NextResponse.json({ ok: true, updated: rowIndexes.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
+    const accessToken = await requireGoogleAccessToken();
+    const sheetsAuth = { auth: 'user' as const, accessToken };
     const body = await req.json() as { rowIndexes: number[] };
 
     if (!Array.isArray(body.rowIndexes) || body.rowIndexes.length === 0) {
@@ -58,12 +64,13 @@ export async function DELETE(req: NextRequest) {
 
     const sorted = [...body.rowIndexes].sort((a, b) => b - a);
     for (const rowIndex of sorted) {
-      await deleteRow(rowIndex);
+      await deleteRow(sheetsAuth, rowIndex);
     }
 
     return NextResponse.json({ ok: true, deleted: sorted.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
