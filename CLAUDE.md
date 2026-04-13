@@ -1,6 +1,6 @@
 # sheet-admin
 
-Next.js 14 admin app for managing tour products. Google Sheets ("NET RATES") is the primary data store; MongoDB stores assembly batches and notifications. Auth via NextAuth + Google OAuth with an email allowlist.
+Next.js 16 admin app for managing tour products. Google Sheets ("NET RATES") is the primary data store; MongoDB stores assembly batches and notifications. Auth via NextAuth + Google OAuth with an email allowlist.
 
 ## Commands
 
@@ -15,6 +15,7 @@ npm run lint     # ESLint
 
 ```env
 MONGODB_URI=
+NEXTAUTH_URL=                              # Required in production (e.g. https://yourdomain.com)
 NEXTAUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -42,14 +43,27 @@ app/
     stats/         # Dashboard counts
     notifications/
     inventory-update/
+    access-control/  # Allowlist + admin management
+    column-groups/   # Column grouping config
+    column-mapping/  # Column display mapping config
 
 lib/
-  sheets.ts        # All Google Sheets I/O (service account)
-  mongodb.ts       # MongoDB client (database: "sheet-admin")
-  auth.ts          # NextAuth config
-  types.ts         # TourProduct (70 fields), AssemblyBatch, AppNotification
+  sheets.ts          # All Google Sheets I/O (service account)
+  mongodb.ts         # MongoDB client (database: "sheet-admin")
+  auth.ts            # NextAuth config
+  types.ts           # TourProduct (70 fields), AssemblyBatch, AppNotification
   constants.ts
-  fetcher.ts       # SWR fetcher helper
+  fetcher.ts         # SWR fetcher helper
+  access-control.ts  # Allowlist helpers (read/write accesscontrol collection)
+  column-groups.ts   # Column grouping logic
+  column-mapping.ts  # Column display name mapping
+  column-utils.ts    # Shared column utilities
+  design-system.ts   # Design tokens / theme constants
+  notifications.ts   # Notification helpers
+  utils.ts           # General utility functions
+  hooks/
+    use-column-groups.ts
+    use-column-mapping.ts
 
 components/
   ui/              # shadcn/ui primitives
@@ -58,6 +72,10 @@ components/
   dashboard/
   layout/
   notifications/
+  settings/
+  providers/       # React context providers
+  sidebar.tsx      # App sidebar nav
+  mobile-top-bar.tsx
 ```
 
 ## Data Model
@@ -81,3 +99,4 @@ components/
 - **Middleware**: All routes except `/api/auth/**`, `/_next/**`, `/login` require an active session (`middleware.ts`).
 - **Sheet row deletion**: Uses `batchUpdate` with `deleteDimension` (requires numeric sheet ID, not name) — `getSheetId()` caches the lookup.
 - **SWR + server components**: Client pages use SWR for data fetching; server-only code imports are guarded with `import 'server-only'`.
+- **Next.js 16 async params/searchParams**: In route handlers and page components, `params` and `searchParams` must be `await`ed before accessing properties (e.g. `const { id } = await params`). Forgetting this causes runtime errors.
