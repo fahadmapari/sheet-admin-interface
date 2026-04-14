@@ -108,9 +108,34 @@ export type PIC = 'CM' | 'LG' | 'DS' | 'CC' | 'DV' | 'SB' | 'IS' | 'Hanieh' | 'R
 export interface FiltersResponse {
   countries: string[];
   cities: string[];
+  departments: string[];
+  regions: string[];
   productTypes: string[];
+  durations: string[];
   statuses: string[];
+  isOkValues: string[];
+  maxPaxValues: string[];
+  guideWhereValues: string[];
+  transportationValues: string[];
+  vatValues: string[];
+  vatPercentValues: string[];
+  cancellationValues: string[];
   pics: string[];
+  uploadedPics: string[];
+  otaMasterSheetValues: string[];
+  otaTravmondeValues: string[];
+  otaBookableToursValues: string[];
+  otaViatorValues: string[];
+  otaGygValues: string[];
+  otaHotelbedsValues: string[];
+  otaProjectExpeditionValues: string[];
+  otaAirbnbValues: string[];
+  otaBokunValues: string[];
+  otaTrekksoftValues: string[];
+  otaTuiMusementValues: string[];
+  otaKlookValues: string[];
+  otaToristyValues: string[];
+  otaTourHQValues: string[];
 }
 
 export interface StatsResponse {

@@ -8,7 +8,7 @@ import { Plus, Search, X, LayoutGrid, Table2 } from 'lucide-react';
 import { ProductTable } from '@/components/products/product-table';
 import { ProductCards } from '@/components/products/product-cards';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
-import { FilterBar, DEFAULT_FILTERS, type Filters } from '@/components/products/filter-bar';
+import { FilterBar, DEFAULT_FILTERS, type Filters, type PresenceState, type TriState } from '@/components/products/filter-bar';
 import { ViewsBar, type CustomView } from '@/components/products/views-bar';
 import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 import { ProductForm } from '@/components/products/product-form';
@@ -25,6 +25,216 @@ import type { TourProduct, AssemblyStage } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
 
 type ViewMode = 'table' | 'cards';
+
+const ARRAY_QUERY_KEYS: Array<{ filterKey: keyof Filters; queryKey: string }> = [
+  { filterKey: 'country', queryKey: 'country' },
+  { filterKey: 'city', queryKey: 'city' },
+  { filterKey: 'departments', queryKey: 'department' },
+  { filterKey: 'regions', queryKey: 'region' },
+  { filterKey: 'productTypes', queryKey: 'type' },
+  { filterKey: 'durations', queryKey: 'duration' },
+  { filterKey: 'statuses', queryKey: 'status' },
+  { filterKey: 'isOkValues', queryKey: 'isOkValue' },
+  { filterKey: 'maxPaxValues', queryKey: 'maxPax' },
+  { filterKey: 'guideWhereValues', queryKey: 'guideWhere' },
+  { filterKey: 'transportationValues', queryKey: 'transportation' },
+  { filterKey: 'vatValues', queryKey: 'vat' },
+  { filterKey: 'vatPercentValues', queryKey: 'vatPercent' },
+  { filterKey: 'cancellationValues', queryKey: 'cancellation' },
+  { filterKey: 'pics', queryKey: 'pic' },
+  { filterKey: 'uploadedPics', queryKey: 'uploadedPic' },
+  { filterKey: 'otaMasterSheetValues', queryKey: 'otaMasterSheetValue' },
+  { filterKey: 'otaTravmondeValues', queryKey: 'otaTravmondeValue' },
+  { filterKey: 'otaBookableToursValues', queryKey: 'otaBookableToursValue' },
+  { filterKey: 'otaViatorValues', queryKey: 'otaViatorValue' },
+  { filterKey: 'otaGygValues', queryKey: 'otaGygValue' },
+  { filterKey: 'otaHotelbedsValues', queryKey: 'otaHotelbedsValue' },
+  { filterKey: 'otaProjectExpeditionValues', queryKey: 'otaProjectExpeditionValue' },
+  { filterKey: 'otaAirbnbValues', queryKey: 'otaAirbnbValue' },
+  { filterKey: 'otaBokunValues', queryKey: 'otaBokunValue' },
+  { filterKey: 'otaTrekksoftValues', queryKey: 'otaTrekksoftValue' },
+  { filterKey: 'otaTuiMusementValues', queryKey: 'otaTuiMusementValue' },
+  { filterKey: 'otaKlookValues', queryKey: 'otaKlookValue' },
+  { filterKey: 'otaToristyValues', queryKey: 'otaToristyValue' },
+  { filterKey: 'otaTourHQValues', queryKey: 'otaTourHQValue' },
+];
+
+const TRI_STATE_QUERY_KEYS: Array<{ filterKey: keyof Filters; queryKey: string }> = [
+  { filterKey: 'readyForUpload', queryKey: 'ready' },
+  { filterKey: 'written', queryKey: 'written' },
+  { filterKey: 'ssOk', queryKey: 'ssOk' },
+  { filterKey: 'guide', queryKey: 'guide' },
+  { filterKey: 'driver', queryKey: 'driver' },
+  { filterKey: 'driverGuide', queryKey: 'driverGuide' },
+  { filterKey: 'attractionIncluded', queryKey: 'attractionIncluded' },
+  { filterKey: 'attractionOptional', queryKey: 'attractionOptional' },
+];
+
+const PRESENCE_QUERY_KEYS: Array<{ filterKey: keyof Filters; queryKey: string }> = [
+  { filterKey: 'linkPresence', queryKey: 'link' },
+  { filterKey: 'productNamePresence', queryKey: 'productName' },
+  { filterKey: 'notesPresence', queryKey: 'notes' },
+  { filterKey: 'isOkPresence', queryKey: 'isOk' },
+  { filterKey: 'imageLinksPresence', queryKey: 'imageLinks' },
+  { filterKey: 'componentsOfTourPresence', queryKey: 'componentsOfTour' },
+  { filterKey: 'attractionsIncludedPresence', queryKey: 'attractionsIncluded' },
+  { filterKey: 'attractionLinkPresence', queryKey: 'attractionLink' },
+  { filterKey: 'providerPricePresence', queryKey: 'providerPrice' },
+  { filterKey: 'providerUrlPresence', queryKey: 'providerUrl' },
+  { filterKey: 'centralProviderLinksPresence', queryKey: 'centralProviderLinks' },
+  { filterKey: 'centralTransportLinksPresence', queryKey: 'centralTransportLinks' },
+  { filterKey: 'transportationPricePresence', queryKey: 'transportationPrice' },
+  { filterKey: 'totalBuyingPricePresence', queryKey: 'totalBuyingPrice' },
+  { filterKey: 'b2bPriceInstantPresence', queryKey: 'b2bPriceInstant' },
+  { filterKey: 'b2bPriceOnRequestPresence', queryKey: 'b2bPriceOnRequest' },
+  { filterKey: 'b2cPriceInstantPresence', queryKey: 'b2cPriceInstant' },
+  { filterKey: 'b2cPriceOnRequestPresence', queryKey: 'b2cPriceOnRequest' },
+  { filterKey: 'extraHrB2BInstantPresence', queryKey: 'extraHrB2BInstant' },
+  { filterKey: 'extraHrB2BRequestPresence', queryKey: 'extraHrB2BRequest' },
+  { filterKey: 'extraHrB2CInstantPresence', queryKey: 'extraHrB2CInstant' },
+  { filterKey: 'extraHrB2CRequestPresence', queryKey: 'extraHrB2CRequest' },
+  { filterKey: 'tourValidityGeneralPresence', queryKey: 'tourValidityGeneral' },
+  { filterKey: 'tourValiditySpecificPresence', queryKey: 'tourValiditySpecific' },
+  { filterKey: 'cancelInstantPresence', queryKey: 'cancelInstant' },
+  { filterKey: 'cutoffInstantPresence', queryKey: 'cutoffInstant' },
+  { filterKey: 'cancelOnRequestPresence', queryKey: 'cancelOnRequest' },
+  { filterKey: 'cutoffOnRequestPresence', queryKey: 'cutoffOnRequest' },
+  { filterKey: 'notesGeneralPresence', queryKey: 'notesGeneral' },
+  { filterKey: 'otaMasterSheetPresence', queryKey: 'otaMasterSheet' },
+  { filterKey: 'otaTravmondePresence', queryKey: 'otaTravmonde' },
+  { filterKey: 'otaBookableToursPresence', queryKey: 'otaBookableTours' },
+  { filterKey: 'otaViatorPresence', queryKey: 'otaViator' },
+  { filterKey: 'otaGygPresence', queryKey: 'otaGyg' },
+  { filterKey: 'otaHotelbedsPresence', queryKey: 'otaHotelbeds' },
+  { filterKey: 'otaProjectExpeditionPresence', queryKey: 'otaProjectExpedition' },
+  { filterKey: 'otaAirbnbPresence', queryKey: 'otaAirbnb' },
+  { filterKey: 'otaBokunPresence', queryKey: 'otaBokun' },
+  { filterKey: 'otaTrekksoftPresence', queryKey: 'otaTrekksoft' },
+  { filterKey: 'otaTuiMusementPresence', queryKey: 'otaTuiMusement' },
+  { filterKey: 'otaKlookPresence', queryKey: 'otaKlook' },
+  { filterKey: 'otaToristyPresence', queryKey: 'otaToristy' },
+  { filterKey: 'otaTourHQPresence', queryKey: 'otaTourHQ' },
+  { filterKey: 'qualityRemarksPresence', queryKey: 'qualityRemarks' },
+  { filterKey: 'dateOfDispatchPresence', queryKey: 'dateOfDispatch' },
+  { filterKey: 'dateUploadedPresence', queryKey: 'dateUploaded' },
+  { filterKey: 'productLinkPresence', queryKey: 'productLink' },
+];
+
+const ARRAY_FILTER_FIELDS: Array<{ filterKey: keyof Filters; productKey: keyof TourProduct }> = [
+  { filterKey: 'country', productKey: 'country' },
+  { filterKey: 'city', productKey: 'city' },
+  { filterKey: 'departments', productKey: 'department' },
+  { filterKey: 'regions', productKey: 'region' },
+  { filterKey: 'productTypes', productKey: 'productType' },
+  { filterKey: 'durations', productKey: 'duration' },
+  { filterKey: 'statuses', productKey: 'productStatus' },
+  { filterKey: 'isOkValues', productKey: 'isOk' },
+  { filterKey: 'maxPaxValues', productKey: 'maxPax' },
+  { filterKey: 'guideWhereValues', productKey: 'guideWhere' },
+  { filterKey: 'transportationValues', productKey: 'transportation' },
+  { filterKey: 'vatValues', productKey: 'vatYN' },
+  { filterKey: 'vatPercentValues', productKey: 'vatPercent' },
+  { filterKey: 'cancellationValues', productKey: 'cancellation' },
+  { filterKey: 'pics', productKey: 'pic' },
+  { filterKey: 'uploadedPics', productKey: 'uploadedPic' },
+  { filterKey: 'otaMasterSheetValues', productKey: 'otaMasterSheet' },
+  { filterKey: 'otaTravmondeValues', productKey: 'otaTravmonde' },
+  { filterKey: 'otaBookableToursValues', productKey: 'otaBookableTours' },
+  { filterKey: 'otaViatorValues', productKey: 'otaViator' },
+  { filterKey: 'otaGygValues', productKey: 'otaGyg' },
+  { filterKey: 'otaHotelbedsValues', productKey: 'otaHotelbeds' },
+  { filterKey: 'otaProjectExpeditionValues', productKey: 'otaProjectExpedition' },
+  { filterKey: 'otaAirbnbValues', productKey: 'otaAirbnb' },
+  { filterKey: 'otaBokunValues', productKey: 'otaBokun' },
+  { filterKey: 'otaTrekksoftValues', productKey: 'otaTrekksoft' },
+  { filterKey: 'otaTuiMusementValues', productKey: 'otaTuiMusement' },
+  { filterKey: 'otaKlookValues', productKey: 'otaKlook' },
+  { filterKey: 'otaToristyValues', productKey: 'otaToristy' },
+  { filterKey: 'otaTourHQValues', productKey: 'otaTourHQ' },
+];
+
+const TRI_STATE_FILTER_FIELDS: Array<{ filterKey: keyof Filters; productKey: keyof TourProduct }> = [
+  { filterKey: 'readyForUpload', productKey: 'readyForUpload' },
+  { filterKey: 'written', productKey: 'written' },
+  { filterKey: 'ssOk', productKey: 'ssOk' },
+  { filterKey: 'guide', productKey: 'guide' },
+  { filterKey: 'driver', productKey: 'driver' },
+  { filterKey: 'driverGuide', productKey: 'driverGuide' },
+  { filterKey: 'attractionIncluded', productKey: 'attractionIncluded' },
+  { filterKey: 'attractionOptional', productKey: 'attractionOptional' },
+];
+
+const PRESENCE_FILTER_FIELDS: Array<{ filterKey: keyof Filters; productKey: keyof TourProduct }> = [
+  { filterKey: 'linkPresence', productKey: 'link' },
+  { filterKey: 'productNamePresence', productKey: 'productName' },
+  { filterKey: 'notesPresence', productKey: 'notes' },
+  { filterKey: 'isOkPresence', productKey: 'isOk' },
+  { filterKey: 'imageLinksPresence', productKey: 'imageLinks' },
+  { filterKey: 'componentsOfTourPresence', productKey: 'componentsOfTour' },
+  { filterKey: 'attractionsIncludedPresence', productKey: 'attractionsIncluded' },
+  { filterKey: 'attractionLinkPresence', productKey: 'attractionLink' },
+  { filterKey: 'providerPricePresence', productKey: 'providerPrice' },
+  { filterKey: 'providerUrlPresence', productKey: 'providerUrl' },
+  { filterKey: 'centralProviderLinksPresence', productKey: 'centralProviderLinks' },
+  { filterKey: 'centralTransportLinksPresence', productKey: 'centralTransportLinks' },
+  { filterKey: 'transportationPricePresence', productKey: 'transportationPrice' },
+  { filterKey: 'totalBuyingPricePresence', productKey: 'totalBuyingPrice' },
+  { filterKey: 'b2bPriceInstantPresence', productKey: 'b2bPriceInstant' },
+  { filterKey: 'b2bPriceOnRequestPresence', productKey: 'b2bPriceOnRequest' },
+  { filterKey: 'b2cPriceInstantPresence', productKey: 'b2cPriceInstant' },
+  { filterKey: 'b2cPriceOnRequestPresence', productKey: 'b2cPriceOnRequest' },
+  { filterKey: 'extraHrB2BInstantPresence', productKey: 'extraHrB2BInstant' },
+  { filterKey: 'extraHrB2BRequestPresence', productKey: 'extraHrB2BRequest' },
+  { filterKey: 'extraHrB2CInstantPresence', productKey: 'extraHrB2CInstant' },
+  { filterKey: 'extraHrB2CRequestPresence', productKey: 'extraHrB2CRequest' },
+  { filterKey: 'tourValidityGeneralPresence', productKey: 'tourValidityGeneral' },
+  { filterKey: 'tourValiditySpecificPresence', productKey: 'tourValiditySpecific' },
+  { filterKey: 'cancelInstantPresence', productKey: 'cancelInstant' },
+  { filterKey: 'cutoffInstantPresence', productKey: 'cutoffInstant' },
+  { filterKey: 'cancelOnRequestPresence', productKey: 'cancelOnRequest' },
+  { filterKey: 'cutoffOnRequestPresence', productKey: 'cutoffOnRequest' },
+  { filterKey: 'notesGeneralPresence', productKey: 'notesGeneral' },
+  { filterKey: 'otaMasterSheetPresence', productKey: 'otaMasterSheet' },
+  { filterKey: 'otaTravmondePresence', productKey: 'otaTravmonde' },
+  { filterKey: 'otaBookableToursPresence', productKey: 'otaBookableTours' },
+  { filterKey: 'otaViatorPresence', productKey: 'otaViator' },
+  { filterKey: 'otaGygPresence', productKey: 'otaGyg' },
+  { filterKey: 'otaHotelbedsPresence', productKey: 'otaHotelbeds' },
+  { filterKey: 'otaProjectExpeditionPresence', productKey: 'otaProjectExpedition' },
+  { filterKey: 'otaAirbnbPresence', productKey: 'otaAirbnb' },
+  { filterKey: 'otaBokunPresence', productKey: 'otaBokun' },
+  { filterKey: 'otaTrekksoftPresence', productKey: 'otaTrekksoft' },
+  { filterKey: 'otaTuiMusementPresence', productKey: 'otaTuiMusement' },
+  { filterKey: 'otaKlookPresence', productKey: 'otaKlook' },
+  { filterKey: 'otaToristyPresence', productKey: 'otaToristy' },
+  { filterKey: 'otaTourHQPresence', productKey: 'otaTourHQ' },
+  { filterKey: 'qualityRemarksPresence', productKey: 'qualityRemarks' },
+  { filterKey: 'dateOfDispatchPresence', productKey: 'dateOfDispatch' },
+  { filterKey: 'dateUploadedPresence', productKey: 'dateUploaded' },
+  { filterKey: 'productLinkPresence', productKey: 'productLink' },
+];
+
+function hasValue(value: unknown) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return !Number.isNaN(value);
+  return typeof value === 'string' ? value.trim() !== '' : value !== null && value !== undefined;
+}
+
+function matchesMulti(value: unknown, selected: unknown) {
+  if (!Array.isArray(selected) || selected.length === 0) return true;
+  return selected.includes(value === null || value === undefined ? '' : String(value));
+}
+
+function matchesTriState(value: unknown, filter: unknown) {
+  if (filter === 'all') return true;
+  return filter === 'yes' ? Boolean(value) : !Boolean(value);
+}
+
+function matchesPresence(value: unknown, filter: unknown) {
+  if (filter === 'all') return true;
+  const present = hasValue(value);
+  return filter === 'has' ? present : !present;
+}
 
 interface ProductsClientProps {
   initialFilters?: Filters;
@@ -70,14 +280,20 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
 
   const updateUrl = useCallback((newFilters: Filters, newSearch: string) => {
     const params = new URLSearchParams();
-    newFilters.country.forEach((country) => params.append('country', country));
-    newFilters.city.forEach((city) => params.append('city', city));
-    newFilters.productTypes.forEach(t => params.append('type', t));
-    newFilters.statuses.forEach(s => params.append('status', s));
-    if (newFilters.readyForUpload !== 'all') params.set('ready', newFilters.readyForUpload);
-    if (newFilters.written !== 'all') params.set('written', newFilters.written);
-    if (newFilters.ssOk !== 'all') params.set('ssOk', newFilters.ssOk);
-    if (newFilters.isOk !== 'all') params.set('isOk', newFilters.isOk);
+    ARRAY_QUERY_KEYS.forEach(({ filterKey, queryKey }) => {
+      const values = newFilters[filterKey];
+      if (Array.isArray(values)) {
+        values.forEach((value) => params.append(queryKey, value));
+      }
+    });
+    TRI_STATE_QUERY_KEYS.forEach(({ filterKey, queryKey }) => {
+      const value = newFilters[filterKey] as TriState;
+      if (value !== 'all') params.set(queryKey, value);
+    });
+    PRESENCE_QUERY_KEYS.forEach(({ filterKey, queryKey }) => {
+      const value = newFilters[filterKey] as PresenceState;
+      if (value !== 'all') params.set(queryKey, value);
+    });
     if (newSearch) params.set('q', newSearch);
     const qs = params.toString();
     router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
@@ -113,18 +329,15 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const filteredProducts = useMemo(() => {
     const all = products ?? [];
     return all.filter((p) => {
-      if (filters.country.length && !filters.country.includes(p.country ?? '')) return false;
-      if (filters.city.length && !filters.city.includes(p.city ?? '')) return false;
-      if (filters.productTypes.length && !filters.productTypes.includes(p.productType ?? '')) return false;
-      if (filters.statuses.length && !filters.statuses.includes(p.productStatus ?? '')) return false;
-      if (filters.readyForUpload === 'yes' && !p.readyForUpload) return false;
-      if (filters.readyForUpload === 'no' && p.readyForUpload) return false;
-      if (filters.written === 'yes' && !p.written) return false;
-      if (filters.written === 'no' && p.written) return false;
-      if (filters.ssOk === 'yes' && !p.ssOk) return false;
-      if (filters.ssOk === 'no' && p.ssOk) return false;
-      if (filters.isOk === 'yes' && !p.isOk) return false;
-      if (filters.isOk === 'no' && p.isOk) return false;
+      for (const { filterKey, productKey } of ARRAY_FILTER_FIELDS) {
+        if (!matchesMulti(p[productKey], filters[filterKey])) return false;
+      }
+      for (const { filterKey, productKey } of TRI_STATE_FILTER_FIELDS) {
+        if (!matchesTriState(p[productKey], filters[filterKey])) return false;
+      }
+      for (const { filterKey, productKey } of PRESENCE_FILTER_FIELDS) {
+        if (!matchesPresence(p[productKey], filters[filterKey])) return false;
+      }
       return true;
     });
   }, [products, filters]);
