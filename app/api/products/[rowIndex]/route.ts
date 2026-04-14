@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { updateRow, updateCell, updateCellHyperlink, deleteRow, findRowByProductName, fetchRow } from '@/lib/sheets';
+import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
 import { productToRow, parseLinkField } from '@/lib/utils';
 import { getEffectiveColumnMap } from '@/lib/column-mapping';
 import type { TourProduct } from '@/lib/types';
@@ -16,6 +17,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
+    const accessToken = await requireGoogleAccessToken();
+    const sheetsAuth = { auth: 'user' as const, accessToken };
     const [colMap, body] = await Promise.all([
       getEffectiveColumnMap(),
       req.json() as Promise<Omit<TourProduct, 'rowIndex'>>,
@@ -24,14 +27,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const linkTitle = parseLinkField(body.link ?? '').text;
     let targetRowIndex = rowIndex;
     if (linkTitle) {
-      const foundRow = await findRowByProductName(linkTitle);
+      const foundRow = await findRowByProductName(sheetsAuth, linkTitle);
       if (foundRow === null) {
         return NextResponse.json({ error: 'Product not found' }, { status: 404 });
       }
       targetRowIndex = foundRow;
     }
 
-    const currentRow = await fetchRow(targetRowIndex);
+    const currentRow = await fetchRow(sheetsAuth, targetRowIndex);
     while (currentRow.length < 70) currentRow.push('');
 
     const submittedRow = productToRow(body, colMap);
@@ -40,17 +43,18 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return submitted !== '' ? submitted : currentVal;
     });
 
-    await updateRow(targetRowIndex, mergedRow);
+    await updateRow(sheetsAuth, targetRowIndex, mergedRow);
 
     const { text: linkText, url: linkUrl } = parseLinkField(body.link ?? '');
     if (linkUrl || linkText) {
-      await updateCellHyperlink(targetRowIndex, colMap['link'], linkText, linkUrl);
+      await updateCellHyperlink(sheetsAuth, targetRowIndex, colMap['link'], linkText, linkUrl);
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -61,6 +65,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
+    const accessToken = await requireGoogleAccessToken();
+    const sheetsAuth = { auth: 'user' as const, accessToken };
     const [colMap, body] = await Promise.all([
       getEffectiveColumnMap(),
       req.json() as Promise<{ field: string; value: string; expectedLinkTitle?: string }>,
@@ -73,7 +79,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     let targetRowIndex = rowIndex;
     if (body.field !== 'link' && body.expectedLinkTitle) {
-      const foundRow = await findRowByProductName(body.expectedLinkTitle);
+      const foundRow = await findRowByProductName(sheetsAuth, body.expectedLinkTitle);
       if (foundRow === null) {
         return NextResponse.json({ error: 'Product not found' }, { status: 404 });
       }
@@ -82,15 +88,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     if (body.field === 'link') {
       const { text, url } = parseLinkField(body.value ?? '');
-      await updateCellHyperlink(targetRowIndex, colIndex, text, url);
+      await updateCellHyperlink(sheetsAuth, targetRowIndex, colIndex, text, url);
     } else {
-      await updateCell(targetRowIndex, colIndex, body.value);
+      await updateCell(sheetsAuth, targetRowIndex, colIndex, body.value);
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -101,10 +108,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
-    await deleteRow(rowIndex);
+    const accessToken = await requireGoogleAccessToken();
+    await deleteRow({ auth: 'user', accessToken }, rowIndex);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

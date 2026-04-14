@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
 import { createSpreadsheetAsUser } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  if (!session.accessToken) {
-    return NextResponse.json(
-      { error: 'Missing Drive access — please sign out and sign back in' },
-      { status: 401 },
-    );
-  }
-
   try {
+    const accessToken = await requireGoogleAccessToken();
     const { title, fields, rows } = (await req.json()) as {
       title: string;
       fields: string[];
@@ -36,10 +25,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Too many rows (max 5000)' }, { status: 400 });
     }
 
-    const url = await createSpreadsheetAsUser(session.accessToken, title, fields, rows);
+    const url = await createSpreadsheetAsUser(accessToken, title, fields, rows);
     return NextResponse.json({ url });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

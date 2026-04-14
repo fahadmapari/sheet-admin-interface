@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchAllRows } from '@/lib/sheets';
+import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
 import { toText } from '@/lib/utils';
 import type { FiltersResponse } from '@/lib/types';
 
@@ -7,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const rows = await fetchAllRows();
+    const accessToken = await requireGoogleAccessToken();
+    const rows = await fetchAllRows({ auth: 'user', accessToken });
     const data = rows.slice(1); // skip header
 
     const unique = (col: number): string[] => {
@@ -30,6 +32,7 @@ export async function GET() {
     return NextResponse.json(filters);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

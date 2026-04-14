@@ -1,5 +1,5 @@
 import 'server-only';
-import { google, sheets_v4 } from 'googleapis';
+import { google, drive_v3, sheets_v4 } from 'googleapis';
 import { parseLinkField } from '@/lib/utils';
 import { colIndexToLetter } from './column-mapping';
 
@@ -14,13 +14,29 @@ function requireEnv(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Singleton client
+// Explicit auth clients
 // ---------------------------------------------------------------------------
 
-let _sheetsClient: sheets_v4.Sheets | null = null;
+export type SheetsAuthContext =
+  | { auth: 'user'; accessToken: string }
+  | { auth: 'service' };
 
-export function getSheetsClient(): sheets_v4.Sheets {
-  if (_sheetsClient) return _sheetsClient;
+let _serviceAccountSheetsClient: sheets_v4.Sheets | null = null;
+
+export function getUserSheetsClient(accessToken: string): sheets_v4.Sheets {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  return google.sheets({ version: 'v4', auth });
+}
+
+export function getUserDriveClient(accessToken: string): drive_v3.Drive {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  return google.drive({ version: 'v3', auth });
+}
+
+export function getServiceAccountSheetsClient(): sheets_v4.Sheets {
+  if (_serviceAccountSheetsClient) return _serviceAccountSheetsClient;
 
   const auth = new google.auth.GoogleAuth({
     credentials: {
@@ -30,8 +46,15 @@ export function getSheetsClient(): sheets_v4.Sheets {
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
-  _sheetsClient = google.sheets({ version: 'v4', auth });
-  return _sheetsClient;
+  _serviceAccountSheetsClient = google.sheets({ version: 'v4', auth });
+  return _serviceAccountSheetsClient;
+}
+
+function getSheetsClient(context: SheetsAuthContext): sheets_v4.Sheets {
+  if (context.auth === 'service') {
+    return getServiceAccountSheetsClient();
+  }
+  return getUserSheetsClient(context.accessToken);
 }
 
 // ---------------------------------------------------------------------------
@@ -51,12 +74,12 @@ const NET_RATES_RANGE = `'${NET_RATES_SHEET}'!A:BR`;
 const sheetIdCache = new Map<string, number>();
 const sheetIdInflight = new Map<string, Promise<number>>();
 
-async function getSheetId(sheetName: string): Promise<number> {
+async function getSheetId(context: SheetsAuthContext, sheetName: string): Promise<number> {
   if (sheetIdCache.has(sheetName)) return sheetIdCache.get(sheetName)!;
   if (sheetIdInflight.has(sheetName)) return sheetIdInflight.get(sheetName)!;
 
   const promise = (async () => {
-    const sheets = getSheetsClient();
+    const sheets = getSheetsClient(context);
     const response = await sheets.spreadsheets.get({ spreadsheetId: getSpreadsheetId() });
     const sheetsData = response.data.sheets ?? [];
     for (const sheet of sheetsData) {
@@ -89,8 +112,8 @@ async function getSheetId(sheetName: string): Promise<number> {
  * Row 0 is the header row; Row 1+ are data rows.
  * Returns raw string[][] (70 columns A–BR).
  */
-export async function fetchAllRows(): Promise<string[][]> {
-  const sheets = getSheetsClient();
+export async function fetchAllRows(context: SheetsAuthContext): Promise<string[][]> {
+  const sheets = getSheetsClient(context);
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: getSpreadsheetId(),
@@ -107,9 +130,9 @@ export async function fetchAllRows(): Promise<string[][]> {
  * Fetch a single row by 1-based row index.
  * Row 1 = header, Row 2 = first data row.
  */
-export async function fetchRow(rowIndex: number): Promise<string[]> {
+export async function fetchRow(context: SheetsAuthContext, rowIndex: number): Promise<string[]> {
   if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
-  const sheets = getSheetsClient();
+  const sheets = getSheetsClient(context);
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: getSpreadsheetId(),
@@ -127,10 +150,10 @@ export async function fetchRow(rowIndex: number): Promise<string[]> {
  * Update a single row by 1-based row index.
  * values must be an array of 70 cell values (full row replacement).
  */
-export async function updateRow(rowIndex: number, values: string[]): Promise<void> {
+export async function updateRow(context: SheetsAuthContext, rowIndex: number, values: string[]): Promise<void> {
   if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
   if (values.length > 70) throw new Error('updateRow: values array must not exceed 70 elements; received ' + values.length);
-  const sheets = getSheetsClient();
+  const sheets = getSheetsClient(context);
   try {
     await sheets.spreadsheets.values.update({
       spreadsheetId: getSpreadsheetId(),
@@ -149,12 +172,13 @@ export async function updateRow(rowIndex: number, values: string[]): Promise<voi
  * rowIndex is 1-based; colIndex is 0-based (A=0, B=1, …, BR=69).
  */
 export async function updateCell(
+  context: SheetsAuthContext,
   rowIndex: number,
   colIndex: number,
   value: string,
 ): Promise<void> {
   if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
-  const sheets = getSheetsClient();
+  const sheets = getSheetsClient(context);
   const colLetter = colIndexToLetter(colIndex);
   try {
     await sheets.spreadsheets.values.update({
@@ -174,8 +198,8 @@ export async function updateCell(
  * values should be an array of up to 70 cell values.
  * Returns the 1-based sheet row index of the newly appended row.
  */
-export async function appendRow(values: string[]): Promise<number> {
-  const sheets = getSheetsClient();
+export async function appendRow(context: SheetsAuthContext, values: string[]): Promise<number> {
+  const sheets = getSheetsClient(context);
   try {
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: getSpreadsheetId(),
@@ -199,11 +223,11 @@ export async function appendRow(values: string[]): Promise<number> {
  * Delete a row by 1-based row index.
  * Shifts all subsequent rows up.
  */
-export async function deleteRow(rowIndex: number): Promise<void> {
+export async function deleteRow(context: SheetsAuthContext, rowIndex: number): Promise<void> {
   if (rowIndex < 2) throw new Error('deleteRow: rowIndex must be >= 2 (row 1 is the header); received ' + rowIndex);
-  const sheets = getSheetsClient();
+  const sheets = getSheetsClient(context);
   try {
-    const sheetId = await getSheetId(NET_RATES_SHEET);
+    const sheetId = await getSheetId(context, NET_RATES_SHEET);
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: getSpreadsheetId(),
       requestBody: {
@@ -232,8 +256,8 @@ export async function deleteRow(rowIndex: number): Promise<void> {
  * Returns a Map<rowIndex (1-based), hyperlink URL>.
  * Only entries with an actual hyperlink are included.
  */
-export async function fetchColumnHyperlinks(colIndex: number): Promise<Map<number, string>> {
-  const sheets = getSheetsClient();
+export async function fetchColumnHyperlinks(context: SheetsAuthContext, colIndex: number): Promise<Map<number, string>> {
+  const sheets = getSheetsClient(context);
   const colLetter = colIndexToLetter(colIndex);
   // Row 1 is the header — fetch from row 2 onward
   const range = `'${NET_RATES_SHEET}'!${colLetter}2:${colLetter}`;
@@ -266,14 +290,15 @@ export async function fetchColumnHyperlinks(colIndex: number): Promise<Map<numbe
  * rowIndex is 1-based; colIndex is 0-based.
  */
 export async function updateCellHyperlink(
+  context: SheetsAuthContext,
   rowIndex: number,
   colIndex: number,
   displayText: string,
   url: string,
 ): Promise<void> {
   if (rowIndex < 1) throw new Error('rowIndex must be >= 1; received ' + rowIndex);
-  const sheets = getSheetsClient();
-  const sheetId = await getSheetId(NET_RATES_SHEET);
+  const sheets = getSheetsClient(context);
+  const sheetId = await getSheetId(context, NET_RATES_SHEET);
 
   // When url is absent, omitting textFormat.link from the body while including it
   // in the fields mask causes the Sheets API to clear the existing hyperlink.
@@ -319,8 +344,8 @@ export async function updateCellHyperlink(
  *
  * Only entries with content are included.
  */
-export async function fetchColumnRichTextLinks(colIndex: number): Promise<Map<number, string>> {
-  const sheets = getSheetsClient();
+export async function fetchColumnRichTextLinks(context: SheetsAuthContext, colIndex: number): Promise<Map<number, string>> {
+  const sheets = getSheetsClient(context);
   const colLetter = colIndexToLetter(colIndex);
   const range = `'${NET_RATES_SHEET}'!${colLetter}2:${colLetter}`;
 
@@ -385,11 +410,12 @@ export async function fetchColumnRichTextLinks(colIndex: number): Promise<Map<nu
  * updates is an array of { rowIndex: number, values: string[] }.
  */
 export async function batchUpdateRows(
+  context: SheetsAuthContext,
   updates: Array<{ rowIndex: number; values: string[] }>,
 ): Promise<void> {
   if (updates.length === 0) return;
 
-  const sheets = getSheetsClient();
+  const sheets = getSheetsClient(context);
   try {
     const data: sheets_v4.Schema$ValueRange[] = updates.map(({ rowIndex, values }) => ({
       range: `'${NET_RATES_SHEET}'!A${rowIndex}:BR${rowIndex}`,
@@ -414,9 +440,9 @@ export async function batchUpdateRows(
  * matches the given string. Returns the 1-based rowIndex, or null if not found.
  * Title is the text portion of a `title||url` or plain-text cell value.
  */
-export async function findRowByProductName(title: string): Promise<number | null> {
+export async function findRowByProductName(context: SheetsAuthContext, title: string): Promise<number | null> {
   if (!title) return null;
-  const sheets = getSheetsClient();
+  const sheets = getSheetsClient(context);
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: getSpreadsheetId(),
@@ -448,11 +474,8 @@ export async function createSpreadsheetAsUser(
   headers: string[],
   rows: string[][],
 ): Promise<string> {
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: accessToken });
-
-  const drive = google.drive({ version: 'v3', auth });
-  const sheets = google.sheets({ version: 'v4', auth });
+  const drive = getUserDriveClient(accessToken);
+  const sheets = getUserSheetsClient(accessToken);
 
   // 1. Create the spreadsheet file in the user's Drive
   const createRes = await drive.files.create({
@@ -475,4 +498,58 @@ export async function createSpreadsheetAsUser(
   });
 
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+}
+
+export async function getSpreadsheetCapabilities(accessToken: string): Promise<drive_v3.Schema$File['capabilities']> {
+  const drive = getUserDriveClient(accessToken);
+  const response = await drive.files.get({
+    fileId: getSpreadsheetId(),
+    fields: 'capabilities',
+    supportsAllDrives: true,
+  });
+  return response.data.capabilities;
+}
+
+export async function shareSpreadsheetWithUser(accessToken: string, email: string): Promise<'created' | 'updated' | 'already_has_access'> {
+  const drive = getUserDriveClient(accessToken);
+  const spreadsheetId = getSpreadsheetId();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const permissions = await drive.permissions.list({
+    fileId: spreadsheetId,
+    fields: 'permissions(id,type,role,emailAddress)',
+    supportsAllDrives: true,
+  });
+
+  const existing = permissions.data.permissions?.find((permission) => (
+    permission.type === 'user' &&
+    permission.emailAddress?.toLowerCase() === normalizedEmail
+  ));
+
+  if (existing?.id) {
+    if (existing.role === 'writer' || existing.role === 'owner') {
+      return 'already_has_access';
+    }
+
+    await drive.permissions.update({
+      fileId: spreadsheetId,
+      permissionId: existing.id,
+      requestBody: { role: 'writer' },
+      supportsAllDrives: true,
+    });
+    return 'updated';
+  }
+
+  await drive.permissions.create({
+    fileId: spreadsheetId,
+    requestBody: {
+      type: 'user',
+      role: 'writer',
+      emailAddress: normalizedEmail,
+    },
+    sendNotificationEmail: true,
+    supportsAllDrives: true,
+  });
+
+  return 'created';
 }
