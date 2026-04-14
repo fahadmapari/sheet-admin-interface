@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Users, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Users } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, FIELD_LABELS, NUMBER_FIELDS } from '@/lib/constants';
 import { useColumnGroups } from '@/lib/hooks/use-column-groups';

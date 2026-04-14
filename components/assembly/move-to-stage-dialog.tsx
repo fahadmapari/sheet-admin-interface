@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { fetcher } from '@/lib/fetcher';
-import { ASSEMBLY_STAGES, type AssemblyResponse, type AssemblyStage } from '@/lib/types';
+import type { AssemblyResponse, AssemblyStage } from '@/lib/types';
 
 interface MoveToStageDialogProps {
   open: boolean;

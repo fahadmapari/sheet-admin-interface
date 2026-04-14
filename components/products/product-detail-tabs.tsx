@@ -355,7 +355,6 @@ function FieldRenderer({
 
   // URL fields → Input type="url" + external link button
   if (URL_FIELDS.has(fieldName)) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const currentUrl = useWatch({ control, name: fieldName as keyof FormValues }) as string | null | undefined;
     return (
       <div className="space-y-1.5">
@@ -505,7 +504,6 @@ function ImageLinksEditor({
     if (serializeEntries(entries) !== (value ?? '')) {
       setEntries(parseEntries(value));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   function updateEntries(next: LinkEntry[]) {

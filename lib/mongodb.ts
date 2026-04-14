@@ -3,7 +3,6 @@ import { MongoClient, type Db } from 'mongodb';
 
 // In development, use a global to preserve the connection across HMR reloads.
 declare global {
-  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
