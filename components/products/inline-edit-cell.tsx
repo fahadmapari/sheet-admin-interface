@@ -1,9 +1,10 @@
 'use client';
 
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, ExternalLink, Plus, X } from 'lucide-react';
+import { Check, ChevronsUpDown, ExternalLink, Plus, X } from 'lucide-react';
+import useSWR from 'swr';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -12,6 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,6 +36,7 @@ import {
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
 import { cn, parseLinkField } from '@/lib/utils';
+import { fetcher } from '@/lib/fetcher';
 
 interface InlineEditCellProps {
   product: TourProduct;
@@ -409,6 +424,223 @@ function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellPro
   );
 }
 
+// ---------------------------------------------------------------------------
+// ComboboxInput — searchable dropdown that also accepts free-text values
+// ---------------------------------------------------------------------------
+interface ComboboxInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  autoOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+function ComboboxInput({
+  value,
+  onChange,
+  options,
+  placeholder = 'Select or type…',
+  searchPlaceholder = 'Search…',
+  autoOpen = false,
+  onOpenChange: onOpenChangeProp,
+}: ComboboxInputProps) {
+  const [open, setOpen] = useState(autoOpen);
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!query) return options;
+    const q = query.toLowerCase();
+    return options.filter((o) => o.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const showCreate =
+    query.trim() !== '' &&
+    !options.some((o) => o.toLowerCase() === query.trim().toLowerCase());
+
+  function select(val: string) {
+    onChange(val);
+    setQuery('');
+    setOpen(false);
+    onOpenChangeProp?.(false);
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(val) => {
+        setOpen(val);
+        onOpenChangeProp?.(val);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            'flex h-7 w-full items-center justify-between rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm ring-offset-background',
+            'focus:outline-none focus:ring-1 focus:ring-ring',
+            !value && 'text-muted-foreground',
+          )}
+        >
+          <span className="truncate">{value || placeholder}</span>
+          <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="p-0"
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
+        align="start"
+        onWheel={(e) => e.stopPropagation()}
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList>
+            {filtered.length === 0 && !showCreate && (
+              <CommandEmpty>No results found.</CommandEmpty>
+            )}
+            {filtered.length > 0 && (
+              <CommandGroup>
+                {filtered.map((option) => (
+                  <CommandItem
+                    key={option}
+                    value={option}
+                    onSelect={() => select(option)}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        value === option ? 'opacity-100' : 'opacity-0',
+                      )}
+                    />
+                    {option}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {showCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value={`__create__${query}`}
+                  onSelect={() => select(query.trim())}
+                >
+                  <span className="text-muted-foreground mr-2">Use</span>
+                  &ldquo;{query.trim()}&rdquo;
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+const COMBOBOX_FIELDS = new Set<keyof TourProduct>(['country', 'city', 'productType']);
+
+// ---------------------------------------------------------------------------
+// ComboboxCell — used for country and city fields
+// ---------------------------------------------------------------------------
+function ComboboxCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
+  const rawValue = product[field];
+  const strValue = fieldValueToString(field, rawValue);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const isMountedRef = useRef(true);
+  const savingRef = useRef(false);
+
+  const { data: products } = useSWR<TourProduct[]>('/api/products', fetcher);
+
+  const options = useMemo(() => {
+    if (!products) return [];
+    return [
+      ...new Set(
+        products
+          .map((p) => p[field as 'country' | 'city' | 'productType'])
+          .filter(Boolean) as string[],
+      ),
+    ].sort();
+  }, [products, field]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const save = useCallback(
+    async (valueToSave: string) => {
+      if (!isMountedRef.current || savingRef.current) return;
+      savingRef.current = true;
+      setSaving(true);
+      onSaved(field, valueToSave);
+      try {
+        const res = await fetch(`/api/products/${product.rowIndex}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            field,
+            value: valueToSave,
+            expectedLinkTitle: parseLinkField(product.link ?? '').text,
+          }),
+        });
+        if (!isMountedRef.current) return;
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.error ?? `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
+          onSaved(field, strValue);
+        }
+      } finally {
+        savingRef.current = false;
+        if (isMountedRef.current) setSaving(false);
+      }
+    },
+    [field, product.rowIndex, product.link, strValue, onSaved],
+  );
+
+  if (!editing) {
+    return (
+      <button
+        className={cn('w-full rounded p-0.5 text-left transition-colors', readOnly ? 'cursor-default' : 'cursor-pointer hover:bg-[hsl(var(--surface))]')}
+        onClick={() => { if (!readOnly) setEditing(true); }}
+      >
+        {getDisplayValue(field, rawValue)}
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <ComboboxInput
+        value={strValue}
+        onChange={(val) => {
+          setEditing(false);
+          if (val !== strValue) save(val);
+        }}
+        options={options}
+        placeholder={`Select or type a ${field === 'productType' ? 'product type' : field}…`}
+        searchPlaceholder={`Search ${field === 'country' ? 'countries' : field === 'city' ? 'cities' : 'product types'}…`}
+        autoOpen
+        onOpenChange={(open) => { if (!open) setEditing(false); }}
+      />
+      {saving && (
+        <span className="absolute inset-0 flex items-center justify-center bg-background/50">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+        </span>
+      )}
+    </div>
+  );
+}
+
 function getDisplayValue(
   field: keyof Omit<TourProduct, 'rowIndex'>,
   value: TourProduct[keyof TourProduct],
@@ -664,6 +896,11 @@ export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEdit
         )}
       </div>
     );
+  }
+
+  // Combobox fields (country, city)
+  if (COMBOBOX_FIELDS.has(field as keyof TourProduct)) {
+    return <ComboboxCell product={product} field={field} onSaved={onSaved} readOnly={readOnly} />;
   }
 
   // Long text — Textarea

@@ -6,7 +6,7 @@ import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, FIELD_LABELS, NUMBER_FIELDS } from '@/lib/constants';
 import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 import { getProductStatusClasses } from '@/lib/design-system';
-import { parseLinkField } from '@/lib/utils';
+import { cn, parseLinkField } from '@/lib/utils';
 import {
   Sheet,
   SheetContent,
@@ -95,8 +95,9 @@ function EditableFieldValue({ product, field, onSaved, readOnly }: EditableField
     );
   }
 
+  const isComboboxField = field === 'country' || field === 'city' || field === 'productType';
   return (
-    <div className="min-w-0 max-w-[260px] text-right">
+    <div className={cn('min-w-0 text-right', isComboboxField && !readOnly ? 'w-[340px]' : 'max-w-[260px]')}>
       <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
     </div>
   );
