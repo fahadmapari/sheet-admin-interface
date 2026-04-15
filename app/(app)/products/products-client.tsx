@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import useSWR, { useSWRConfig } from 'swr';
 import type { RowSelectionState, VisibilityState } from '@tanstack/react-table';
-import { Plus, Search, X, LayoutGrid, Table2 } from 'lucide-react';
+import { Plus, Search, X, LayoutGrid, Table2, Maximize2, Minimize2 } from 'lucide-react';
 import { ProductTable } from '@/components/products/product-table';
 import { ProductCards } from '@/components/products/product-cards';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
@@ -48,6 +48,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   const pathname = usePathname();
 
   const [activeView, setActiveView] = useState<ViewMode>('table');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Avoid SSR mismatch: check viewport on client mount only
   useEffect(() => {
