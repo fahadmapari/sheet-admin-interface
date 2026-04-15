@@ -277,15 +277,18 @@ export function ProductDetailSheet({
   const handleFieldSaved = (field: keyof Omit<TourProduct, 'rowIndex'>, rawValue: string) => {
     setDraftProduct((current) => {
       if (!current) return current;
-
-      const updatedProduct = {
+      return {
         ...current,
         [field]: coercePatchedValue(field, rawValue),
       } as TourProduct;
-
-      onSaved?.(updatedProduct);
-      return updatedProduct;
     });
+    if (draftProduct) {
+      const updatedProduct = {
+        ...draftProduct,
+        [field]: coercePatchedValue(field, rawValue),
+      } as TourProduct;
+      onSaved?.(updatedProduct);
+    }
   };
 
   return (
