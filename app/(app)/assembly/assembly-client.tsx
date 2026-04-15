@@ -15,7 +15,7 @@ import {
   type TourProduct,
 } from '@/lib/types';
 
-export function AssemblyClient() {
+export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   const { mutate } = useSWRConfig();
   const { data: assemblyData, error: assemblyError, isLoading: assemblyLoading } =
     useSWR<AssemblyResponse>('/api/assembly', fetcher, { dedupingInterval: 10_000 });
@@ -106,6 +106,26 @@ export function AssemblyClient() {
     }
   };
 
+  const handleRemoveBatch = async (batchId: string) => {
+    const res = await fetch(`/api/assembly/${batchId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Failed to remove batch');
+      return;
+    }
+    toast.success('Batch removed from assembly');
+    mutate('/api/assembly');
+  };
+
+  const handleRemoveProduct = async (rowIndex: number) => {
+    const res = await fetch(`/api/assembly/product/${rowIndex}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Failed to remove product');
+      return;
+    }
+    toast.success('Product removed from assembly');
+    mutate('/api/assembly');
+  };
+
   if (assemblyError) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/15 dark:text-red-300">
@@ -145,12 +165,15 @@ export function AssemblyClient() {
               products={products ?? []}
               movingBatchId={movingBatchId}
               movingProductRowIndex={movingProductRowIndex}
+              isAdmin={isAdmin}
               onBatchMoveToNextStage={handleBatchMoveToNextStage}
               onBatchMoveToStage={handleBatchMoveToStage}
               onMoveProductToNextStage={(product, batch) =>
                 handleProductMoveToNextStage(product, batch)
               }
               onProductClick={(product) => setSelectedProduct(product)}
+              onRemoveBatch={handleRemoveBatch}
+              onRemoveProduct={handleRemoveProduct}
             />
           ))}
         </div>

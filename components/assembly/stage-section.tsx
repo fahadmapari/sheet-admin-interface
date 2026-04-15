@@ -12,10 +12,13 @@ interface StageSectionProps {
   products: TourProduct[];
   movingBatchId: string | null;
   movingProductRowIndex: number | null;
+  isAdmin: boolean;
   onBatchMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
   onBatchMoveToStage: (batch: AssemblyBatch, targetStage: AssemblyStage) => Promise<void>;
   onMoveProductToNextStage: (product: TourProduct, batch: AssemblyBatch) => Promise<void>;
   onProductClick: (product: TourProduct) => void;
+  onRemoveBatch: (batchId: string) => Promise<void>;
+  onRemoveProduct: (rowIndex: number) => Promise<void>;
 }
 
 export function StageSection({
@@ -24,10 +27,13 @@ export function StageSection({
   products,
   movingBatchId,
   movingProductRowIndex,
+  isAdmin,
   onBatchMoveToNextStage,
   onBatchMoveToStage,
   onMoveProductToNextStage,
   onProductClick,
+  onRemoveBatch,
+  onRemoveProduct,
 }: StageSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
   const totalProducts = batches.reduce((sum, b) => sum + b.productRowIndexes.length, 0);
@@ -64,10 +70,13 @@ export function StageSection({
                 products={products}
                 isMoving={movingBatchId === batch._id}
                 movingProductRowIndex={movingProductRowIndex}
+                isAdmin={isAdmin}
                 onMoveToNextStage={onBatchMoveToNextStage}
                 onMoveToStage={onBatchMoveToStage}
                 onMoveProductToNextStage={(product) => onMoveProductToNextStage(product, batch)}
                 onProductClick={onProductClick}
+                onRemoveBatch={onRemoveBatch}
+                onRemoveProduct={onRemoveProduct}
               />
             ))
           )}

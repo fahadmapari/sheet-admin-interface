@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Circle, Package } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronRight, Circle, Package, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, parseLinkField } from '@/lib/utils';
@@ -26,10 +26,13 @@ interface BatchCardProps {
   products: TourProduct[];
   isMoving: boolean;
   movingProductRowIndex: number | null;
+  isAdmin: boolean;
   onMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
   onMoveToStage: (batch: AssemblyBatch, targetStage: AssemblyStage) => Promise<void>;
   onMoveProductToNextStage: (product: TourProduct) => Promise<void>;
   onProductClick: (product: TourProduct) => void;
+  onRemoveBatch: (batchId: string) => Promise<void>;
+  onRemoveProduct: (rowIndex: number) => Promise<void>;
 }
 
 type PendingMove =
@@ -41,13 +44,18 @@ export function BatchCard({
   products,
   isMoving,
   movingProductRowIndex,
+  isAdmin,
   onMoveToNextStage,
   onMoveToStage,
   onMoveProductToNextStage,
   onProductClick,
+  onRemoveBatch,
+  onRemoveProduct,
 }: BatchCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [confirmRemoveBatch, setConfirmRemoveBatch] = useState(false);
+  const [confirmRemoveProductRowIndex, setConfirmRemoveProductRowIndex] = useState<number | null>(null);
 
   const batchProducts = products.filter((p) =>
     batch.productRowIndexes.includes(p.rowIndex),
@@ -232,6 +240,18 @@ export function BatchCard({
               </DropdownMenu>
             </div>
           ) : null}
+          {isAdmin && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="ml-1 h-8 w-8 text-[hsl(var(--text-tertiary))] hover:text-destructive"
+              aria-label="Remove batch"
+              onClick={(e) => { e.stopPropagation(); setConfirmRemoveBatch(true); }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         {expanded && (
@@ -264,6 +284,9 @@ export function BatchCard({
                         <th className="py-1.5 pl-3 text-right text-xs font-medium text-[hsl(var(--text-tertiary))]">
                           Move
                         </th>
+                      )}
+                      {isAdmin && (
+                        <th className="py-1.5 pl-2 text-right text-xs font-medium text-[hsl(var(--text-tertiary))]" />
                       )}
                     </tr>
                   </thead>
@@ -333,6 +356,20 @@ export function BatchCard({
                               </Button>
                             </td>
                           )}
+                          {isAdmin && (
+                            <td className="py-2 pl-2 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-[hsl(var(--text-tertiary))] hover:text-destructive"
+                                aria-label="Remove product from assembly"
+                                onClick={(e) => { e.stopPropagation(); setConfirmRemoveProductRowIndex(product.rowIndex); }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
@@ -343,6 +380,70 @@ export function BatchCard({
           </div>
         )}
       </div>
+
+      {/* Remove batch confirmation */}
+      <Dialog open={confirmRemoveBatch} onOpenChange={setConfirmRemoveBatch}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove batch</DialogTitle>
+          </DialogHeader>
+          <p className="py-2 text-sm text-[hsl(var(--text-secondary))]">
+            Remove batch{' '}
+            <span className="font-medium text-[hsl(var(--text-primary))]">&ldquo;{batch.name}&rdquo;</span>?{' '}
+            All{' '}
+            <span className="font-medium text-[hsl(var(--text-primary))]">{batch.productRowIndexes.length}</span>{' '}
+            product{batch.productRowIndexes.length !== 1 ? 's' : ''} will be removed from assembly.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmRemoveBatch(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => { setConfirmRemoveBatch(false); void onRemoveBatch(batch._id); }}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove product confirmation */}
+      {confirmRemoveProductRowIndex !== null && (() => {
+        const product = batchProducts.find((p) => p.rowIndex === confirmRemoveProductRowIndex);
+        const linkParsed = product?.link ? parseLinkField(product.link) : null;
+        const displayName = product
+          ? product.productName || linkParsed?.text || product.link || `${product.city}, ${product.country}`
+          : 'this product';
+        return (
+          <Dialog
+            open={confirmRemoveProductRowIndex !== null}
+            onOpenChange={(open) => { if (!open) setConfirmRemoveProductRowIndex(null); }}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Remove product</DialogTitle>
+              </DialogHeader>
+              <p className="py-2 text-sm text-[hsl(var(--text-secondary))]">
+                Remove{' '}
+                <span className="font-medium text-[hsl(var(--text-primary))]">{displayName}</span>{' '}
+                from assembly?
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmRemoveProductRowIndex(null)}>Cancel</Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    const idx = confirmRemoveProductRowIndex;
+                    setConfirmRemoveProductRowIndex(null);
+                    void onRemoveProduct(idx);
+                  }}
+                >
+                  Remove
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* Readiness warning dialog */}
       <Dialog open={pendingMove !== null} onOpenChange={(open) => { if (!open) setPendingMove(null); }}>
