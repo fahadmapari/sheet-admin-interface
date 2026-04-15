@@ -70,9 +70,9 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   }, [isFullscreen]);
 
   useEffect(() => {
-    document.body.style.overflow = isFullscreen ? 'hidden' : '';
+    document.body.style.overflow = (isFullscreen && activeView === 'table') ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [isFullscreen]);
+  }, [isFullscreen, activeView]);
 
   const [filters, setFilters] = useState<Filters>(initialFilters ?? DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState(initialSearch ?? '');
