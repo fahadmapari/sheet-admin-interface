@@ -336,6 +336,18 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
               <span className="hidden sm:inline">Cards</span>
             </Button>
           </div>
+          {activeView === 'table' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => setIsFullscreen(true)}
+              aria-label="Enter fullscreen"
+              title="Fullscreen"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <ExportButton products={searchedProducts} columnVisibility={columnVisibility} />
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
