@@ -36,6 +36,12 @@
     --destructive: 0 72.2% 50.6%;
     --destructive-foreground: 0 0% 100%;
     --radius-md: var(--radius);
+    --brand: 171 14% 47%;
+    --brand-dark: 169 19% 29%;
+    --brand-alt: 200 71% 12%;
+    --brand-foreground: 0 0% 100%;
+    --highlight: 44 90% 61%;
+    --highlight-foreground: 0 0% 9%;
   }
 
   :root {

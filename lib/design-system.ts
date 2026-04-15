@@ -48,6 +48,12 @@ export const semanticColors = {
   textTertiary: 'hsl(var(--text-tertiary))',
   accent: 'hsl(var(--accent))',
   accentForeground: 'hsl(var(--accent-foreground))',
+  brand: 'hsl(var(--brand))',
+  brandDark: 'hsl(var(--brand-dark))',
+  brandAlt: 'hsl(var(--brand-alt))',
+  brandForeground: 'hsl(var(--brand-foreground))',
+  highlight: 'hsl(var(--highlight))',
+  highlightForeground: 'hsl(var(--highlight-foreground))',
 } as const;
 
 export const statusColorMap = {
