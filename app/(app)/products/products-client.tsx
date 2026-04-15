@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { ASSEMBLY_STAGES } from '@/lib/types';
 import type { TourProduct, AssemblyStage } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
+import { cn } from '@/lib/utils';
 import {
   DEFAULT_FILTERS,
   MULTI_SELECT_FILTERS,
@@ -398,7 +399,28 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
       )}
 
       {activeView === 'table' ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div
+          className={cn(
+            'flex min-h-0 flex-col overflow-hidden',
+            isFullscreen
+              ? 'fixed inset-0 z-50 bg-[hsl(var(--background))] flex-1'
+              : 'flex-1',
+          )}
+        >
+          {isFullscreen && (
+            <div className="flex items-center justify-end px-3 py-2 border-b border-[hsl(var(--border))] shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setIsFullscreen(false)}
+                aria-label="Exit fullscreen"
+                title="Exit fullscreen (Esc)"
+              >
+                <Minimize2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
           <ProductTable
             data={searchedProducts}
             isLoading={isLoading}
