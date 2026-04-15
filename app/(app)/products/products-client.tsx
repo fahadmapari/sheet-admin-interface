@@ -59,6 +59,20 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
     return () => mql.removeEventListener('change', handler);
   }, []);
 
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    document.body.style.overflow = isFullscreen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isFullscreen]);
+
   const [filters, setFilters] = useState<Filters>(initialFilters ?? DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState(initialSearch ?? '');
   const [globalSearch, setGlobalSearch] = useState(initialSearch ?? '');
