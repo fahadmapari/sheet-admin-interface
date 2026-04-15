@@ -54,8 +54,18 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
   // Avoid SSR mismatch: check viewport on client mount only
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)');
-    const handler = (e: MediaQueryListEvent) => setActiveView(e.matches ? 'cards' : 'table');
-    if (mql.matches) setActiveView('cards');
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setActiveView('cards');
+        setIsFullscreen(false);
+      } else {
+        setActiveView('table');
+      }
+    };
+    if (mql.matches) {
+      setActiveView('cards');
+      setIsFullscreen(false);
+    }
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
@@ -331,7 +341,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
               variant={activeView === 'cards' ? 'secondary' : 'ghost'}
               size="sm"
               className="h-7 gap-1.5 px-2.5"
-              onClick={() => setActiveView('cards')}
+              onClick={() => { setActiveView('cards'); setIsFullscreen(false); }}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Cards</span>
@@ -403,23 +413,21 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
           className={cn(
             'flex min-h-0 flex-col overflow-hidden',
             isFullscreen
-              ? 'fixed inset-0 z-50 bg-[hsl(var(--background))] flex-1'
+              ? 'fixed inset-0 z-40 bg-[hsl(var(--background))] flex-1'
               : 'flex-1',
           )}
         >
           {isFullscreen && (
-            <div className="flex items-center justify-end px-3 py-2 border-b border-[hsl(var(--border))] shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                onClick={() => setIsFullscreen(false)}
-                aria-label="Exit fullscreen"
-                title="Exit fullscreen (Esc)"
-              >
-                <Minimize2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-3 right-3 z-10 h-7 w-7 p-0"
+              onClick={() => setIsFullscreen(false)}
+              aria-label="Exit fullscreen"
+              title="Exit fullscreen (Esc)"
+            >
+              <Minimize2 className="h-3.5 w-3.5" />
+            </Button>
           )}
           <ProductTable
             data={searchedProducts}
