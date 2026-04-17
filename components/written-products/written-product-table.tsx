@@ -1,6 +1,7 @@
 // components/written-products/written-product-table.tsx
 'use client';
 
+import { useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,6 +9,7 @@ import {
   type ColumnDef,
   type Row,
 } from '@tanstack/react-table';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -122,10 +124,29 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
     getRowId: (row) => String(row.rowIndex),
   });
 
+  const rows = table.getRowModel().rows;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 41,
+    overscan: 10,
+  });
+
+  const virtualRows = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const paddingTop = virtualRows.length > 0 ? (virtualRows[0]?.start ?? 0) : 0;
+  const paddingBottom =
+    virtualRows.length > 0
+      ? totalSize - (virtualRows[virtualRows.length - 1]?.end ?? 0)
+      : 0;
+
   return (
-    <div className="w-full overflow-auto">
+    <div ref={containerRef} className="h-full overflow-auto">
       <table className="w-full text-sm border-collapse">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-[hsl(var(--background))]">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="border-b border-[hsl(var(--border))]">
               {headerGroup.headers.map((header) => (
@@ -140,19 +161,7 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr
-              key={row.id}
-              className="border-b border-[hsl(var(--border))] hover:bg-[hsl(var(--surface))] transition-colors"
-            >
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-          {table.getRowModel().rows.length === 0 && (
+          {rows.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}
@@ -161,6 +170,36 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
                 No written products found.
               </td>
             </tr>
+          ) : (
+            <>
+              {paddingTop > 0 && (
+                <tr>
+                  <td style={{ height: `${paddingTop}px` }} colSpan={columns.length} />
+                </tr>
+              )}
+              {virtualRows.map((virtualRow) => {
+                const row = rows[virtualRow.index];
+                return (
+                  <tr
+                    key={row.id}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    className="border-b border-[hsl(var(--border))] hover:bg-[hsl(var(--surface))] transition-colors"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+              {paddingBottom > 0 && (
+                <tr>
+                  <td style={{ height: `${paddingBottom}px` }} colSpan={columns.length} />
+                </tr>
+              )}
+            </>
           )}
         </tbody>
       </table>
