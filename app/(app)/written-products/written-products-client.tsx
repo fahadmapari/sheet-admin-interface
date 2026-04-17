@@ -129,7 +129,7 @@ export function WrittenProductsClient() {
         />
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-hidden min-h-0">
         {isLoading && (
           <div className="flex items-center justify-center h-40 text-sm text-[hsl(var(--text-tertiary))]">
             Loading…
