@@ -201,14 +201,14 @@ export function WrittenProductFilterBar({
   const isActive = activeCount > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {/* Search input — stays inline */}
+    <div className="flex flex-col gap-2">
+      {/* Search input — full width */}
       <div className="relative">
         <Input
           placeholder="Search…"
           value={filters.search}
           onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-          className="h-8 w-52 text-sm pr-7"
+          className="h-8 w-full text-sm pr-7"
         />
         {filters.search && (
           <button
@@ -222,6 +222,7 @@ export function WrittenProductFilterBar({
       </div>
 
       {/* Sheet trigger */}
+      <div className="w-fit">
       <Sheet>
         <SheetTrigger asChild>
           <Button
@@ -307,6 +308,7 @@ export function WrittenProductFilterBar({
           </div>
         </SheetContent>
       </Sheet>
+      </div>
 
       {/* Active chips — multi-select */}
       {WP_MULTI_SELECT_FILTERS.flatMap((f) =>
