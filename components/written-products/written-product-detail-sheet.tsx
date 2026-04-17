@@ -16,12 +16,14 @@ interface WrittenProductDetailSheetProps {
   product: WrittenProduct | null;
   onClose: () => void;
   onSaved: (updated: WrittenProduct) => void;
+  onDelete: (product: WrittenProduct) => void;
 }
 
 export function WrittenProductDetailSheet({
   product,
   onClose,
   onSaved,
+  onDelete,
 }: WrittenProductDetailSheetProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,6 +62,7 @@ export function WrittenProductDetailSheet({
               initialData={product}
               onSubmit={handleSubmit}
               onCancel={onClose}
+              onDelete={() => onDelete(product)}
               isSubmitting={isSubmitting}
             />
           )}

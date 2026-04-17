@@ -10,9 +10,7 @@ import {
   type Row,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Pencil, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { WrittenProduct } from '@/lib/types';
 
 const BOOLEAN_FIELDS = [
@@ -30,24 +28,12 @@ const BOOLEAN_LABELS: Record<(typeof BOOLEAN_FIELDS)[number], string> = {
   ssNotes: 'SS Notes',
 };
 
-function BooleanBadge({ value }: { value: boolean }) {
-  if (value) {
-    return (
-      <Badge className="bg-green-100 text-green-700 border border-green-200 text-xs px-1.5">
-        ✓
-      </Badge>
-    );
-  }
-  return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
-}
-
 interface WrittenProductTableProps {
   products: WrittenProduct[];
   onEdit: (product: WrittenProduct) => void;
-  onDelete: (product: WrittenProduct) => void;
 }
 
-export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProductTableProps) {
+export function WrittenProductTable({ products, onEdit }: WrittenProductTableProps) {
   const columns = useMemo<ColumnDef<WrittenProduct>[]>(() => [
     {
       id: 'textLink',
@@ -88,34 +74,10 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
       accessorKey: field,
       header: BOOLEAN_LABELS[field],
       cell: ({ row }: { row: Row<WrittenProduct> }) => (
-        <BooleanBadge value={row.original[field] as boolean} />
+        <Checkbox checked={row.original[field] as boolean} disabled />
       ),
     })),
-    {
-      id: 'actions',
-      header: '',
-      cell: ({ row }) => (
-        <div className="flex gap-1 justify-end">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7"
-            onClick={() => onEdit(row.original)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-destructive hover:text-destructive"
-            onClick={() => onDelete(row.original)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      ),
-    },
-  ], [onEdit, onDelete]);
+  ], [onEdit]);
 
   const table = useReactTable({
     data: products,
@@ -184,7 +146,8 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
                     key={row.id}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
-                    className="border-b border-[hsl(var(--border))] hover:bg-[hsl(var(--surface))] transition-colors"
+                    className="border-b border-[hsl(var(--border))] hover:bg-[hsl(var(--surface))] transition-colors cursor-pointer"
+                    onClick={() => onEdit(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className="px-3 py-2 whitespace-nowrap">

@@ -41,6 +41,7 @@ interface WrittenProductFormProps {
   initialData?: FormData;
   onSubmit: (data: FormData) => Promise<void>;
   onCancel: () => void;
+  onDelete?: () => void;
   isSubmitting: boolean;
 }
 
@@ -48,6 +49,7 @@ export function WrittenProductForm({
   initialData,
   onSubmit,
   onCancel,
+  onDelete,
   isSubmitting,
 }: WrittenProductFormProps) {
   const [form, setForm] = useState<FormData>(initialData ?? EMPTY);
@@ -114,13 +116,29 @@ export function WrittenProductForm({
         ))}
       </div>
 
-      <div className="flex gap-2 justify-end pt-2">
-        <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button type="submit" size="sm" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
-        </Button>
+      <div className="flex gap-2 justify-between pt-2">
+        <div>
+          {onDelete && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onDelete}
+              disabled={isSubmitting}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving…' : 'Save'}
+          </Button>
+        </div>
       </div>
     </form>
   );

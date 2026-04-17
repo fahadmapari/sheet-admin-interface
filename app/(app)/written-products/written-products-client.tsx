@@ -144,7 +144,6 @@ export function WrittenProductsClient() {
           <WrittenProductTable
             products={filteredProducts}
             onEdit={setEditProduct}
-            onDelete={setDeleteProduct}
           />
         )}
       </div>
@@ -153,6 +152,7 @@ export function WrittenProductsClient() {
         product={editProduct}
         onClose={() => setEditProduct(null)}
         onSaved={handleSaved}
+        onDelete={(p) => { setEditProduct(null); setDeleteProduct(p); }}
       />
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
