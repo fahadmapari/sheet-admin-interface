@@ -1,30 +1,34 @@
-// components/written-products/written-product-filter-bar.tsx
 'use client';
 
-import { useMemo } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import type { WrittenProduct } from '@/lib/types';
+import {
+  DEFAULT_WP_FILTERS,
+  WP_FILTER_SECTIONS,
+  WP_MULTI_SELECT_FILTERS,
+  WP_TRI_STATE_FILTERS,
+  getWPActiveFilterCount,
+  getWPActiveFilterCountForSection,
+  type WPTriState,
+  type WrittenProductFilters,
+} from '@/lib/written-product-filters';
 
-export interface WrittenProductFilters {
-  search: string;
-  countries: string[];
-  tourTypes: string[];
-}
-
-export const DEFAULT_WP_FILTERS: WrittenProductFilters = {
-  search: '',
-  countries: [],
-  tourTypes: [],
-};
+export type { WrittenProductFilters };
+export { DEFAULT_WP_FILTERS };
 
 interface WrittenProductFilterBarProps {
   allProducts: WrittenProduct[];
@@ -32,34 +36,175 @@ interface WrittenProductFilterBarProps {
   onFiltersChange: (filters: WrittenProductFilters) => void;
 }
 
+function MultiSelectPopover({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [query, setQuery] = useState('');
+
+  const toggle = (value: string) => {
+    onChange(
+      selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value],
+    );
+  };
+
+  const filteredOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? options.filter((o) => o.toLowerCase().includes(q)) : options;
+  }, [options, query]);
+
+  const hasSelection = selected.length > 0;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`justify-between gap-1.5 ${hasSelection ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
+        >
+          {label}
+          {hasSelection && (
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
+              {selected.length}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <div className="border-b border-[hsl(var(--border))] p-2">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${label.toLowerCase()}…`}
+            className="flex h-8 w-full rounded-md border border-[hsl(var(--border))] bg-transparent px-2 text-xs shadow-sm outline-none transition-colors placeholder:text-[hsl(var(--text-tertiary))] focus-visible:ring-1 focus-visible:ring-[hsl(var(--ring))]"
+          />
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          <div className="p-2 space-y-0.5">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <label
+                  key={opt}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-[hsl(var(--surface))]"
+                >
+                  <Checkbox
+                    checked={selected.includes(opt)}
+                    onCheckedChange={() => toggle(opt)}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span className="text-xs">{opt}</span>
+                </label>
+              ))
+            ) : (
+              <div className="px-1 py-3 text-xs text-[hsl(var(--text-tertiary))]">No results found.</div>
+            )}
+          </div>
+        </div>
+        {hasSelection && (
+          <>
+            <Separator />
+            <div className="p-1.5">
+              <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => onChange([])}>
+                Clear
+              </Button>
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function TriStateToggle({
+  value,
+  onChange,
+}: {
+  value: WPTriState;
+  onChange: (v: WPTriState) => void;
+}) {
+  return (
+    <div className="flex h-8 w-fit self-start items-center overflow-hidden rounded-md border border-[hsl(var(--border))] text-xs">
+      {(['all', 'yes', 'no'] as const).map((val, idx) => (
+        <button
+          key={val}
+          onClick={() => onChange(val)}
+          className={`px-3 h-full text-xs transition-colors ${
+            value === val
+              ? 'bg-[hsl(var(--text-primary))] font-medium text-[hsl(var(--background))]'
+              : 'text-[hsl(var(--text-secondary))] hover:bg-[hsl(var(--surface))] hover:text-[hsl(var(--text-primary))]'
+          } ${idx > 0 ? 'border-l border-[hsl(var(--border))]' : ''}`}
+        >
+          {val === 'all' ? 'All' : val === 'yes' ? 'Yes' : 'No'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function FilterSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/10 px-2 py-0.5 text-xs font-medium text-[hsl(var(--accent))]">
+      {label}
+      <button
+        onClick={onRemove}
+        className="ml-0.5 rounded-full p-0.5 hover:bg-[hsl(var(--accent))]/20 transition-colors"
+        aria-label={`Remove ${label} filter`}
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </span>
+  );
+}
+
 export function WrittenProductFilterBar({
   allProducts,
   filters,
   onFiltersChange,
 }: WrittenProductFilterBarProps) {
-  const countryOptions = useMemo(
-    () => [...new Set(allProducts.map((p) => p.country).filter(Boolean))].sort(),
-    [allProducts],
-  );
+  const optionsByKey = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const f of WP_MULTI_SELECT_FILTERS) {
+      result[f.key] = [
+        ...new Set(
+          allProducts
+            .map((p) => p[f.productKey] as string)
+            .filter(Boolean),
+        ),
+      ].sort();
+    }
+    return result;
+  }, [allProducts]);
 
-  const tourTypeOptions = useMemo(
-    () => [...new Set(allProducts.map((p) => p.tourType).filter(Boolean))].sort(),
-    [allProducts],
-  );
+  const update = <K extends keyof WrittenProductFilters>(key: K, value: WrittenProductFilters[K]) => {
+    onFiltersChange({ ...filters, [key]: value });
+  };
 
-  function toggleMulti(key: 'countries' | 'tourTypes', value: string) {
-    const current = filters[key];
-    const next = current.includes(value)
-      ? current.filter((v) => v !== value)
-      : [...current, value];
-    onFiltersChange({ ...filters, [key]: next });
-  }
-
-  const hasActiveFilters =
-    filters.search !== '' || filters.countries.length > 0 || filters.tourTypes.length > 0;
+  const activeCount = getWPActiveFilterCount(filters);
+  const isActive = activeCount > 0;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {/* Search input — stays inline */}
       <div className="relative">
         <Input
           placeholder="Search…"
@@ -78,71 +223,122 @@ export function WrittenProductFilterBar({
         )}
       </div>
 
-      <MultiSelectDropdown
-        label="Country"
-        options={countryOptions}
-        selected={filters.countries}
-        onToggle={(v) => toggleMulti('countries', v)}
-      />
+      {/* Sheet trigger */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 ${isActive ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filters
+            {isActive && (
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
+                {activeCount}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
 
-      <MultiSelectDropdown
-        label="Tour Type"
-        options={tourTypeOptions}
-        selected={filters.tourTypes}
-        onToggle={(v) => toggleMulti('tourTypes', v)}
-      />
+        <SheetContent side="right" style={{ width: '390px', maxWidth: '100vw' }} className="flex flex-col gap-0 p-0">
+          <SheetHeader className="flex flex-row items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4">
+            <SheetTitle>Filters</SheetTitle>
+            {isActive && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))]"
+                onClick={() => onFiltersChange(DEFAULT_WP_FILTERS)}
+              >
+                Clear all
+              </Button>
+            )}
+          </SheetHeader>
 
-      {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 text-xs"
+          <div className="flex-1 overflow-y-auto">
+            <Accordion
+              type="multiple"
+              defaultValue={[...WP_FILTER_SECTIONS]}
+              className="px-5"
+            >
+              {WP_FILTER_SECTIONS.map((section) => {
+                const multiSelects = WP_MULTI_SELECT_FILTERS.filter((f) => f.section === section);
+                const triStates = WP_TRI_STATE_FILTERS.filter((f) => f.section === section);
+                const sectionCount = getWPActiveFilterCountForSection(filters, section);
+
+                return (
+                  <AccordionItem key={section} value={section}>
+                    <AccordionTrigger>
+                      <span className="flex items-center gap-2">
+                        {section}
+                        {sectionCount > 0 && (
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] px-1 text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
+                            {sectionCount}
+                          </span>
+                        )}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="flex flex-col gap-4">
+                        {multiSelects.map((f) => (
+                          <FilterSection key={f.key} label={f.label}>
+                            <MultiSelectPopover
+                              label={f.buttonLabel}
+                              options={optionsByKey[f.key] ?? []}
+                              selected={filters[f.key]}
+                              onChange={(v) => update(f.key, v)}
+                            />
+                          </FilterSection>
+                        ))}
+                        {triStates.map((f) => (
+                          <FilterSection key={f.key} label={f.label}>
+                            <TriStateToggle
+                              value={filters[f.key]}
+                              onChange={(v) => update(f.key, v)}
+                            />
+                          </FilterSection>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Active chips — multi-select */}
+      {WP_MULTI_SELECT_FILTERS.flatMap((f) =>
+        filters[f.key].map((value) => (
+          <ActiveChip
+            key={`${f.key}-${value}`}
+            label={`${f.label}: ${value}`}
+            onRemove={() => update(f.key, filters[f.key].filter((v) => v !== value))}
+          />
+        )),
+      )}
+
+      {/* Active chips — tri-state */}
+      {WP_TRI_STATE_FILTERS.map((f) =>
+        filters[f.key] !== 'all' ? (
+          <ActiveChip
+            key={f.key}
+            label={`${f.chipLabel}: ${filters[f.key] === 'yes' ? 'Yes' : 'No'}`}
+            onRemove={() => update(f.key, 'all')}
+          />
+        ) : null,
+      )}
+
+      {isActive && (
+        <button
           onClick={() => onFiltersChange(DEFAULT_WP_FILTERS)}
+          className="text-xs text-[hsl(var(--text-tertiary))] underline underline-offset-2 hover:text-[hsl(var(--text-primary))] transition-colors"
         >
-          <X className="h-3 w-3 mr-1" />
-          Clear
-        </Button>
+          Clear all
+        </button>
       )}
     </div>
-  );
-}
-
-function MultiSelectDropdown({
-  label,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  options: string[];
-  selected: string[];
-  onToggle: (v: string) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-          {label}
-          {selected.length > 0 && (
-            <Badge className="ml-1 h-4 px-1 text-[10px]">{selected.length}</Badge>
-          )}
-          <ChevronDown className="h-3 w-3" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-        {options.map((opt) => (
-          <DropdownMenuCheckboxItem
-            key={opt}
-            checked={selected.includes(opt)}
-            onCheckedChange={() => onToggle(opt)}
-          >
-            {opt}
-          </DropdownMenuCheckboxItem>
-        ))}
-        {options.length === 0 && (
-          <div className="px-3 py-2 text-xs text-[hsl(var(--text-tertiary))]">No options</div>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
