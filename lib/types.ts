@@ -199,3 +199,15 @@ export interface NotificationSubscription {
   email: string;
   stages: AssemblyStage[];
 }
+
+export interface ShareableLink {
+  _id: string;        // MongoDB ObjectId as string
+  token: string;      // nanoid(12) — used in /share/<token>
+  title: string;
+  createdBy: string;  // email of creator
+  createdAt: string;  // ISO date string
+  expiresAt: string | null; // ISO date string or null
+  visibleToTeam: boolean;
+  columns: string[];  // TourProduct field keys to display
+  filters: import('./product-filters').Filters;
+}
