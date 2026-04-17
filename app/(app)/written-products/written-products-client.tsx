@@ -39,6 +39,7 @@ export function WrittenProductsClient() {
   const { data: products, isLoading, error } = useSWR<WrittenProduct[]>(
     '/api/written-products',
     fetcher,
+    { dedupingInterval: 60_000 },
   );
   const { mutate } = useSWRConfig();
 

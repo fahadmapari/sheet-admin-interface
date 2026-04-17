@@ -8,8 +8,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { ExternalLink } from 'lucide-react';
 import { WrittenProductForm } from './written-product-form';
 import type { WrittenProduct } from '@/lib/types';
+import { parseLinkField } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface WrittenProductDetailSheetProps {
@@ -53,7 +55,25 @@ export function WrittenProductDetailSheet({
       <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-sm font-medium truncate pr-4">
-            {product?.textLink || 'Edit Written Product'}
+            {product?.textLink ? (() => {
+              const { text, url } = parseLinkField(product.textLink);
+              const displayName = text || url || product.textLink;
+              return (
+                <span className="inline-flex items-center gap-1.5">
+                  {displayName}
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </span>
+              );
+            })() : 'Edit Written Product'}
           </SheetTitle>
         </SheetHeader>
         <div className="mt-6">

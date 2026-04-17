@@ -4,16 +4,25 @@ import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-s
 import { fetchAllWrittenProductRows, appendWrittenProductRow } from '@/lib/written-products-sheets';
 import { rowToWrittenProduct, writtenProductToRow } from '@/lib/written-products-utils';
 import type { WrittenProduct } from '@/lib/types';
+import {
+  getCachedWrittenProducts,
+  setCachedWrittenProducts,
+  invalidateWrittenProductsCache,
+} from '@/lib/written-products-cache';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const cached = getCachedWrittenProducts();
+    if (cached) return NextResponse.json(cached);
+
     const accessToken = await requireGoogleAccessToken();
     const rows = await fetchAllWrittenProductRows(accessToken);
     const products: WrittenProduct[] = rows
       .slice(1)
       .map((row, i) => rowToWrittenProduct(row, i + 2));
+    setCachedWrittenProducts(products);
     return NextResponse.json(products);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -28,6 +37,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Omit<WrittenProduct, 'rowIndex'>;
     const values = writtenProductToRow(body);
     const newRowIndex = await appendWrittenProductRow(accessToken, values);
+    invalidateWrittenProductsCache();
     return NextResponse.json(rowToWrittenProduct(values, newRowIndex), { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

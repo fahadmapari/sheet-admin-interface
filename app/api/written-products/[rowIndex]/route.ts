@@ -8,6 +8,7 @@ import {
 } from '@/lib/written-products-sheets';
 import { rowToWrittenProduct, writtenProductToRow } from '@/lib/written-products-utils';
 import type { WrittenProduct } from '@/lib/types';
+import { invalidateWrittenProductsCache } from '@/lib/written-products-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const body = (await req.json()) as Omit<WrittenProduct, 'rowIndex'>;
     const values = writtenProductToRow(body);
     await updateWrittenProductRow(accessToken, rowIndex, values);
+    invalidateWrittenProductsCache();
     return NextResponse.json(rowToWrittenProduct(values, rowIndex));
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -62,6 +64,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
 
     const accessToken = await requireGoogleAccessToken();
     await deleteWrittenProductRow(accessToken, rowIndex);
+    invalidateWrittenProductsCache();
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

@@ -11,8 +11,10 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { ExternalLink } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { WrittenProduct } from '@/lib/types';
+import { parseLinkField } from '@/lib/utils';
 
 const BOOLEAN_FIELDS = [
   'ccOk', 'isOk', 'rrOk', 'ssOk', 'contentExist', 'b2b', 'b2c', 'ssNotes',
@@ -40,12 +42,29 @@ export function WrittenProductTable({ products, onEdit, columnVisibility = {} }:
     {
       id: 'textLink',
       accessorKey: 'textLink',
-      header: 'Text Link',
-      cell: ({ row }) => (
-        <span className="font-medium text-sm max-w-[300px] truncate block">
-          {row.original.textLink || '—'}
-        </span>
-      ),
+      header: 'Link / Title',
+      cell: ({ row }) => {
+        const raw = row.original.textLink;
+        if (!raw) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
+        const { text, url } = parseLinkField(raw);
+        const displayName = text || url || raw;
+        return (
+          <div className="min-w-0 max-w-[280px] flex items-start gap-1">
+            <span className="font-medium text-sm truncate">{displayName}</span>
+            {url && (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="mt-0.5 flex-shrink-0 text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'country',
