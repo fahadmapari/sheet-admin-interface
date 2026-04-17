@@ -8,6 +8,7 @@ import {
   flexRender,
   type ColumnDef,
   type Row,
+  type VisibilityState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,9 +32,10 @@ const BOOLEAN_LABELS: Record<(typeof BOOLEAN_FIELDS)[number], string> = {
 interface WrittenProductTableProps {
   products: WrittenProduct[];
   onEdit: (product: WrittenProduct) => void;
+  columnVisibility?: VisibilityState;
 }
 
-export function WrittenProductTable({ products, onEdit }: WrittenProductTableProps) {
+export function WrittenProductTable({ products, onEdit, columnVisibility = {} }: WrittenProductTableProps) {
   const columns = useMemo<ColumnDef<WrittenProduct>[]>(() => [
     {
       id: 'textLink',
@@ -82,6 +84,7 @@ export function WrittenProductTable({ products, onEdit }: WrittenProductTablePro
   const table = useReactTable({
     data: products,
     columns,
+    state: { columnVisibility },
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => String(row.rowIndex),
   });
