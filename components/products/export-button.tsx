@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Link } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 import type { ColumnGroup } from '@/lib/column-groups';
 import type { TourProduct } from '@/lib/types';
 import type { Filters } from '@/lib/product-filters';
+import { CreateShareableLinkDialog } from '@/components/products/create-shareable-link-dialog';
 
 interface ExportButtonProps {
   products: TourProduct[];
@@ -93,11 +94,12 @@ async function exportXlsx(products: TourProduct[], visibleFields: Array<keyof Om
   XLSX.writeFile(wb, `products-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-export function ExportButton({ products, columnVisibility, filters }: ExportButtonProps) { // eslint-disable-line @typescript-eslint/no-unused-vars
+export function ExportButton({ products, columnVisibility, filters }: ExportButtonProps) {
   const { groups } = useColumnGroups();
   const visibleFields = getVisibleFields(columnVisibility, groups);
 
   const [exportingToSheets, setExportingToSheets] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   async function exportToGoogleSheets() {
     setExportingToSheets(true);
@@ -138,27 +140,40 @@ export function ExportButton({ products, columnVisibility, filters }: ExportButt
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="mr-1 h-4 w-4" />
-          Export
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => { exportCsv(products, visibleFields); toast.success(`Exported ${products.length} rows as CSV`); }}>
-          Export as CSV
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={async () => { await exportXlsx(products, visibleFields); toast.success(`Exported ${products.length} rows as XLSX`); }}>
-          Export as XLSX
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={exportToGoogleSheets}
-          disabled={exportingToSheets}
-        >
-          Export to Google Sheets
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Download className="mr-1 h-4 w-4" />
+            Export
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => { exportCsv(products, visibleFields); toast.success(`Exported ${products.length} rows as CSV`); }}>
+            Export as CSV
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={async () => { await exportXlsx(products, visibleFields); toast.success(`Exported ${products.length} rows as XLSX`); }}>
+            Export as XLSX
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={exportToGoogleSheets}
+            disabled={exportingToSheets}
+          >
+            Export to Google Sheets
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setShareDialogOpen(true)}>
+            <Link className="mr-2 h-4 w-4" />
+            Create Shareable Link
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <CreateShareableLinkDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        columnVisibility={columnVisibility}
+        filters={filters}
+        productCount={products.length}
+      />
+    </>
   );
 }
