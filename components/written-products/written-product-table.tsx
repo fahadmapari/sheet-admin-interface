@@ -1,7 +1,7 @@
 // components/written-products/written-product-table.tsx
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -48,7 +48,7 @@ interface WrittenProductTableProps {
 }
 
 export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProductTableProps) {
-  const columns: ColumnDef<WrittenProduct>[] = [
+  const columns = useMemo<ColumnDef<WrittenProduct>[]>(() => [
     {
       id: 'textLink',
       accessorKey: 'textLink',
@@ -115,7 +115,7 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
         </div>
       ),
     },
-  ];
+  ], [onEdit, onDelete]);
 
   const table = useReactTable({
     data: products,
