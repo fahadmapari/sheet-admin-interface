@@ -15,10 +15,12 @@ import { FIELD_LABELS } from '@/lib/constants';
 import { useColumnGroups } from '@/lib/hooks/use-column-groups';
 import type { ColumnGroup } from '@/lib/column-groups';
 import type { TourProduct } from '@/lib/types';
+import type { Filters } from '@/lib/product-filters';
 
 interface ExportButtonProps {
   products: TourProduct[];
   columnVisibility: VisibilityState;
+  filters: Filters;
 }
 
 // Maps composite TanStack column IDs to their underlying raw field IDs
@@ -91,9 +93,12 @@ async function exportXlsx(products: TourProduct[], visibleFields: Array<keyof Om
   XLSX.writeFile(wb, `products-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-export function ExportButton({ products, columnVisibility }: ExportButtonProps) {
+export function ExportButton({ products, columnVisibility, filters }: ExportButtonProps) {
   const { groups } = useColumnGroups();
   const visibleFields = getVisibleFields(columnVisibility, groups);
+
+  // TODO: Use filters in Task 7 to include filter info in shareable links
+  void filters;
 
   const [exportingToSheets, setExportingToSheets] = useState(false);
 

@@ -359,7 +359,7 @@ export function ProductsClient({ initialFilters, initialSearch }: ProductsClient
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
           )}
-          <ExportButton products={searchedProducts} columnVisibility={columnVisibility} />
+          <ExportButton products={searchedProducts} columnVisibility={columnVisibility} filters={filters} />
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
             Add Product
