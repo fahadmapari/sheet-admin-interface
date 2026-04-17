@@ -1,8 +1,9 @@
 // app/(app)/written-products/written-products-client.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
+import type { VisibilityState } from '@tanstack/react-table';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -17,12 +18,18 @@ import {
 } from '@/components/written-products/written-product-filter-bar';
 import { WrittenProductExportButton } from '@/components/written-products/written-product-export-button';
 import { WrittenProductForm } from '@/components/written-products/written-product-form';
+import { WrittenViewsBar, type CustomView } from '@/components/written-products/written-views-bar';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+const ALL_WP_COLUMN_IDS = [
+  'textLink', 'country', 'cityDestination', 'state', 'tourType',
+  'ccOk', 'isOk', 'rrOk', 'ssOk', 'contentExist', 'b2b', 'b2c', 'ssNotes',
+];
 
 export function WrittenProductsClient() {
   const { data: products, isLoading, error } = useSWR<WrittenProduct[]>(
@@ -37,6 +44,40 @@ export function WrittenProductsClient() {
   const [createOpen, setCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [activeViewId, setActiveViewId] = useState<string>('default');
+  const [customViews, setCustomViews] = useState<CustomView[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sheet-admin:written-custom-views');
+      if (stored) setCustomViews(JSON.parse(stored) as CustomView[]);
+    } catch {
+      // ignore malformed storage
+    }
+  }, []);
+
+  const columnVisibility = useMemo((): VisibilityState => {
+    if (activeViewId === 'default') return {};
+    const view = customViews.find((v) => v.id === activeViewId);
+    if (!view) return {};
+    const cols = new Set(view.columns);
+    return Object.fromEntries(ALL_WP_COLUMN_IDS.map((id) => [id, cols.has(id)]));
+  }, [activeViewId, customViews]);
+
+  const handleViewAdd = useCallback((view: CustomView) => {
+    const next = [...customViews, view];
+    setCustomViews(next);
+    localStorage.setItem('sheet-admin:written-custom-views', JSON.stringify(next));
+    setActiveViewId(view.id);
+  }, [customViews]);
+
+  const handleViewDelete = useCallback((id: string) => {
+    const next = customViews.filter((v) => v.id !== id);
+    setCustomViews(next);
+    localStorage.setItem('sheet-admin:written-custom-views', JSON.stringify(next));
+    if (activeViewId === id) setActiveViewId('default');
+  }, [customViews, activeViewId]);
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -122,6 +163,16 @@ export function WrittenProductsClient() {
       </div>
 
       <div className="px-4 py-2 border-b border-[hsl(var(--border))]">
+        <WrittenViewsBar
+          activeViewId={activeViewId}
+          customViews={customViews}
+          onViewSelect={setActiveViewId}
+          onViewDelete={handleViewDelete}
+          onViewAdd={handleViewAdd}
+        />
+      </div>
+
+      <div className="px-4 py-2 border-b border-[hsl(var(--border))]">
         <WrittenProductFilterBar
           allProducts={products ?? []}
           filters={filters}
@@ -144,6 +195,7 @@ export function WrittenProductsClient() {
           <WrittenProductTable
             products={filteredProducts}
             onEdit={setEditProduct}
+            columnVisibility={columnVisibility}
           />
         )}
       </div>
