@@ -4,7 +4,7 @@
 import { useEffect, type ReactNode } from "react";
 import { SessionProvider as NextAuthSessionProvider, signOut, useSession } from "next-auth/react";
 
-function SessionWatcher() {
+function SessionErrorWatcher() {
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -19,7 +19,7 @@ function SessionWatcher() {
 export function SessionProvider({ children }: { children: ReactNode }) {
   return (
     <NextAuthSessionProvider>
-      <SessionWatcher />
+      <SessionErrorWatcher />
       {children}
     </NextAuthSessionProvider>
   );
