@@ -23,16 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 export function WrittenProductsClient() {
   const { data: products, isLoading, error } = useSWR<WrittenProduct[]>(
@@ -178,30 +168,33 @@ export function WrittenProductsClient() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
+      <Dialog
         open={deleteProduct !== null}
         onOpenChange={(open) => !open && setDeleteProduct(null)}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
-            <AlertDialogDescription>
-              &ldquo;{deleteProduct?.textLink}&rdquo; will be permanently removed from the sheet.
-              This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete this entry?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[hsl(var(--text-secondary))]">
+            &ldquo;{deleteProduct?.textLink}&rdquo; will be permanently removed from the sheet.
+            This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setDeleteProduct(null)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
               onClick={handleDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? 'Deleting…' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
