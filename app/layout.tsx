@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} h-screen overflow-hidden antialiased`}>
+      <body suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} h-screen overflow-hidden antialiased`}>
         <SessionProvider>
           <ThemeProvider>
             {children}
