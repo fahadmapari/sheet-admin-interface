@@ -28,9 +28,6 @@ import {
   type WrittenProductFilters,
 } from '@/lib/written-product-filters';
 
-export type { WrittenProductFilters };
-export { DEFAULT_WP_FILTERS };
-
 interface WrittenProductFilterBarProps {
   allProducts: WrittenProduct[];
   filters: WrittenProductFilters;
