@@ -211,3 +211,20 @@ export interface ShareableLink {
   columns: string[];  // TourProduct field keys to display
   filters: import('./product-filters').Filters;
 }
+
+export interface WrittenProduct {
+  rowIndex: number;
+  country: string;
+  cityDestination: string;
+  state: string;
+  tourType: string;
+  textLink: string;
+  ccOk: boolean;
+  isOk: boolean;
+  rrOk: boolean;
+  ssOk: boolean;
+  contentExist: boolean;
+  b2b: boolean;
+  b2c: boolean;
+  ssNotes: boolean;
+}
