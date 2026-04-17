@@ -37,8 +37,13 @@ export const DEFAULT_WP_FILTERS: WrittenProductFilters = {
 export const WP_FILTER_SECTIONS = ['Location', 'Status'] as const;
 export type WPFilterSection = (typeof WP_FILTER_SECTIONS)[number];
 
-export type WPMultiSelectKey = 'countries' | 'states' | 'cities' | 'tourTypes';
-export type WPTriStateKey = 'ccOk' | 'isOk' | 'rrOk' | 'ssOk' | 'contentExist' | 'b2b' | 'b2c' | 'ssNotes';
+export type WPMultiSelectKey = {
+  [K in keyof WrittenProductFilters]: WrittenProductFilters[K] extends string[] ? K : never;
+}[keyof WrittenProductFilters];
+
+export type WPTriStateKey = {
+  [K in keyof WrittenProductFilters]: WrittenProductFilters[K] extends WPTriState ? K : never;
+}[keyof WrittenProductFilters];
 
 export const WP_MULTI_SELECT_FILTERS: Array<{
   key: WPMultiSelectKey;
@@ -71,10 +76,11 @@ export const WP_TRI_STATE_FILTERS: Array<{
 ];
 
 export function getWPActiveFilterCount(filters: WrittenProductFilters): number {
-  let count = 0;
-  for (const f of WP_MULTI_SELECT_FILTERS) count += filters[f.key].length;
-  for (const f of WP_TRI_STATE_FILTERS) { if (filters[f.key] !== 'all') count++; }
-  return count;
+  const { search, ...rest } = filters;
+  return Object.values(rest).reduce<number>((count, value) => {
+    if (Array.isArray(value)) return count + value.length;
+    return value === 'all' ? count : count + 1;
+  }, 0);
 }
 
 export function getWPActiveFilterCountForSection(
