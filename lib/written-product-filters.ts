@@ -46,9 +46,13 @@ export type WPTriStateKey = {
   [K in keyof WrittenProductFilters]: WrittenProductFilters[K] extends WPTriState ? K : never;
 }[keyof WrittenProductFilters];
 
+export type WPStringProductKey = {
+  [K in keyof WrittenProduct]: WrittenProduct[K] extends string | undefined ? K : never;
+}[keyof WrittenProduct];
+
 export const WP_MULTI_SELECT_FILTERS: Array<{
   key: WPMultiSelectKey;
-  productKey: keyof WrittenProduct;
+  productKey: WPStringProductKey;
   label: string;
   buttonLabel: string;
   section: WPFilterSection;
