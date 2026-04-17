@@ -3,13 +3,14 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Layers, Package, Settings, BookOpen, Share2 } from 'lucide-react';
+import { LayoutDashboard, Layers, Package, Settings, BookOpen, Share2, FileText } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/products', label: 'Products', icon: Package },
+  { href: '/written-products', label: 'Written Products', icon: FileText },
   { href: '/assembly', label: 'Assembly Line', icon: Layers },
   { href: '/sources', label: 'Sources', icon: BookOpen },
   { href: '/shareables', label: 'Shareables', icon: Share2 },
