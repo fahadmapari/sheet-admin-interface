@@ -13,9 +13,13 @@ import { WrittenProductTable } from '@/components/written-products/written-produ
 import { WrittenProductDetailSheet } from '@/components/written-products/written-product-detail-sheet';
 import {
   WrittenProductFilterBar,
-  DEFAULT_WP_FILTERS,
-  type WrittenProductFilters,
 } from '@/components/written-products/written-product-filter-bar';
+import {
+  DEFAULT_WP_FILTERS,
+  WP_MULTI_SELECT_FILTERS,
+  WP_TRI_STATE_FILTERS,
+  type WrittenProductFilters,
+} from '@/lib/written-product-filters';
 import { WrittenProductExportButton } from '@/components/written-products/written-product-export-button';
 import { WrittenProductForm } from '@/components/written-products/written-product-form';
 import { WrittenViewsBar, type CustomView } from '@/components/written-products/written-views-bar';
@@ -83,8 +87,6 @@ export function WrittenProductsClient() {
     if (!products) return [];
     const search = filters.search.toLowerCase();
     return products.filter((p) => {
-      if (filters.countries.length > 0 && !filters.countries.includes(p.country)) return false;
-      if (filters.tourTypes.length > 0 && !filters.tourTypes.includes(p.tourType)) return false;
       if (
         search &&
         ![p.textLink, p.country, p.cityDestination].some((v) =>
@@ -92,6 +94,17 @@ export function WrittenProductsClient() {
         )
       )
         return false;
+      for (const f of WP_MULTI_SELECT_FILTERS) {
+        const selected = filters[f.key];
+        if (selected.length > 0 && !selected.includes(p[f.productKey] as string)) return false;
+      }
+      for (const f of WP_TRI_STATE_FILTERS) {
+        const state = filters[f.key];
+        if (state === 'all') continue;
+        const val = Boolean(p[f.productKey]);
+        if (state === 'yes' && !val) return false;
+        if (state === 'no' && val) return false;
+      }
       return true;
     });
   }, [products, filters]);
