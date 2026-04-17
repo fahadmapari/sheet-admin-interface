@@ -36,6 +36,7 @@ export const DEFAULT_WP_FILTERS: WrittenProductFilters = {
 
 export const WP_FILTER_SECTIONS = ['Location', 'Status'] as const;
 export type WPFilterSection = (typeof WP_FILTER_SECTIONS)[number];
+export const WP_DEFAULT_OPEN_FILTER_SECTIONS = [...WP_FILTER_SECTIONS];
 
 export type WPMultiSelectKey = {
   [K in keyof WrittenProductFilters]: WrittenProductFilters[K] extends string[] ? K : never;

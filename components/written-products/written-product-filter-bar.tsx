@@ -19,6 +19,7 @@ import type { WrittenProduct } from '@/lib/types';
 import {
   DEFAULT_WP_FILTERS,
   WP_FILTER_SECTIONS,
+  WP_DEFAULT_OPEN_FILTER_SECTIONS,
   WP_MULTI_SELECT_FILTERS,
   WP_TRI_STATE_FILTERS,
   getWPActiveFilterCount,
@@ -259,13 +260,14 @@ export function WrittenProductFilterBar({
           <div className="flex-1 overflow-y-auto">
             <Accordion
               type="multiple"
-              defaultValue={[...WP_FILTER_SECTIONS]}
+              defaultValue={WP_DEFAULT_OPEN_FILTER_SECTIONS}
               className="px-5"
             >
               {WP_FILTER_SECTIONS.map((section) => {
                 const multiSelects = WP_MULTI_SELECT_FILTERS.filter((f) => f.section === section);
                 const triStates = WP_TRI_STATE_FILTERS.filter((f) => f.section === section);
                 const sectionCount = getWPActiveFilterCountForSection(filters, section);
+                if (!multiSelects.length && !triStates.length) return null;
 
                 return (
                   <AccordionItem key={section} value={section}>
