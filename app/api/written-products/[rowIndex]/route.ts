@@ -4,9 +4,11 @@ import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-s
 import {
   fetchAllWrittenProductRows,
   updateWrittenProductRow,
+  updateTextLinkHyperlink,
   deleteWrittenProductRow,
 } from '@/lib/written-products-sheets';
 import { rowToWrittenProduct, writtenProductToRow } from '@/lib/written-products-utils';
+import { parseLinkField } from '@/lib/utils';
 import type { WrittenProduct } from '@/lib/types';
 import { invalidateWrittenProductsCache } from '@/lib/written-products-cache';
 
@@ -46,9 +48,13 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const accessToken = await requireGoogleAccessToken();
     const body = (await req.json()) as Omit<WrittenProduct, 'rowIndex'>;
     const values = writtenProductToRow(body);
+    const { text, url } = parseLinkField(body.textLink || '');
     await updateWrittenProductRow(accessToken, rowIndex, values);
+    if (url) {
+      await updateTextLinkHyperlink(accessToken, rowIndex, text || url, url);
+    }
     invalidateWrittenProductsCache();
-    return NextResponse.json(rowToWrittenProduct(values, rowIndex));
+    return NextResponse.json({ ...body, rowIndex });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const status = err instanceof GoogleAccessTokenError ? err.status : 500;

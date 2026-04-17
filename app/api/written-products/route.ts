@@ -1,8 +1,9 @@
 // app/api/written-products/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
-import { fetchAllWrittenProductRows, appendWrittenProductRow } from '@/lib/written-products-sheets';
+import { fetchAllWrittenProductRows, fetchTextLinkHyperlinks, appendWrittenProductRow, updateTextLinkHyperlink } from '@/lib/written-products-sheets';
 import { rowToWrittenProduct, writtenProductToRow } from '@/lib/written-products-utils';
+import { parseLinkField } from '@/lib/utils';
 import type { WrittenProduct } from '@/lib/types';
 import {
   getCachedWrittenProducts,
@@ -18,10 +19,13 @@ export async function GET() {
     if (cached) return NextResponse.json(cached);
 
     const accessToken = await requireGoogleAccessToken();
-    const rows = await fetchAllWrittenProductRows(accessToken);
+    const [rows, textLinkUrls] = await Promise.all([
+      fetchAllWrittenProductRows(accessToken),
+      fetchTextLinkHyperlinks(accessToken),
+    ]);
     const products: WrittenProduct[] = rows
       .slice(1)
-      .map((row, i) => rowToWrittenProduct(row, i + 2));
+      .map((row, i) => rowToWrittenProduct(row, i + 2, textLinkUrls.get(i + 2)));
     setCachedWrittenProducts(products);
     return NextResponse.json(products);
   } catch (err) {
@@ -37,8 +41,12 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Omit<WrittenProduct, 'rowIndex'>;
     const values = writtenProductToRow(body);
     const newRowIndex = await appendWrittenProductRow(accessToken, values);
+    const { text, url } = parseLinkField(body.textLink || '');
+    if (url) {
+      await updateTextLinkHyperlink(accessToken, newRowIndex, text || url, url);
+    }
     invalidateWrittenProductsCache();
-    return NextResponse.json(rowToWrittenProduct(values, newRowIndex), { status: 201 });
+    return NextResponse.json({ ...body, rowIndex: newRowIndex }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const status = err instanceof GoogleAccessTokenError ? err.status : 500;

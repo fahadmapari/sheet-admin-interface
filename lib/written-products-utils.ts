@@ -1,18 +1,21 @@
 // lib/written-products-utils.ts
 import type { WrittenProduct } from '@/lib/types';
+import { parseLinkField } from '@/lib/utils';
 
 function parseBoolean(v: string | undefined): boolean {
   return v?.toUpperCase() === 'TRUE';
 }
 
-export function rowToWrittenProduct(row: string[], rowIndex: number): WrittenProduct {
+export function rowToWrittenProduct(row: string[], rowIndex: number, textLinkUrl?: string): WrittenProduct {
+  const textLinkRaw = row[4] ?? '';
+  const textLink = textLinkUrl ? `${textLinkRaw}||${textLinkUrl}` : textLinkRaw;
   return {
     rowIndex,
     country: row[0] ?? '',
     cityDestination: row[1] ?? '',
     state: row[2] ?? '',
     tourType: row[3] ?? '',
-    textLink: row[4] ?? '',
+    textLink,
     ccOk: parseBoolean(row[5]),
     isOk: parseBoolean(row[6]),
     rrOk: parseBoolean(row[7]),
@@ -25,12 +28,14 @@ export function rowToWrittenProduct(row: string[], rowIndex: number): WrittenPro
 }
 
 export function writtenProductToRow(product: Omit<WrittenProduct, 'rowIndex'>): string[] {
+  const { text, url } = parseLinkField(product.textLink || '');
+  const textLinkDisplayText = text || url || product.textLink;
   return [
     product.country,
     product.cityDestination,
     product.state,
     product.tourType,
-    product.textLink,
+    textLinkDisplayText,
     product.ccOk ? 'TRUE' : 'FALSE',
     product.isOk ? 'TRUE' : 'FALSE',
     product.rrOk ? 'TRUE' : 'FALSE',

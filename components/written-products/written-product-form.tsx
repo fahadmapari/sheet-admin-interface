@@ -7,8 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { WrittenProduct } from '@/lib/types';
+import { parseLinkField } from '@/lib/utils';
 
 type FormData = Omit<WrittenProduct, 'rowIndex'>;
+
+type InternalForm = FormData & { textLinkUrl: string };
 
 const BOOLEAN_FIELDS = [
   { key: 'ccOk', label: 'CC OK' },
@@ -21,12 +24,13 @@ const BOOLEAN_FIELDS = [
   { key: 'ssNotes', label: 'SS Notes' },
 ] as const;
 
-const EMPTY: FormData = {
+const EMPTY: InternalForm = {
   country: '',
   cityDestination: '',
   state: '',
   tourType: '',
   textLink: '',
+  textLinkUrl: '',
   ccOk: false,
   isOk: false,
   rrOk: false,
@@ -36,6 +40,11 @@ const EMPTY: FormData = {
   b2c: false,
   ssNotes: false,
 };
+
+function toInternalForm(data: FormData): InternalForm {
+  const { text, url } = parseLinkField(data.textLink || '');
+  return { ...data, textLink: text || data.textLink, textLinkUrl: url };
+}
 
 interface WrittenProductFormProps {
   initialData?: FormData;
@@ -52,15 +61,19 @@ export function WrittenProductForm({
   onDelete,
   isSubmitting,
 }: WrittenProductFormProps) {
-  const [form, setForm] = useState<FormData>(initialData ?? EMPTY);
+  const [form, setForm] = useState<InternalForm>(
+    initialData ? toInternalForm(initialData) : EMPTY
+  );
 
-  function setField<K extends keyof FormData>(key: K, value: FormData[K]) {
+  function setField<K extends keyof InternalForm>(key: K, value: InternalForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await onSubmit(form);
+    const { textLinkUrl, ...rest } = form;
+    const textLink = textLinkUrl ? `${rest.textLink}||${textLinkUrl}` : rest.textLink;
+    await onSubmit({ ...rest, textLink });
   }
 
   return (
@@ -88,17 +101,29 @@ export function WrittenProductForm({
         ))}
       </div>
 
-      <div className="space-y-1">
-        <Label htmlFor="textLink" className="text-sm">
-          Text Link <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="textLink"
-          value={form.textLink}
-          onChange={(e) => setField('textLink', e.target.value)}
-          className="h-8 text-sm"
-          required
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label htmlFor="textLink" className="text-sm">
+            Link / Title <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="textLink"
+            value={form.textLink}
+            onChange={(e) => setField('textLink', e.target.value)}
+            className="h-8 text-sm"
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="textLinkUrl" className="text-sm">URL</Label>
+          <Input
+            id="textLinkUrl"
+            value={form.textLinkUrl}
+            onChange={(e) => setField('textLinkUrl', e.target.value)}
+            className="h-8 text-sm"
+            placeholder="https://"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-3 pt-1">
