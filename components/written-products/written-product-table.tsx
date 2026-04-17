@@ -146,7 +146,7 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
   return (
     <div ref={containerRef} className="h-full overflow-auto">
       <table className="w-full text-sm border-collapse">
-        <thead className="sticky top-0 z-10 bg-[hsl(var(--background))]">
+        <thead className="sticky top-0 z-10 bg-[hsl(var(--surface))]">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="border-b border-[hsl(var(--border))]">
               {headerGroup.headers.map((header) => (
@@ -164,7 +164,7 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
           {rows.length === 0 ? (
             <tr>
               <td
-                colSpan={columns.length}
+                colSpan={table.getVisibleLeafColumns().length}
                 className="px-3 py-8 text-center text-[hsl(var(--text-tertiary))] text-sm"
               >
                 No written products found.
@@ -174,7 +174,7 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
             <>
               {paddingTop > 0 && (
                 <tr>
-                  <td style={{ height: `${paddingTop}px` }} colSpan={columns.length} />
+                  <td style={{ height: `${paddingTop}px` }} colSpan={table.getVisibleLeafColumns().length} />
                 </tr>
               )}
               {virtualRows.map((virtualRow) => {
@@ -196,7 +196,7 @@ export function WrittenProductTable({ products, onEdit, onDelete }: WrittenProdu
               })}
               {paddingBottom > 0 && (
                 <tr>
-                  <td style={{ height: `${paddingBottom}px` }} colSpan={columns.length} />
+                  <td style={{ height: `${paddingBottom}px` }} colSpan={table.getVisibleLeafColumns().length} />
                 </tr>
               )}
             </>
