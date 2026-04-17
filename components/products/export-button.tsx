@@ -93,12 +93,9 @@ async function exportXlsx(products: TourProduct[], visibleFields: Array<keyof Om
   XLSX.writeFile(wb, `products-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-export function ExportButton({ products, columnVisibility, filters }: ExportButtonProps) {
+export function ExportButton({ products, columnVisibility, filters }: ExportButtonProps) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const { groups } = useColumnGroups();
   const visibleFields = getVisibleFields(columnVisibility, groups);
-
-  // TODO: Use filters in Task 7 to include filter info in shareable links
-  void filters;
 
   const [exportingToSheets, setExportingToSheets] = useState(false);
 
