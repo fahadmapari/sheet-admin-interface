@@ -5,9 +5,11 @@ import { useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useColumnMapping, type ColumnMappingEntry } from '@/lib/hooks/use-column-mapping';
 import { colLetterToIndex } from '@/lib/column-utils';
 import { toast } from 'sonner';
+import { WrittenColumnMappingSettings } from './written-column-mapping-settings';
 
 type DraftMap = Record<string, string>; // field → letter currently in input
 
@@ -50,7 +52,7 @@ function validateDraft(
   return errors;
 }
 
-export function ColumnMappingSettings() {
+function ProductsColumnMapping() {
   const { entries, isLoading, isError, mutate } = useColumnMapping();
   const [draft, setDraft] = useState<DraftMap | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,7 +65,6 @@ export function ColumnMappingSettings() {
     setDraft((prev) => ({ ...(prev ?? {}), [field]: value.toUpperCase() }));
   }
 
-  // Resets this field's draft to the hardcoded default letter (not just the stored override).
   function resetField(field: string, hardcodedDefaultLetter: string) {
     setDraft((prev) => ({ ...(prev ?? {}), [field]: hardcodedDefaultLetter }));
   }
@@ -237,5 +238,22 @@ export function ColumnMappingSettings() {
         </table>
       </div>
     </div>
+  );
+}
+
+export function ColumnMappingSettings() {
+  return (
+    <Tabs defaultValue="products">
+      <TabsList>
+        <TabsTrigger value="products">Products</TabsTrigger>
+        <TabsTrigger value="written-products">Written Products</TabsTrigger>
+      </TabsList>
+      <TabsContent value="products" className="mt-4">
+        <ProductsColumnMapping />
+      </TabsContent>
+      <TabsContent value="written-products" className="mt-4">
+        <WrittenColumnMappingSettings />
+      </TabsContent>
+    </Tabs>
   );
 }
