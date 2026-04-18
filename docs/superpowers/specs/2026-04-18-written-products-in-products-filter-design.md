@@ -71,7 +71,7 @@ export const DEFAULT_WP_FILTERS: WrittenProductFilters = {
 `applyWPFilters` receives a new optional `productTitlesSet: Set<string>` parameter. When `filters.inProducts !== 'all'`, each WP is checked against the set:
 
 ```ts
-const title = parseLinkTitle(wp.textLink).toLowerCase();
+const title = parseLinkField(wp.textLink ?? '').text.toLowerCase();
 const matched = productTitlesSet.has(title);
 if (filters.inProducts === 'yes' && !matched) return false;
 if (filters.inProducts === 'no' && matched) return false;
