@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ComboboxInput } from '@/components/ui/combobox-input';
 import type { WrittenProduct } from '@/lib/types';
 import { parseLinkField } from '@/lib/utils';
 
@@ -51,6 +52,11 @@ interface WrittenProductFormProps {
   hideActions?: boolean;
   initialData?: FormData;
   existingTitles?: Set<string>;
+  suggestions?: {
+    country?: string[];
+    cityDestination?: string[];
+    tourType?: string[];
+  };
   onSubmit: (data: FormData) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
@@ -62,6 +68,7 @@ export function WrittenProductForm({
   hideActions,
   initialData,
   existingTitles,
+  suggestions,
   onSubmit,
   onCancel,
   onDelete,
@@ -98,19 +105,35 @@ export function WrittenProductForm({
             { key: 'state', label: 'State' },
             { key: 'tourType', label: 'Tour Type' },
           ] as const
-        ).map(({ key, label }) => (
-          <div key={key} className="space-y-1">
-            <Label htmlFor={key} className="text-sm">
-              {label}
-            </Label>
-            <Input
-              id={key}
-              value={form[key]}
-              onChange={(e) => setField(key, e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-        ))}
+        ).map(({ key, label }) => {
+          const opts =
+            key === 'country' ? suggestions?.country :
+            key === 'cityDestination' ? suggestions?.cityDestination :
+            key === 'tourType' ? suggestions?.tourType :
+            undefined;
+          return (
+            <div key={key} className="space-y-1">
+              <Label htmlFor={key} className="text-sm">
+                {label}
+              </Label>
+              {opts && opts.length > 0 ? (
+                <ComboboxInput
+                  id={key}
+                  value={form[key]}
+                  onChange={(v) => setField(key, v)}
+                  options={opts}
+                />
+              ) : (
+                <Input
+                  id={key}
+                  value={form[key]}
+                  onChange={(e) => setField(key, e.target.value)}
+                  className="h-8 text-sm"
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
