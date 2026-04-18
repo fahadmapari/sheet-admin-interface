@@ -16,6 +16,7 @@ export interface WrittenProductFilters {
   b2b: WPTriState;
   b2c: WPTriState;
   ssNotes: WPTriState;
+  inProducts: WPTriState;
 }
 
 export const DEFAULT_WP_FILTERS: WrittenProductFilters = {
@@ -32,6 +33,7 @@ export const DEFAULT_WP_FILTERS: WrittenProductFilters = {
   b2b: 'all',
   b2c: 'all',
   ssNotes: 'all',
+  inProducts: 'all',
 };
 
 export const WP_FILTER_SECTIONS = ['Location', 'Status'] as const;
@@ -99,5 +101,6 @@ export function getWPActiveFilterCountForSection(
   for (const f of WP_TRI_STATE_FILTERS) {
     if (f.section === section && filters[f.key] !== 'all') count++;
   }
+  if (section === 'Status' && filters.inProducts !== 'all') count++;
   return count;
 }
