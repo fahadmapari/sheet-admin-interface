@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Users } from 'lucide-react';
+import { ArrowRight, ChevronDown, Clock, ExternalLink, MapPin, Pencil, Trash2, Users } from 'lucide-react';
 import type { TourProduct } from '@/lib/types';
 import { BOOLEAN_FIELDS, FIELD_LABELS, NUMBER_FIELDS } from '@/lib/constants';
 import { useColumnGroups } from '@/lib/hooks/use-column-groups';
@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InlineEditCell } from './inline-edit-cell';
+import { DeleteConfirmDialog } from './delete-confirm-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,6 +109,7 @@ interface ProductDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved?: (product: TourProduct) => void;
+  onDeleted?: () => void;
 }
 
 export function ProductDetailSheet({
@@ -115,6 +117,7 @@ export function ProductDetailSheet({
   open,
   onOpenChange,
   onSaved,
+  onDeleted,
 }: ProductDetailSheetProps) {
   const { groups } = useColumnGroups();
   const sections = useMemo(
@@ -132,6 +135,7 @@ export function ProductDetailSheet({
 
   const [draftProduct, setDraftProduct] = useState<TourProduct | null>(product);
   const [editMode, setEditMode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -273,6 +277,22 @@ export function ProductDetailSheet({
   }
 
   if (!draftProduct) return null;
+
+  const handleDelete = async () => {
+    if (!draftProduct) return;
+    const res = await fetch('/api/products/bulk', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rowIndexes: [draftProduct.rowIndex] }),
+    });
+    if (res.ok) {
+      toast.success('Product deleted');
+      onDeleted?.();
+      onOpenChange(false);
+    } else {
+      toast.error('Delete failed');
+    }
+  };
 
   const handleFieldSaved = (field: keyof Omit<TourProduct, 'rowIndex'>, rawValue: string) => {
     setDraftProduct((current) => {
@@ -464,6 +484,14 @@ export function ProductDetailSheet({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              Delete
+            </Button>
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Close
             </Button>
@@ -475,6 +503,12 @@ export function ProductDetailSheet({
         onOpenChange={setMoveDialogOpen}
         targetStage={ASSEMBLY_STAGES[0]}
         onConfirm={handleAddToAssemblyConfirm}
+      />
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        count={1}
+        onConfirm={handleDelete}
       />
     </Sheet>
   );
