@@ -48,7 +48,7 @@ export function WrittenProductsClient() {
     fetcher,
     { dedupingInterval: 60_000 },
   );
-  const { data: titlesData } = useSWR<{ titles: string[] }>(
+  const { data: titlesData, isLoading: titlesLoading } = useSWR<{ titles: string[] }>(
     '/api/products/titles',
     fetcher,
     { dedupingInterval: 60_000 },
@@ -123,7 +123,7 @@ export function WrittenProductsClient() {
         if (state === 'yes' && !val) return false;
         if (state === 'no' && val) return false;
       }
-      if (filters.inProducts !== 'all') {
+      if (filters.inProducts !== 'all' && titlesData) {
         const title = parseLinkField(p.textLink ?? '').text.toLowerCase();
         const matched = productTitlesSet.has(title);
         if (filters.inProducts === 'yes' && !matched) return false;
@@ -223,7 +223,7 @@ export function WrittenProductsClient() {
           allProducts={products ?? []}
           filters={filters}
           onFiltersChange={setFilters}
-          titlesLoading={!titlesData}
+          titlesLoading={titlesLoading}
         />
       </div>
 
