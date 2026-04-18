@@ -23,6 +23,8 @@ import {
   type WrittenProductFilters,
 } from '@/lib/written-product-filters';
 import { WrittenProductExportButton } from '@/components/written-products/written-product-export-button';
+import { useEditHistory, type EditRecord } from '@/lib/hooks/use-edit-history';
+import { EditHistoryPopover } from '@/components/ui/edit-history-popover';
 import { WrittenProductForm } from '@/components/written-products/written-product-form';
 import { WrittenViewsBar, type CustomView } from '@/components/written-products/written-views-bar';
 import {
@@ -55,6 +57,7 @@ export function WrittenProductsClient() {
     { dedupingInterval: 60_000 },
   );
   const { mutate } = useSWRConfig();
+  const { history, push, revert } = useEditHistory();
 
   const productTitlesSet = useMemo(
     () => new Set<string>(titlesData?.titles ?? []),
@@ -180,6 +183,43 @@ export function WrittenProductsClient() {
     };
   }, [products]);
 
+  function handleSaveComplete(old: WrittenProduct, updated: WrittenProduct) {
+    const rowLabel =
+      parseLinkField(old.textLink ?? '').text || old.textLink || `Row ${old.rowIndex}`;
+    const changedFields = (Object.keys(updated) as (keyof WrittenProduct)[]).filter(
+      (k) => k !== 'rowIndex' && updated[k] !== old[k],
+    );
+    const n = changedFields.length;
+    const oldRowIndex = old.rowIndex;
+    const oldSnapshot = { ...old };
+    push({
+      rowLabel,
+      fieldLabel: n === 1 ? String(changedFields[0]) : `${n} fields`,
+      oldValueDisplay: 'Previous version',
+      newValueDisplay: 'Updated',
+      revertFn: async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { rowIndex: _rowIndex, ...body } = oldSnapshot;
+        const res = await fetch(`/api/written-products/${oldRowIndex}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        await mutate('/api/written-products');
+      },
+    });
+  }
+
+  async function handleRevert(record: EditRecord) {
+    try {
+      await revert(record);
+      toast.success('Reverted');
+    } catch {
+      toast.error('Revert failed, try again');
+    }
+  }
+
   async function handleCreate(data: Omit<WrittenProduct, 'rowIndex'>) {
     setIsCreating(true);
     try {
@@ -253,6 +293,7 @@ export function WrittenProductsClient() {
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>
+          <EditHistoryPopover history={history} onRevert={handleRevert} />
           <WrittenProductExportButton products={filteredProducts} />
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
@@ -332,6 +373,7 @@ export function WrittenProductsClient() {
         suggestions={suggestions}
         onClose={() => setEditProduct(null)}
         onSaved={handleSaved}
+        onSaveComplete={handleSaveComplete}
         onDelete={(p) => { setEditProduct(null); setDeleteProduct(p); }}
       />
 
