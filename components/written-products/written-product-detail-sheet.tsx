@@ -8,9 +8,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Plus } from 'lucide-react';
+import { ChevronLeft, ExternalLink, Plus } from 'lucide-react';
 import { WrittenProductForm } from './written-product-form';
-import { ProductForm } from '@/components/products/product-form';
+import { ProductFormContent } from '@/components/products/product-form';
 import type { WrittenProduct } from '@/lib/types';
 import { parseLinkField } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -66,94 +66,112 @@ export function WrittenProductDetailSheet({
   }
 
   return (
-    <>
-      <Sheet open={product !== null} onOpenChange={(open) => { if (!open) { setAddProductOpen(false); onClose(); } }}>
-        <SheetContent className="w-[600px] sm:max-w-[600px] p-0 flex flex-col">
-          <div className="border-b border-[hsl(var(--border))] px-6 py-5">
-            <SheetTitle className="text-sm font-medium truncate min-w-0">
-              {product?.textLink ? (() => {
-                const { text, url } = parseLinkField(product.textLink);
-                const displayName = text || url || product.textLink;
-                return (
-                  <span className="inline-flex items-center gap-1.5">
-                    {displayName}
-                    {url && (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    )}
-                  </span>
-                );
-              })() : 'Edit Written Product'}
-            </SheetTitle>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+    <Sheet open={product !== null} onOpenChange={(open) => { if (!open) { setAddProductOpen(false); onClose(); } }}>
+      <SheetContent className="w-[600px] sm:max-w-[600px] p-0 flex flex-col">
+        {addProductOpen ? (
+          <>
+            <div className="border-b border-[hsl(var(--border))] px-6 py-5 flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => setAddProductOpen(false)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <SheetTitle className="text-sm font-medium">Add New Product</SheetTitle>
+            </div>
             {product && (
-              <WrittenProductForm
-                formId={FORM_ID}
-                hideActions
-                initialData={product}
-                onSubmit={handleSubmit}
-                onCancel={onClose}
-                onDelete={() => onDelete(product)}
-                isSubmitting={isSubmitting}
+              <ProductFormContent
+                key={product.rowIndex}
+                defaultValues={buildProductDefaults(product)}
+                written
+                onClose={() => setAddProductOpen(false)}
+                cancelLabel="Back"
               />
             )}
-          </div>
+          </>
+        ) : (
+          <>
+            <div className="border-b border-[hsl(var(--border))] px-6 py-5">
+              <SheetTitle className="text-sm font-medium truncate min-w-0">
+                {product?.textLink ? (() => {
+                  const { text, url } = parseLinkField(product.textLink);
+                  const displayName = text || url || product.textLink;
+                  return (
+                    <span className="inline-flex items-center gap-1.5">
+                      {displayName}
+                      {url && (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </span>
+                  );
+                })() : 'Edit Written Product'}
+              </SheetTitle>
+            </div>
 
-          <div className="flex items-center justify-between gap-2 border-t border-[hsl(var(--border))] px-6 py-4">
-            <div>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
               {product && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => onDelete(product)}
-                  disabled={isSubmitting}
-                >
-                  Delete
-                </Button>
+                <WrittenProductForm
+                  formId={FORM_ID}
+                  hideActions
+                  initialData={product}
+                  onSubmit={handleSubmit}
+                  onCancel={onClose}
+                  onDelete={() => onDelete(product)}
+                  isSubmitting={isSubmitting}
+                />
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {product && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => setAddProductOpen(true)}
-                  disabled={isSubmitting}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add to Products
+
+            <div className="flex items-center justify-between gap-2 border-t border-[hsl(var(--border))] px-6 py-4">
+              <div>
+                {product && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => onDelete(product)}
+                    disabled={isSubmitting}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {product && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setAddProductOpen(true)}
+                    disabled={isSubmitting}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add to Products
+                  </Button>
+                )}
+                <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+                  Cancel
                 </Button>
-              )}
-              <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button type="submit" form={FORM_ID} size="sm" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving…' : 'Save'}
-              </Button>
+                <Button type="submit" form={FORM_ID} size="sm" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-      {product && (
-        <ProductForm
-          open={addProductOpen}
-          onClose={() => setAddProductOpen(false)}
-          defaultValues={buildProductDefaults(product)}
-          written
-        />
-      )}
-    </>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }
