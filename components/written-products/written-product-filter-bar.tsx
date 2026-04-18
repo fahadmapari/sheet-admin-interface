@@ -32,6 +32,7 @@ interface WrittenProductFilterBarProps {
   allProducts: WrittenProduct[];
   filters: WrittenProductFilters;
   onFiltersChange: (filters: WrittenProductFilters) => void;
+  titlesLoading?: boolean;
 }
 
 function MultiSelectPopover({
@@ -178,6 +179,7 @@ export function WrittenProductFilterBar({
   allProducts,
   filters,
   onFiltersChange,
+  titlesLoading = false,
 }: WrittenProductFilterBarProps) {
   const optionsByKey = useMemo(() => {
     const result: Record<string, string[]> = {};
@@ -299,6 +301,18 @@ export function WrittenProductFilterBar({
                               />
                             </FilterSection>
                           ))}
+                          {section === 'Status' && (
+                            <FilterSection label="In Products">
+                              {titlesLoading ? (
+                                <div className="text-xs text-[hsl(var(--text-tertiary))]">Loading…</div>
+                              ) : (
+                                <TriStateToggle
+                                  value={filters.inProducts}
+                                  onChange={(v) => update('inProducts', v)}
+                                />
+                              )}
+                            </FilterSection>
+                          )}
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -327,6 +341,13 @@ export function WrittenProductFilterBar({
               onRemove={() => update(f.key, 'all')}
             />
           ) : null,
+        )}
+        {filters.inProducts !== 'all' && (
+          <ActiveChip
+            key="inProducts"
+            label={`In Products: ${filters.inProducts === 'yes' ? 'Yes' : 'No'}`}
+            onRemove={() => update('inProducts', 'all')}
+          />
         )}
         {isActive && (
           <button
