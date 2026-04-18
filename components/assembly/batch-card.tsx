@@ -27,6 +27,7 @@ interface BatchCardProps {
   isMoving: boolean;
   movingProductRowIndex: number | null;
   isAdmin: boolean;
+  readOnly?: boolean;
   onMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
   onMoveToStage: (batch: AssemblyBatch, targetStage: AssemblyStage) => Promise<void>;
   onMoveProductToNextStage: (product: TourProduct) => Promise<void>;
@@ -45,6 +46,7 @@ export function BatchCard({
   isMoving,
   movingProductRowIndex,
   isAdmin,
+  readOnly = false,
   onMoveToNextStage,
   onMoveToStage,
   onMoveProductToNextStage,
@@ -190,7 +192,7 @@ export function BatchCard({
           <Badge variant="secondary" className="text-xs">
             {batch.productRowIndexes.length}
           </Badge>
-          {nextStage ? (
+          {nextStage && !readOnly ? (
             <div className="ml-2 flex">
               <Button
                 type="button"
@@ -240,7 +242,7 @@ export function BatchCard({
               </DropdownMenu>
             </div>
           ) : null}
-          {isAdmin && (
+          {isAdmin && !readOnly && (
             <Button
               type="button"
               variant="ghost"
@@ -280,12 +282,12 @@ export function BatchCard({
                           Ready
                         </th>
                       )}
-                      {nextStage && (
+                      {nextStage && !readOnly && (
                         <th className="py-1.5 pl-3 text-right text-xs font-medium text-[hsl(var(--text-tertiary))]">
                           Move
                         </th>
                       )}
-                      {isAdmin && (
+                      {isAdmin && !readOnly && (
                         <th className="py-1.5 pl-2 text-right text-xs font-medium text-[hsl(var(--text-tertiary))]" />
                       )}
                     </tr>
@@ -341,7 +343,7 @@ export function BatchCard({
                               )}
                             </td>
                           )}
-                          {nextStage && (
+                          {nextStage && !readOnly && (
                             <td className="py-2 pl-3 text-right">
                               <Button
                                 type="button"
@@ -356,7 +358,7 @@ export function BatchCard({
                               </Button>
                             </td>
                           )}
-                          {isAdmin && (
+                          {isAdmin && !readOnly && (
                             <td className="py-2 pl-2 text-right">
                               <Button
                                 type="button"
