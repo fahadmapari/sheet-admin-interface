@@ -5,7 +5,6 @@ import { useState } from 'react';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,8 @@ import { ProductForm } from '@/components/products/product-form';
 import type { WrittenProduct } from '@/lib/types';
 import { parseLinkField } from '@/lib/utils';
 import { toast } from 'sonner';
+
+const FORM_ID = 'written-product-detail-form';
 
 function buildProductDefaults(wp: WrittenProduct) {
   const { text, url } = parseLinkField(wp.textLink ?? '');
@@ -67,8 +68,8 @@ export function WrittenProductDetailSheet({
   return (
     <>
       <Sheet open={product !== null} onOpenChange={(open) => { if (!open) { setAddProductOpen(false); onClose(); } }}>
-        <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
-          <SheetHeader className="flex-row items-center justify-between gap-2">
+        <SheetContent className="w-[600px] sm:max-w-[600px] p-0 flex flex-col">
+          <div className="border-b border-[hsl(var(--border))] px-6 py-5">
             <SheetTitle className="text-sm font-medium truncate min-w-0">
               {product?.textLink ? (() => {
                 const { text, url } = parseLinkField(product.textLink);
@@ -90,21 +91,13 @@ export function WrittenProductDetailSheet({
                 );
               })() : 'Edit Written Product'}
             </SheetTitle>
-            {product && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1 shrink-0"
-                onClick={() => setAddProductOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add to Products
-              </Button>
-            )}
-          </SheetHeader>
-          <div className="mt-6">
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {product && (
               <WrittenProductForm
+                formId={FORM_ID}
+                hideActions
                 initialData={product}
                 onSubmit={handleSubmit}
                 onCancel={onClose}
@@ -112,6 +105,44 @@ export function WrittenProductDetailSheet({
                 isSubmitting={isSubmitting}
               />
             )}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 border-t border-[hsl(var(--border))] px-6 py-4">
+            <div>
+              {product && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => onDelete(product)}
+                  disabled={isSubmitting}
+                >
+                  Delete
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {product && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => setAddProductOpen(true)}
+                  disabled={isSubmitting}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add to Products
+                </Button>
+              )}
+              <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" form={FORM_ID} size="sm" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>

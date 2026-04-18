@@ -47,6 +47,8 @@ function toInternalForm(data: FormData): InternalForm {
 }
 
 interface WrittenProductFormProps {
+  formId?: string;
+  hideActions?: boolean;
   initialData?: FormData;
   onSubmit: (data: FormData) => Promise<void>;
   onCancel: () => void;
@@ -55,6 +57,8 @@ interface WrittenProductFormProps {
 }
 
 export function WrittenProductForm({
+  formId,
+  hideActions,
   initialData,
   onSubmit,
   onCancel,
@@ -77,7 +81,7 @@ export function WrittenProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         {(
           [
@@ -141,30 +145,32 @@ export function WrittenProductForm({
         ))}
       </div>
 
-      <div className="flex gap-2 justify-between pt-2">
-        <div>
-          {onDelete && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={onDelete}
-              disabled={isSubmitting}
-            >
-              Delete
+      {!hideActions && (
+        <div className="flex gap-2 justify-between pt-2">
+          <div>
+            {onDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={onDelete}
+                disabled={isSubmitting}
+              >
+                Delete
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSubmitting}>
+              Cancel
             </Button>
-          )}
+            <Button type="submit" size="sm" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
-      </div>
+      )}
     </form>
   );
 }
