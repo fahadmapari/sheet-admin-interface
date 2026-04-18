@@ -215,8 +215,8 @@ export function WrittenProductsClient() {
   const filteredCount = filteredProducts.length;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between px-4 py-3 border-b border-[hsl(var(--border))]">
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
             Written Products
@@ -236,31 +236,27 @@ export function WrittenProductsClient() {
         </div>
       </div>
 
-      <div className="px-4 py-2 border-b border-[hsl(var(--border))]">
-        <WrittenViewsBar
-          activeViewId={activeViewId}
-          customViews={customViews}
-          onViewSelect={setActiveViewId}
-          onViewDelete={handleViewDelete}
-          onViewAdd={handleViewAdd}
-        />
-      </div>
+      <WrittenViewsBar
+        activeViewId={activeViewId}
+        customViews={customViews}
+        onViewSelect={setActiveViewId}
+        onViewDelete={handleViewDelete}
+        onViewAdd={handleViewAdd}
+      />
 
-      <div className="px-4 py-2 border-b border-[hsl(var(--border))]">
-        <WrittenProductFilterBar
-          allProducts={products ?? []}
-          filters={filters}
-          onFiltersChange={setFilters}
-          titlesLoading={titlesLoading}
-          trailing={
-            !isLoading ? (
-              <Badge variant="outline" className="shrink-0">
-                {filteredCount} visible
-              </Badge>
-            ) : undefined
-          }
-        />
-      </div>
+      <WrittenProductFilterBar
+        allProducts={products ?? []}
+        filters={filters}
+        onFiltersChange={setFilters}
+        titlesLoading={titlesLoading}
+        trailing={
+          !isLoading ? (
+            <Badge variant="outline" className="shrink-0">
+              {filteredCount} visible
+            </Badge>
+          ) : undefined
+        }
+      />
 
       <div className="flex-1 overflow-hidden min-h-0">
         {isLoading && (
