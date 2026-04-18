@@ -210,7 +210,8 @@ export function ProductForm({ open, onClose, defaultValues, written }: ProductFo
     } else {
       reset({});
     }
-  }, [open, reset]); // defaultValues intentionally omitted — snapshot on open only
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reset]); // defaultValues read only when open transitions to true; snapshot is correct
 
   const onSubmit = async (data: FormData) => {
     const { linkTitle, linkUrl, ...rest } = data;
@@ -219,7 +220,7 @@ export function ProductForm({ open, onClose, defaultValues, written }: ProductFo
     const res = await fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...rest, link, ...(written ? { written: true } : {}) }),
+      body: JSON.stringify({ ...rest, link, ...(written && { written: true }) }),
     });
     if (res.ok) {
       toast.success('Product added');
