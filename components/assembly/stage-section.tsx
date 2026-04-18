@@ -13,6 +13,7 @@ interface StageSectionProps {
   movingBatchId: string | null;
   movingProductRowIndex: number | null;
   isAdmin: boolean;
+  readOnly?: boolean;
   onBatchMoveToNextStage: (batch: AssemblyBatch) => Promise<void>;
   onBatchMoveToStage: (batch: AssemblyBatch, targetStage: AssemblyStage) => Promise<void>;
   onMoveProductToNextStage: (product: TourProduct, batch: AssemblyBatch) => Promise<void>;
@@ -28,6 +29,7 @@ export function StageSection({
   movingBatchId,
   movingProductRowIndex,
   isAdmin,
+  readOnly = false,
   onBatchMoveToNextStage,
   onBatchMoveToStage,
   onMoveProductToNextStage,
@@ -71,6 +73,7 @@ export function StageSection({
                 isMoving={movingBatchId === batch._id}
                 movingProductRowIndex={movingProductRowIndex}
                 isAdmin={isAdmin}
+                readOnly={readOnly}
                 onMoveToNextStage={onBatchMoveToNextStage}
                 onMoveToStage={onBatchMoveToStage}
                 onMoveProductToNextStage={(product) => onMoveProductToNextStage(product, batch)}
