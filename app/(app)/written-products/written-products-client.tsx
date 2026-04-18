@@ -150,15 +150,13 @@ export function WrittenProductsClient() {
         tourType: [],
       };
     }
-    function unique(key: 'country' | 'cityDestination' | 'tourType') {
-      return [
-        ...new Set(
-          products!
-            .map((p) => p[key])
-            .filter((v): v is string => Boolean(v)),
-        ),
-      ].sort();
-    }
+    const unique = (key: 'country' | 'cityDestination' | 'tourType') => [
+      ...new Set(
+        products
+          .map((p) => p[key])
+          .filter((v): v is string => Boolean(v)),
+      ),
+    ].sort();
     return {
       country: unique('country'),
       cityDestination: unique('cityDestination'),
