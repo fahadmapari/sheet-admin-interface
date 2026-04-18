@@ -6,6 +6,20 @@ import { type PresenceUser } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
+const PRESENCE_TTL_SECONDS = 15;
+
+let _indexesReady: Promise<void> | null = null;
+
+async function ensureIndexes(db: import('mongodb').Db): Promise<void> {
+  if (_indexesReady) return _indexesReady;
+  _indexesReady = (async () => {
+    const col = db.collection('presence');
+    await col.createIndex({ lastSeen: 1 }, { expireAfterSeconds: PRESENCE_TTL_SECONDS });
+    await col.createIndex({ page: 1, lastSeen: 1 });
+  })();
+  return _indexesReady;
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,17 +30,20 @@ export async function POST(request: Request) {
     const body = await request.json() as { page: string };
     const { page } = body;
 
+    if (!page || typeof page !== 'string') {
+      return NextResponse.json({ error: 'Missing page' }, { status: 400 });
+    }
+
     const db = await getDb();
+    await ensureIndexes(db);
     const presenceCol = db.collection('presence');
-    await presenceCol.createIndex({ lastSeen: 1 }, { expireAfterSeconds: 15 });
-    await presenceCol.createIndex({ page: 1 });
 
     await presenceCol.updateOne(
       { email: session.user.email },
       {
         $set: {
           email: session.user.email,
-          name: session.user.name ?? '',
+          name: session.user.name ?? session.user.email,
           image: session.user.image ?? null,
           page,
           lastSeen: new Date(),
@@ -57,11 +74,10 @@ export async function GET(request: Request) {
     }
 
     const db = await getDb();
+    await ensureIndexes(db);
     const presenceCol = db.collection('presence');
-    await presenceCol.createIndex({ lastSeen: 1 }, { expireAfterSeconds: 15 });
-    await presenceCol.createIndex({ page: 1 });
 
-    const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000);
+    const fifteenSecondsAgo = new Date(Date.now() - PRESENCE_TTL_SECONDS * 1000);
 
     const raw = await presenceCol
       .find({
@@ -74,7 +90,7 @@ export async function GET(request: Request) {
     const users: PresenceUser[] = raw.map((doc) => ({
       email: doc.email as string,
       name: doc.name as string,
-      image: (doc.image ?? null) as string | null,
+      image: doc.image ?? null,
     }));
 
     return NextResponse.json({ users });
