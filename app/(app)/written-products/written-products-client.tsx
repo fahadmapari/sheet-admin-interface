@@ -4,13 +4,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import type { VisibilityState } from '@tanstack/react-table';
-import { Plus } from 'lucide-react';
+import { Plus, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { WrittenProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
-import { parseLinkField } from '@/lib/utils';
+import { cn, parseLinkField } from '@/lib/utils';
 import { WrittenProductTable } from '@/components/written-products/written-product-table';
 import { WrittenProductDetailSheet } from '@/components/written-products/written-product-detail-sheet';
 import {
@@ -68,6 +68,7 @@ export function WrittenProductsClient() {
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeViewId, setActiveViewId] = useState<string>('default');
   const [customViews, setCustomViews] = useState<CustomView[]>([]);
 
@@ -79,6 +80,20 @@ export function WrittenProductsClient() {
       // ignore malformed storage
     }
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    document.body.style.overflow = isFullscreen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isFullscreen]);
 
   const columnVisibility = useMemo((): VisibilityState => {
     if (activeViewId === 'default') return { country: false, cityDestination: false, state: false, ssNotes: false };
@@ -228,6 +243,16 @@ export function WrittenProductsClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => setIsFullscreen(true)}
+            aria-label="Enter fullscreen"
+            title="Fullscreen"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
           <WrittenProductExportButton products={filteredProducts} />
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
@@ -258,7 +283,26 @@ export function WrittenProductsClient() {
         }
       />
 
-      <div className="flex-1 overflow-hidden min-h-0">
+      <div
+        className={cn(
+          'flex min-h-0 flex-col overflow-hidden',
+          isFullscreen
+            ? 'fixed inset-0 z-40 bg-[hsl(var(--background))] flex-1'
+            : 'flex-1',
+        )}
+      >
+        {isFullscreen && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-3 right-3 z-10 h-7 w-7 p-0"
+            onClick={() => setIsFullscreen(false)}
+            aria-label="Exit fullscreen"
+            title="Exit fullscreen (Esc)"
+          >
+            <Minimize2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
         {isLoading && (
           <div className="flex items-center justify-center h-40 text-sm text-[hsl(var(--text-tertiary))]">
             Loading…
