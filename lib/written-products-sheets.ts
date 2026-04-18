@@ -1,6 +1,7 @@
 // lib/written-products-sheets.ts
 import 'server-only';
 import { getUserSheetsClient } from '@/lib/sheets';
+import { colIndexToLetter } from '@/lib/column-utils';
 
 function getSpreadsheetId(): string {
   const v = process.env.WRITTEN_PRODUCTS_SPREADSHEET_ID;
@@ -104,9 +105,10 @@ export async function updateWrittenProductRow(
   values: string[],
 ): Promise<void> {
   const sheets = getUserSheetsClient(accessToken);
+  const endCol = colIndexToLetter(values.length - 1);
   await sheets.spreadsheets.values.update({
     spreadsheetId: getSpreadsheetId(),
-    range: `'${SHEET_NAME}'!A${rowIndex}:M${rowIndex}`,
+    range: `'${SHEET_NAME}'!A${rowIndex}:${endCol}${rowIndex}`,
     valueInputOption: 'RAW',
     requestBody: { values: [values] },
   });
