@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MobileSidebar } from '@/components/layout/sidebar';
+import { PresenceAvatars } from '@/components/layout/presence-avatars';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 
 function formatSegment(segment: string) {
@@ -95,6 +96,7 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-1">
+        <PresenceAvatars page={pathname} />
         <ThemeToggle />
         <NotificationBell />
         <DropdownMenu>
