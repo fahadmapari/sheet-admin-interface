@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
     // 2. Delete empty batches
     await col.deleteMany({ productRowIndexes: { $size: 0 } });
 
+    const uploadedAtUpdate = targetStage === 'Uploaded' ? { $set: { uploadedAt: new Date() } } : {};
+
     // 3. Resolve target batch
     let targetBatchId: ObjectId = new ObjectId();
 
@@ -49,18 +51,22 @@ export async function POST(req: NextRequest) {
       targetBatchId = new ObjectId(batchStrategy.batchId);
       await col.updateOne(
         { _id: targetBatchId },
-        { $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document },
+        {
+          $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document,
+          ...uploadedAtUpdate,
+        },
       );
     } else {
       const batchName = batchStrategy.name ?? todayIso();
       const existing = await col.findOne({ stage: targetStage, name: batchName });
 
-      // Reuse an existing batch with the same stage+name so partial moves and
-      // whole-batch moves continue to consolidate into one visible batch.
       if (existing) {
         await col.updateOne(
           { _id: existing._id },
-          { $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document },
+          {
+            $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document,
+            ...uploadedAtUpdate,
+          },
         );
         targetBatchId = existing._id;
       } else {
@@ -69,6 +75,7 @@ export async function POST(req: NextRequest) {
           stage: targetStage,
           productRowIndexes: rowIndexes,
           createdAt: new Date(),
+          ...(targetStage === 'Uploaded' && { uploadedAt: new Date() }),
         });
         targetBatchId = res.insertedId;
       }
@@ -87,7 +94,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fan out notifications (fire-and-forget — failure must not block the move)
+    // Fan out notifications (fire-and-forget)
     try {
       const movedBatch = await col.findOne({ _id: targetBatchId });
       await fanOutNotifications({
