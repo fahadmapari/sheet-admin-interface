@@ -246,20 +246,20 @@ export function WrittenProductsClient() {
         />
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-[hsl(var(--border))]">
-        <div className="flex-1">
-          <WrittenProductFilterBar
-            allProducts={products ?? []}
-            filters={filters}
-            onFiltersChange={setFilters}
-            titlesLoading={titlesLoading}
-          />
-        </div>
-        {!isLoading && (
-          <Badge variant="outline" className="shrink-0">
-            {filteredCount} visible
-          </Badge>
-        )}
+      <div className="px-4 py-2 border-b border-[hsl(var(--border))]">
+        <WrittenProductFilterBar
+          allProducts={products ?? []}
+          filters={filters}
+          onFiltersChange={setFilters}
+          titlesLoading={titlesLoading}
+          trailing={
+            !isLoading ? (
+              <Badge variant="outline" className="shrink-0">
+                {filteredCount} visible
+              </Badge>
+            ) : undefined
+          }
+        />
       </div>
 
       <div className="flex-1 overflow-hidden min-h-0">

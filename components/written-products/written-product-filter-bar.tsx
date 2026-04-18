@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ interface WrittenProductFilterBarProps {
   filters: WrittenProductFilters;
   onFiltersChange: (filters: WrittenProductFilters) => void;
   titlesLoading?: boolean;
+  trailing?: React.ReactNode;
 }
 
 function MultiSelectPopover({
@@ -180,6 +181,7 @@ export function WrittenProductFilterBar({
   filters,
   onFiltersChange,
   titlesLoading = false,
+  trailing,
 }: WrittenProductFilterBarProps) {
   const optionsByKey = useMemo(() => {
     const result: Record<string, string[]> = {};
@@ -204,23 +206,26 @@ export function WrittenProductFilterBar({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Search input — full width */}
-      <div className="relative">
-        <Input
-          placeholder="Search…"
-          value={filters.search}
-          onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-          className="h-8 w-full text-sm pr-7"
-        />
-        {filters.search && (
-          <button
-            type="button"
-            onClick={() => onFiltersChange({ ...filters, search: '' })}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))]"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
+      {/* Search input row */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Input
+            placeholder="Search…"
+            value={filters.search}
+            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+            className="h-8 w-full text-sm pr-7"
+          />
+          {filters.search && (
+            <button
+              type="button"
+              onClick={() => onFiltersChange({ ...filters, search: '' })}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {trailing}
       </div>
 
       {/* Filter button + active chips on the same row */}
