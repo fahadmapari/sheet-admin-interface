@@ -6,6 +6,7 @@ import useSWR, { useSWRConfig } from 'swr';
 import type { VisibilityState } from '@tanstack/react-table';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { WrittenProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
@@ -210,22 +211,27 @@ export function WrittenProductsClient() {
     );
   }
 
+  const totalCount = products?.length ?? 0;
+  const filteredCount = filteredProducts.length;
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[hsl(var(--border))]">
-        <h1 className="text-sm font-medium text-[hsl(var(--text-primary))]">
-          Written Products
-          {filteredProducts.length > 0 && (
-            <span className="ml-2 text-[hsl(var(--text-tertiary))] font-normal">
-              ({filteredProducts.length})
-            </span>
-          )}
-        </h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between px-4 py-3 border-b border-[hsl(var(--border))]">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Written Products
+          </h1>
+          <p className="mt-1 text-sm text-[hsl(var(--text-secondary))]">
+            {isLoading
+              ? 'Loading...'
+              : `Showing ${filteredCount} of ${totalCount} written products`}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <WrittenProductExportButton products={filteredProducts} />
-          <Button size="sm" className="h-8 gap-1.5 text-sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-3.5 w-3.5" />
-            Add
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            Add Written Product
           </Button>
         </div>
       </div>
@@ -240,13 +246,20 @@ export function WrittenProductsClient() {
         />
       </div>
 
-      <div className="px-4 py-2 border-b border-[hsl(var(--border))]">
-        <WrittenProductFilterBar
-          allProducts={products ?? []}
-          filters={filters}
-          onFiltersChange={setFilters}
-          titlesLoading={titlesLoading}
-        />
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[hsl(var(--border))]">
+        <div className="flex-1">
+          <WrittenProductFilterBar
+            allProducts={products ?? []}
+            filters={filters}
+            onFiltersChange={setFilters}
+            titlesLoading={titlesLoading}
+          />
+        </div>
+        {!isLoading && (
+          <Badge variant="outline" className="shrink-0">
+            {filteredCount} visible
+          </Badge>
+        )}
       </div>
 
       <div className="flex-1 overflow-hidden min-h-0">
