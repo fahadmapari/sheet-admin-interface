@@ -172,9 +172,11 @@ type FormData = z.infer<typeof schema>;
 interface ProductFormProps {
   open: boolean;
   onClose: () => void;
+  defaultValues?: Partial<FormData>;
+  written?: boolean;
 }
 
-export function ProductForm({ open, onClose }: ProductFormProps) {
+export function ProductForm({ open, onClose, defaultValues, written }: ProductFormProps) {
   const { mutate } = useSWRConfig();
   const { data: products } = useSWR<TourProduct[]>('/api/products', fetcher);
 
@@ -203,10 +205,12 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
   });
 
   useEffect(() => {
-    if (!open) {
-      reset();
+    if (open) {
+      reset(defaultValues ?? {});
+    } else {
+      reset({});
     }
-  }, [open, reset]);
+  }, [open, reset]); // defaultValues intentionally omitted — snapshot on open only
 
   const onSubmit = async (data: FormData) => {
     const { linkTitle, linkUrl, ...rest } = data;
@@ -215,7 +219,7 @@ export function ProductForm({ open, onClose }: ProductFormProps) {
     const res = await fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...rest, link }),
+      body: JSON.stringify({ ...rest, link, ...(written ? { written: true } : {}) }),
     });
     if (res.ok) {
       toast.success('Product added');
