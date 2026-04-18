@@ -228,3 +228,9 @@ export interface WrittenProduct {
   b2c: boolean;
   ssNotes: boolean;
 }
+
+export interface PresenceUser {
+  email: string;
+  name: string;
+  image: string | null;
+}
