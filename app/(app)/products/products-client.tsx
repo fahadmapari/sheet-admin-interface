@@ -31,7 +31,10 @@ import { toast } from "sonner";
 import { ASSEMBLY_STAGES } from "@/lib/types";
 import type { TourProduct, AssemblyStage } from "@/lib/types";
 import { fetcher } from "@/lib/fetcher";
-import { cn } from "@/lib/utils";
+import { cn, parseLinkField } from "@/lib/utils";
+import { useEditHistory, type EditRecord } from '@/lib/hooks/use-edit-history';
+import { EditHistoryPopover } from '@/components/ui/edit-history-popover';
+import { FIELD_LABELS } from '@/lib/constants';
 import {
   DEFAULT_FILTERS,
   MULTI_SELECT_FILTERS,
@@ -157,6 +160,51 @@ export function ProductsClient({
   }, [filters, globalSearch, updateUrl]);
 
   const { mutate } = useSWRConfig();
+  const { history, push, revert } = useEditHistory();
+
+  const handleProductSaveSuccess = useCallback(
+    (field: string, oldValue: string, newValue: string) => {
+      if (!selectedProduct) return;
+      const rowLabel =
+        selectedProduct.productName ||
+        parseLinkField(selectedProduct.link ?? '').text ||
+        `Row ${selectedProduct.rowIndex}`;
+      const fieldLabel = FIELD_LABELS[field as keyof typeof FIELD_LABELS] ?? field;
+      const rowIndex = selectedProduct.rowIndex;
+      push({
+        rowLabel,
+        fieldLabel,
+        oldValueDisplay: oldValue,
+        newValueDisplay: newValue,
+        revertFn: async () => {
+          const res = await fetch(`/api/products/${rowIndex}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field, value: oldValue }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data?.error ?? `HTTP ${res.status}`);
+          }
+          mutate('/api/products');
+        },
+      });
+    },
+    [selectedProduct, push, mutate],
+  );
+
+  const handleRevert = useCallback(
+    async (record: EditRecord) => {
+      try {
+        await revert(record);
+        toast.success('Reverted');
+      } catch {
+        toast.error('Revert failed, try again');
+      }
+    },
+    [revert],
+  );
+
   const {
     data: products,
     error,
@@ -433,6 +481,7 @@ export function ProductsClient({
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
           )}
+          <EditHistoryPopover history={history} onRevert={handleRevert} />
           <ExportButton
             products={searchedProducts}
             columnVisibility={columnVisibility}
@@ -545,6 +594,7 @@ export function ProductsClient({
           setSelectedProduct(null);
           mutate("/api/products");
         }}
+        onSaveSuccess={handleProductSaveSuccess}
       />
       <ProductForm open={addOpen} onClose={() => setAddOpen(false)} />
       <DeleteConfirmDialog
