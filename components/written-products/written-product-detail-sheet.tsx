@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ExternalLink, Plus } from 'lucide-react';
+import { ChevronLeft, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { WrittenProductForm } from './written-product-form';
 import { ProductFormContent } from '@/components/products/product-form';
 import type { WrittenProduct } from '@/lib/types';
@@ -155,12 +155,12 @@ export function WrittenProductDetailSheet({
                 {product && (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => onDelete(product)}
                     disabled={isSubmitting}
                   >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                     Delete
                   </Button>
                 )}

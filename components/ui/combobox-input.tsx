@@ -12,6 +12,7 @@ interface ComboboxInputProps {
   options: string[];
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
 export function ComboboxInput({
@@ -21,6 +22,7 @@ export function ComboboxInput({
   options,
   placeholder,
   className,
+  required,
 }: ComboboxInputProps) {
   const [open, setOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -52,6 +54,7 @@ export function ComboboxInput({
           onFocus={() => { setOpen(true); setIsTyping(false); }}
           placeholder={placeholder}
           className={className}
+          required={required}
           autoComplete="new-password"
         />
       </PopoverAnchor>

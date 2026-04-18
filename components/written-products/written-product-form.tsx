@@ -100,12 +100,12 @@ export function WrittenProductForm({
       <div className="grid grid-cols-2 gap-4">
         {(
           [
-            { key: 'country', label: 'Country' },
-            { key: 'cityDestination', label: 'City / Destination' },
-            { key: 'state', label: 'State' },
-            { key: 'tourType', label: 'Tour Type' },
+            { key: 'country', label: 'Country', required: true },
+            { key: 'cityDestination', label: 'City / Destination', required: true },
+            { key: 'state', label: 'State', required: false },
+            { key: 'tourType', label: 'Tour Type', required: true },
           ] as const
-        ).map(({ key, label }) => {
+        ).map(({ key, label, required }) => {
           const opts =
             key === 'country' ? suggestions?.country :
             key === 'cityDestination' ? suggestions?.cityDestination :
@@ -114,7 +114,7 @@ export function WrittenProductForm({
           return (
             <div key={key} className="space-y-1">
               <Label htmlFor={key} className="text-sm">
-                {label}
+                {label}{required && <span className="text-destructive"> *</span>}
               </Label>
               {opts && opts.length > 0 ? (
                 <ComboboxInput
@@ -123,6 +123,7 @@ export function WrittenProductForm({
                   onChange={(v) => setField(key, v)}
                   options={opts}
                   className="h-8 text-sm"
+                  required={required}
                 />
               ) : (
                 <Input
@@ -130,6 +131,7 @@ export function WrittenProductForm({
                   value={form[key]}
                   onChange={(e) => setField(key, e.target.value)}
                   className="h-8 text-sm"
+                  required={required}
                 />
               )}
             </div>
@@ -137,7 +139,7 @@ export function WrittenProductForm({
         })}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-3">
         <div className="space-y-1">
           <Label htmlFor="textLink" className="text-sm">
             Link / Title <span className="text-destructive">*</span>
