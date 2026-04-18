@@ -8,11 +8,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ExternalLink, Plus } from 'lucide-react';
 import { WrittenProductForm } from './written-product-form';
+import { ProductForm } from '@/components/products/product-form';
 import type { WrittenProduct } from '@/lib/types';
 import { parseLinkField } from '@/lib/utils';
 import { toast } from 'sonner';
+
+function buildProductDefaults(wp: WrittenProduct) {
+  const { text, url } = parseLinkField(wp.textLink ?? '');
+  return {
+    country: wp.country ?? '',
+    city: wp.cityDestination ?? '',
+    productType: wp.tourType ?? '',
+    linkTitle: text ?? '',
+    linkUrl: url ?? '',
+  };
+}
 
 interface WrittenProductDetailSheetProps {
   product: WrittenProduct | null;
@@ -28,6 +41,7 @@ export function WrittenProductDetailSheet({
   onDelete,
 }: WrittenProductDetailSheetProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addProductOpen, setAddProductOpen] = useState(false);
 
   async function handleSubmit(data: Omit<WrittenProduct, 'rowIndex'>) {
     if (!product) return;
@@ -51,43 +65,64 @@ export function WrittenProductDetailSheet({
   }
 
   return (
-    <Sheet open={product !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-sm font-medium truncate pr-4">
-            {product?.textLink ? (() => {
-              const { text, url } = parseLinkField(product.textLink);
-              const displayName = text || url || product.textLink;
-              return (
-                <span className="inline-flex items-center gap-1.5">
-                  {displayName}
-                  {url && (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                </span>
-              );
-            })() : 'Edit Written Product'}
-          </SheetTitle>
-        </SheetHeader>
-        <div className="mt-6">
-          {product && (
-            <WrittenProductForm
-              initialData={product}
-              onSubmit={handleSubmit}
-              onCancel={onClose}
-              onDelete={() => onDelete(product)}
-              isSubmitting={isSubmitting}
-            />
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+    <>
+      <Sheet open={product !== null} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-sm font-medium truncate pr-4">
+              {product?.textLink ? (() => {
+                const { text, url } = parseLinkField(product.textLink);
+                const displayName = text || url || product.textLink;
+                return (
+                  <span className="inline-flex items-center gap-1.5">
+                    {displayName}
+                    {url && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))] transition-colors"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </span>
+                );
+              })() : 'Edit Written Product'}
+            </SheetTitle>
+            {product && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1 self-start"
+                onClick={() => setAddProductOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add to Products
+              </Button>
+            )}
+          </SheetHeader>
+          <div className="mt-6">
+            {product && (
+              <WrittenProductForm
+                initialData={product}
+                onSubmit={handleSubmit}
+                onCancel={onClose}
+                onDelete={() => onDelete(product)}
+                isSubmitting={isSubmitting}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+      {product && (
+        <ProductForm
+          open={addProductOpen}
+          onClose={() => setAddProductOpen(false)}
+          defaultValues={buildProductDefaults(product)}
+          written
+        />
+      )}
+    </>
   );
 }
