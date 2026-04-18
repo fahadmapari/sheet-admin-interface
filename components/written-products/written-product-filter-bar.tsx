@@ -221,125 +221,122 @@ export function WrittenProductFilterBar({
         )}
       </div>
 
-      {/* Sheet trigger */}
-      <div className="w-fit">
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className={`gap-1.5 ${isActive ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters
-            {isActive && (
-              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
-                {activeCount}
-              </span>
-            )}
-          </Button>
-        </SheetTrigger>
-
-        <SheetContent side="right" style={{ width: '390px', maxWidth: '100vw' }} className="flex flex-col gap-0 p-0">
-          <SheetHeader className="flex flex-row items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4">
-            <SheetTitle>Filters</SheetTitle>
-            {isActive && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))]"
-                onClick={() => onFiltersChange(DEFAULT_WP_FILTERS)}
-              >
-                Clear all
-              </Button>
-            )}
-          </SheetHeader>
-
-          <div className="flex-1 overflow-y-auto">
-            <Accordion
-              type="multiple"
-              defaultValue={WP_DEFAULT_OPEN_FILTER_SECTIONS}
-              className="px-5"
+      {/* Filter button + active chips on the same row */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`shrink-0 gap-1.5 ${isActive ? 'border-[hsl(var(--accent))] text-[hsl(var(--accent))]' : ''}`}
             >
-              {WP_FILTER_SECTIONS.map((section) => {
-                const multiSelects = WP_MULTI_SELECT_FILTERS.filter((f) => f.section === section);
-                const triStates = WP_TRI_STATE_FILTERS.filter((f) => f.section === section);
-                const sectionCount = getWPActiveFilterCountForSection(filters, section);
-                if (!multiSelects.length && !triStates.length) return null;
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filters
+              {isActive && (
+                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
+                  {activeCount}
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
 
-                return (
-                  <AccordionItem key={section} value={section}>
-                    <AccordionTrigger>
-                      <span className="flex items-center gap-2">
-                        {section}
-                        {sectionCount > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] px-1 text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
-                            {sectionCount}
-                          </span>
-                        )}
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="flex flex-col gap-4">
-                        {multiSelects.map((f) => (
-                          <FilterSection key={f.key} label={f.label}>
-                            <MultiSelectPopover
-                              label={f.buttonLabel}
-                              options={optionsByKey[f.key] ?? []}
-                              selected={filters[f.key]}
-                              onChange={(v) => update(f.key, v)}
-                            />
-                          </FilterSection>
-                        ))}
-                        {triStates.map((f) => (
-                          <FilterSection key={f.key} label={f.label}>
-                            <TriStateToggle
-                              value={filters[f.key]}
-                              onChange={(v) => update(f.key, v)}
-                            />
-                          </FilterSection>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </div>
-        </SheetContent>
-      </Sheet>
+          <SheetContent side="right" style={{ width: '390px', maxWidth: '100vw' }} className="flex flex-col gap-0 p-0">
+            <SheetHeader className="flex flex-row items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4">
+              <SheetTitle>Filters</SheetTitle>
+              {isActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-[hsl(var(--text-tertiary))] hover:text-[hsl(var(--text-primary))]"
+                  onClick={() => onFiltersChange(DEFAULT_WP_FILTERS)}
+                >
+                  Clear all
+                </Button>
+              )}
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto">
+              <Accordion
+                type="multiple"
+                defaultValue={WP_DEFAULT_OPEN_FILTER_SECTIONS}
+                className="px-5"
+              >
+                {WP_FILTER_SECTIONS.map((section) => {
+                  const multiSelects = WP_MULTI_SELECT_FILTERS.filter((f) => f.section === section);
+                  const triStates = WP_TRI_STATE_FILTERS.filter((f) => f.section === section);
+                  const sectionCount = getWPActiveFilterCountForSection(filters, section);
+                  if (!multiSelects.length && !triStates.length) return null;
+
+                  return (
+                    <AccordionItem key={section} value={section}>
+                      <AccordionTrigger>
+                        <span className="flex items-center gap-2">
+                          {section}
+                          {sectionCount > 0 && (
+                            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(var(--accent))] px-1 text-[10px] font-medium text-[hsl(var(--accent-foreground))]">
+                              {sectionCount}
+                            </span>
+                          )}
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="flex flex-col gap-4">
+                          {multiSelects.map((f) => (
+                            <FilterSection key={f.key} label={f.label}>
+                              <MultiSelectPopover
+                                label={f.buttonLabel}
+                                options={optionsByKey[f.key] ?? []}
+                                selected={filters[f.key]}
+                                onChange={(v) => update(f.key, v)}
+                              />
+                            </FilterSection>
+                          ))}
+                          {triStates.map((f) => (
+                            <FilterSection key={f.key} label={f.label}>
+                              <TriStateToggle
+                                value={filters[f.key]}
+                                onChange={(v) => update(f.key, v)}
+                              />
+                            </FilterSection>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Active chips inline with the button */}
+        {WP_MULTI_SELECT_FILTERS.flatMap((f) =>
+          filters[f.key].map((value) => (
+            <ActiveChip
+              key={`${f.key}-${value}`}
+              label={`${f.label}: ${value}`}
+              onRemove={() => update(f.key, filters[f.key].filter((v) => v !== value))}
+            />
+          )),
+        )}
+        {WP_TRI_STATE_FILTERS.map((f) =>
+          filters[f.key] !== 'all' ? (
+            <ActiveChip
+              key={f.key}
+              label={`${f.chipLabel}: ${filters[f.key] === 'yes' ? 'Yes' : 'No'}`}
+              onRemove={() => update(f.key, 'all')}
+            />
+          ) : null,
+        )}
+        {isActive && (
+          <button
+            onClick={() => onFiltersChange(DEFAULT_WP_FILTERS)}
+            className="text-xs text-[hsl(var(--text-tertiary))] underline underline-offset-2 hover:text-[hsl(var(--text-primary))] transition-colors"
+          >
+            Clear all
+          </button>
+        )}
       </div>
-
-      {/* Active chips — multi-select */}
-      {WP_MULTI_SELECT_FILTERS.flatMap((f) =>
-        filters[f.key].map((value) => (
-          <ActiveChip
-            key={`${f.key}-${value}`}
-            label={`${f.label}: ${value}`}
-            onRemove={() => update(f.key, filters[f.key].filter((v) => v !== value))}
-          />
-        )),
-      )}
-
-      {/* Active chips — tri-state */}
-      {WP_TRI_STATE_FILTERS.map((f) =>
-        filters[f.key] !== 'all' ? (
-          <ActiveChip
-            key={f.key}
-            label={`${f.chipLabel}: ${filters[f.key] === 'yes' ? 'Yes' : 'No'}`}
-            onRemove={() => update(f.key, 'all')}
-          />
-        ) : null,
-      )}
-
-      {isActive && (
-        <button
-          onClick={() => onFiltersChange(DEFAULT_WP_FILTERS)}
-          className="text-xs text-[hsl(var(--text-tertiary))] underline underline-offset-2 hover:text-[hsl(var(--text-primary))] transition-colors"
-        >
-          Clear all
-        </button>
-      )}
     </div>
   );
 }
