@@ -11,6 +11,7 @@ import { rowToWrittenProduct, writtenProductToRow } from '@/lib/written-products
 import { parseLinkField } from '@/lib/utils';
 import type { WrittenProduct } from '@/lib/types';
 import { invalidateWrittenProductsCache } from '@/lib/written-products-cache';
+import { getEffectiveWrittenColumnMap } from '@/lib/written-column-mapping';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,11 +28,14 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     const rowIndex = parseRowIndex(rowIndexStr);
     if (rowIndex === null) return NextResponse.json({ error: 'Invalid row index' }, { status: 400 });
 
-    const accessToken = await requireGoogleAccessToken();
+    const [accessToken, colMap] = await Promise.all([
+      requireGoogleAccessToken(),
+      getEffectiveWrittenColumnMap(),
+    ]);
     const rows = await fetchAllWrittenProductRows(accessToken);
     const row = rows[rowIndex - 1];
     if (!row) return NextResponse.json({ error: 'Row not found' }, { status: 404 });
-    return NextResponse.json(rowToWrittenProduct(row, rowIndex));
+    return NextResponse.json(rowToWrittenProduct(row, rowIndex, undefined, colMap));
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const status = err instanceof GoogleAccessTokenError ? err.status : 500;
@@ -45,9 +49,12 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     const rowIndex = parseRowIndex(rowIndexStr);
     if (rowIndex === null) return NextResponse.json({ error: 'Invalid row index' }, { status: 400 });
 
-    const accessToken = await requireGoogleAccessToken();
+    const [accessToken, colMap] = await Promise.all([
+      requireGoogleAccessToken(),
+      getEffectiveWrittenColumnMap(),
+    ]);
     const body = (await req.json()) as Omit<WrittenProduct, 'rowIndex'>;
-    const values = writtenProductToRow(body);
+    const values = writtenProductToRow(body, colMap);
     const { text, url } = parseLinkField(body.textLink || '');
     await updateWrittenProductRow(accessToken, rowIndex, values);
     if (url) {
