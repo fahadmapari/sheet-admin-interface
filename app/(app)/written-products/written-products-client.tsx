@@ -48,7 +48,17 @@ export function WrittenProductsClient() {
     fetcher,
     { dedupingInterval: 60_000 },
   );
+  const { data: titlesData, isLoading: titlesLoading } = useSWR<{ titles: string[] }>(
+    '/api/products/titles',
+    fetcher,
+    { dedupingInterval: 60_000 },
+  );
   const { mutate } = useSWRConfig();
+
+  const productTitlesSet = useMemo(
+    () => new Set<string>(titlesData?.titles ?? []),
+    [titlesData],
+  );
 
   const [filters, setFilters] = useState<WrittenProductFilters>(DEFAULT_WP_FILTERS);
   const [editProduct, setEditProduct] = useState<WrittenProduct | null>(null);
@@ -113,9 +123,15 @@ export function WrittenProductsClient() {
         if (state === 'yes' && !val) return false;
         if (state === 'no' && val) return false;
       }
+      if (filters.inProducts !== 'all' && titlesData) {
+        const title = parseLinkField(p.textLink ?? '').text.toLowerCase();
+        const matched = productTitlesSet.has(title);
+        if (filters.inProducts === 'yes' && !matched) return false;
+        if (filters.inProducts === 'no' && matched) return false;
+      }
       return true;
     });
-  }, [products, filters]);
+  }, [products, filters, productTitlesSet]);
 
   const existingTitles = useMemo(
     () => new Set(
@@ -207,6 +223,7 @@ export function WrittenProductsClient() {
           allProducts={products ?? []}
           filters={filters}
           onFiltersChange={setFilters}
+          titlesLoading={titlesLoading}
         />
       </div>
 
@@ -232,6 +249,11 @@ export function WrittenProductsClient() {
 
       <WrittenProductDetailSheet
         product={editProduct}
+        inProducts={
+          editProduct
+            ? productTitlesSet.has(parseLinkField(editProduct.textLink ?? '').text.toLowerCase())
+            : false
+        }
         onClose={() => setEditProduct(null)}
         onSaved={handleSaved}
         onDelete={(p) => { setEditProduct(null); setDeleteProduct(p); }}

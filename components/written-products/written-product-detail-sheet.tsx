@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ExternalLink, Plus } from 'lucide-react';
 import { WrittenProductForm } from './written-product-form';
 import { ProductFormContent } from '@/components/products/product-form';
@@ -30,6 +31,7 @@ function buildProductDefaults(wp: WrittenProduct) {
 
 interface WrittenProductDetailSheetProps {
   product: WrittenProduct | null;
+  inProducts: boolean;
   onClose: () => void;
   onSaved: (updated: WrittenProduct) => void;
   onDelete: (product: WrittenProduct) => void;
@@ -37,6 +39,7 @@ interface WrittenProductDetailSheetProps {
 
 export function WrittenProductDetailSheet({
   product,
+  inProducts,
   onClose,
   onSaved,
   onDelete,
@@ -116,6 +119,14 @@ export function WrittenProductDetailSheet({
                   );
                 })() : 'Edit Written Product'}
               </SheetTitle>
+              {inProducts && (
+                <Badge
+                  variant="secondary"
+                  className="mt-1.5 text-xs text-green-700 bg-green-100 border-green-200"
+                >
+                  In Products
+                </Badge>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -148,7 +159,7 @@ export function WrittenProductDetailSheet({
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {product && (
+                {!inProducts && product && (
                   <Button
                     type="button"
                     variant="outline"
