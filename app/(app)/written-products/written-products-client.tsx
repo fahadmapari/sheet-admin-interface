@@ -30,6 +30,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 const ALL_WP_COLUMN_IDS = [
   'textLink', 'country', 'cityDestination', 'state', 'tourType',
@@ -231,19 +237,32 @@ export function WrittenProductsClient() {
         onDelete={(p) => { setEditProduct(null); setDeleteProduct(p); }}
       />
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add Written Product</DialogTitle>
-          </DialogHeader>
-          <WrittenProductForm
-            onSubmit={handleCreate}
-            onCancel={() => setCreateOpen(false)}
-            isSubmitting={isCreating}
-            existingTitles={existingTitles}
-          />
-        </DialogContent>
-      </Dialog>
+      <Sheet open={createOpen} onOpenChange={(open) => { if (!open) setCreateOpen(false); }}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
+          <SheetHeader className="px-6 py-5 border-b">
+            <SheetTitle>Add Written Product</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <WrittenProductForm
+              key={String(createOpen)}
+              formId="add-written-product-form"
+              hideActions
+              onSubmit={handleCreate}
+              onCancel={() => setCreateOpen(false)}
+              isSubmitting={isCreating}
+              existingTitles={existingTitles}
+            />
+          </div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t">
+            <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(false)} disabled={isCreating}>
+              Cancel
+            </Button>
+            <Button type="submit" form="add-written-product-form" size="sm" disabled={isCreating}>
+              {isCreating ? 'Adding…' : 'Add'}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Dialog
         open={deleteProduct !== null}
