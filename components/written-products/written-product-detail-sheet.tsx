@@ -32,6 +32,11 @@ function buildProductDefaults(wp: WrittenProduct) {
 interface WrittenProductDetailSheetProps {
   product: WrittenProduct | null;
   inProducts: boolean;
+  suggestions?: {
+    country?: string[];
+    cityDestination?: string[];
+    tourType?: string[];
+  };
   onClose: () => void;
   onSaved: (updated: WrittenProduct) => void;
   onDelete: (product: WrittenProduct) => void;
@@ -40,6 +45,7 @@ interface WrittenProductDetailSheetProps {
 export function WrittenProductDetailSheet({
   product,
   inProducts,
+  suggestions,
   onClose,
   onSaved,
   onDelete,
@@ -135,6 +141,7 @@ export function WrittenProductDetailSheet({
                   formId={FORM_ID}
                   hideActions
                   initialData={product}
+                  suggestions={suggestions}
                   onSubmit={handleSubmit}
                   onCancel={onClose}
                   onDelete={() => onDelete(product)}
