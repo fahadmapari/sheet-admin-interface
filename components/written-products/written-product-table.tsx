@@ -50,7 +50,7 @@ export function WrittenProductTable({ products, onEdit, columnVisibility = {} }:
         const displayName = text || url || raw;
         return (
           <div className="min-w-0 max-w-[280px] flex items-start gap-1">
-            <span className="font-medium text-sm truncate">{displayName}</span>
+            <span className="font-medium text-sm break-words whitespace-normal">{displayName}</span>
             {url && (
               <a
                 href={url}
@@ -62,6 +62,21 @@ export function WrittenProductTable({ products, onEdit, columnVisibility = {} }:
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'location',
+      header: 'Location',
+      cell: ({ row }) => {
+        const city = row.original.cityDestination;
+        const country = row.original.country;
+        if (!city && !country) return <span className="text-[hsl(var(--text-tertiary))]">—</span>;
+        return (
+          <div className="flex flex-col leading-tight">
+            {city && <span className="text-sm">{city}</span>}
+            {country && <span className="text-xs text-[hsl(var(--text-tertiary))]">{country}</span>}
           </div>
         );
       },
@@ -172,7 +187,7 @@ export function WrittenProductTable({ products, onEdit, columnVisibility = {} }:
                     onClick={() => onEdit(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
+                      <td key={cell.id} className={`px-3 py-2 ${cell.column.id === 'textLink' ? 'whitespace-normal' : 'whitespace-nowrap'}`}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}

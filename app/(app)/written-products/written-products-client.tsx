@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/sheet';
 
 const ALL_WP_COLUMN_IDS = [
-  'textLink', 'country', 'cityDestination', 'state', 'tourType',
+  'textLink', 'location', 'country', 'cityDestination', 'state', 'tourType',
   'ccOk', 'isOk', 'rrOk', 'ssOk', 'contentExist', 'b2b', 'b2c', 'ssNotes',
 ];
 
@@ -80,7 +80,7 @@ export function WrittenProductsClient() {
   }, []);
 
   const columnVisibility = useMemo((): VisibilityState => {
-    if (activeViewId === 'default') return {};
+    if (activeViewId === 'default') return { country: false, cityDestination: false, state: false, ssNotes: false };
     const view = customViews.find((v) => v.id === activeViewId);
     if (!view) return {};
     const cols = new Set(view.columns);

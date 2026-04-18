@@ -17,6 +17,7 @@ export type CustomView = {
 
 const MAIN_COLUMNS = [
   { id: 'textLink', label: 'Text Link' },
+  { id: 'location', label: 'Location (combined)' },
   { id: 'country', label: 'Country' },
   { id: 'cityDestination', label: 'City / Destination' },
   { id: 'state', label: 'State' },
