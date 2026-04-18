@@ -400,3 +400,5 @@ export const FIELD_LABELS: Record<keyof Omit<TourProduct, "rowIndex">, string> =
     dateUploaded: "Date Uploaded",
     productLink: "Product Link",
   };
+
+export const ARCHIVE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;

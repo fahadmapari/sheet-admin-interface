@@ -170,6 +170,7 @@ export interface AssemblyBatch {
   stage: AssemblyStage;
   productRowIndexes: number[];
   createdAt: string;
+  uploadedAt?: string;
 }
 
 export type AssemblyStageData = {
