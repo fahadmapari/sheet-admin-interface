@@ -210,7 +210,6 @@ export function ProductForm({ open, onClose, defaultValues, written }: ProductFo
     } else {
       reset({});
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, reset]); // defaultValues read only when open transitions to true; snapshot is correct
 
   const onSubmit = async (data: FormData) => {
