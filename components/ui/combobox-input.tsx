@@ -49,7 +49,7 @@ export function ComboboxInput({
           }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className={cn('h-8 text-sm', className)}
+          className={className}
           autoComplete="off"
         />
       </PopoverAnchor>
