@@ -23,15 +23,17 @@ export function ComboboxInput({
   className,
 }: ComboboxInputProps) {
   const [open, setOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = options.filter(
-    (opt) => opt.toLowerCase().includes(value.toLowerCase()) && opt !== value,
-  );
+  const filtered = isTyping
+    ? options.filter((opt) => opt.toLowerCase().includes(value.toLowerCase()))
+    : options;
 
   function handleSelect(opt: string) {
     onChange(opt);
     setOpen(false);
+    setIsTyping(false);
     inputRef.current?.blur();
   }
 
@@ -45,8 +47,9 @@ export function ComboboxInput({
           onChange={(e) => {
             onChange(e.target.value);
             setOpen(true);
+            setIsTyping(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { setOpen(true); setIsTyping(false); }}
           placeholder={placeholder}
           className={className}
           autoComplete="new-password"
