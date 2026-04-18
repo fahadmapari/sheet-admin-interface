@@ -142,6 +142,28 @@ export function WrittenProductsClient() {
     [products],
   );
 
+  const suggestions = useMemo(() => {
+    if (!products) {
+      return {
+        country: [],
+        cityDestination: [],
+        tourType: [],
+      };
+    }
+    const unique = (key: 'country' | 'cityDestination' | 'tourType') => [
+      ...new Set(
+        products
+          .map((p) => p[key])
+          .filter((v): v is string => Boolean(v)),
+      ),
+    ].sort();
+    return {
+      country: unique('country'),
+      cityDestination: unique('cityDestination'),
+      tourType: unique('tourType'),
+    };
+  }, [products]);
+
   async function handleCreate(data: Omit<WrittenProduct, 'rowIndex'>) {
     setIsCreating(true);
     try {
@@ -254,6 +276,7 @@ export function WrittenProductsClient() {
             ? productTitlesSet.has(parseLinkField(editProduct.textLink ?? '').text.toLowerCase())
             : false
         }
+        suggestions={suggestions}
         onClose={() => setEditProduct(null)}
         onSaved={handleSaved}
         onDelete={(p) => { setEditProduct(null); setDeleteProduct(p); }}
@@ -269,6 +292,7 @@ export function WrittenProductsClient() {
               key={String(createOpen)}
               formId="add-written-product-form"
               hideActions
+              suggestions={suggestions}
               onSubmit={handleCreate}
               onCancel={() => setCreateOpen(false)}
               isSubmitting={isCreating}
