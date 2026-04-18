@@ -143,15 +143,18 @@ export function WrittenProductTable({ products, onEdit, columnVisibility = {} }:
       : 0;
 
   return (
-    <div ref={containerRef} className="h-full overflow-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead className="sticky top-0 z-10 bg-[hsl(var(--surface))]">
+    <div
+      ref={containerRef}
+      className="flex items-start min-h-0 flex-1 overflow-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))]"
+    >
+      <table className="w-full min-w-[640px] text-sm border-collapse table-auto">
+        <thead className="sticky top-0 z-10">
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id} className="border-b border-[hsl(var(--border))]">
+            <tr key={headerGroup.id} className="border-b border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
               {headerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="px-3 py-2 text-left text-xs font-medium text-[hsl(var(--text-tertiary))] uppercase tracking-wide whitespace-nowrap"
+                  className="px-3 py-3 text-left text-xs font-medium text-[hsl(var(--text-secondary))] uppercase tracking-[0.08em] whitespace-nowrap"
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
@@ -164,7 +167,7 @@ export function WrittenProductTable({ products, onEdit, columnVisibility = {} }:
             <tr>
               <td
                 colSpan={table.getVisibleLeafColumns().length}
-                className="px-3 py-8 text-center text-[hsl(var(--text-tertiary))] text-sm"
+                className="py-16 text-center text-[hsl(var(--text-secondary))] text-sm"
               >
                 No written products found.
               </td>
@@ -183,11 +186,11 @@ export function WrittenProductTable({ products, onEdit, columnVisibility = {} }:
                     key={row.id}
                     data-index={virtualRow.index}
                     ref={virtualizer.measureElement}
-                    className="border-b border-[hsl(var(--border))] hover:bg-[hsl(var(--surface))] transition-colors cursor-pointer"
+                    className="group/row border-b last:border-b-0 border-[hsl(var(--border))] hover:bg-[hsl(var(--surface))] transition-colors cursor-pointer"
                     onClick={() => onEdit(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className={`px-3 py-2 ${cell.column.id === 'textLink' ? 'whitespace-normal' : 'whitespace-nowrap'}`}>
+                      <td key={cell.id} className={`h-11 px-3 text-sm ${cell.column.id === 'textLink' ? 'whitespace-normal' : 'whitespace-nowrap'}`}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
