@@ -279,17 +279,20 @@ export function ProductDetailSheet({
   if (!draftProduct) return null;
 
   const handleDelete = async () => {
-    if (!draftProduct) return;
-    const res = await fetch('/api/products/bulk', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rowIndexes: [draftProduct.rowIndex] }),
-    });
-    if (res.ok) {
-      toast.success('Product deleted');
-      onDeleted?.();
-      onOpenChange(false);
-    } else {
+    try {
+      const res = await fetch('/api/products/bulk', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rowIndexes: [draftProduct.rowIndex] }),
+      });
+      if (res.ok) {
+        toast.success('Product deleted');
+        onDeleted?.();
+        onOpenChange(false);
+      } else {
+        toast.error('Delete failed');
+      }
+    } catch {
       toast.error('Delete failed');
     }
   };
