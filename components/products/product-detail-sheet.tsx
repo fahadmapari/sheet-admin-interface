@@ -65,16 +65,17 @@ interface EditableFieldValueProps {
   product: TourProduct;
   field: keyof Omit<TourProduct, 'rowIndex'>;
   onSaved: (field: keyof Omit<TourProduct, 'rowIndex'>, value: string) => void;
+  onSaveSuccess?: (field: string, oldValue: string, newValue: string) => void;
   readOnly?: boolean;
 }
 
-function EditableFieldValue({ product, field, onSaved, readOnly }: EditableFieldValueProps) {
+function EditableFieldValue({ product, field, onSaved, onSaveSuccess, readOnly }: EditableFieldValueProps) {
   const value = product[field];
 
   if (field === 'productStatus') {
     return (
       <div className="flex justify-end">
-        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />
       </div>
     );
   }
@@ -82,7 +83,7 @@ function EditableFieldValue({ product, field, onSaved, readOnly }: EditableField
   if (BOOLEAN_FIELDS.has(field)) {
     return (
       <div className="flex justify-end">
-        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />
       </div>
     );
   }
@@ -91,7 +92,7 @@ function EditableFieldValue({ product, field, onSaved, readOnly }: EditableField
     const active = value && String(value).trim() !== '' && String(value).toLowerCase() !== 'no';
     return (
       <span className={active ? 'text-[hsl(var(--text-primary))]' : 'text-[hsl(var(--text-secondary))]'}>
-        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
+        <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />
       </span>
     );
   }
@@ -99,7 +100,7 @@ function EditableFieldValue({ product, field, onSaved, readOnly }: EditableField
   const isComboboxField = field === 'country' || field === 'city' || field === 'productType';
   return (
     <div className={cn('min-w-0 text-right', isComboboxField && !readOnly ? 'w-[340px]' : 'max-w-[260px]')}>
-      <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} readOnly={readOnly} />
+      <InlineEditCell product={product} field={field} onSaved={(name, next) => onSaved(name as keyof Omit<TourProduct, 'rowIndex'>, next)} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />
     </div>
   );
 }
@@ -110,6 +111,7 @@ interface ProductDetailSheetProps {
   onOpenChange: (open: boolean) => void;
   onSaved?: (product: TourProduct) => void;
   onDeleted?: () => void;
+  onSaveSuccess?: (field: string, oldValue: string, newValue: string) => void;
 }
 
 export function ProductDetailSheet({
@@ -118,6 +120,7 @@ export function ProductDetailSheet({
   onOpenChange,
   onSaved,
   onDeleted,
+  onSaveSuccess,
 }: ProductDetailSheetProps) {
   const { groups } = useColumnGroups();
   const sections = useMemo(
@@ -426,6 +429,7 @@ export function ProductDetailSheet({
                           product={draftProduct}
                           field={field.key as keyof Omit<TourProduct, 'rowIndex'>}
                           onSaved={handleFieldSaved}
+                          onSaveSuccess={onSaveSuccess}
                           readOnly={!editMode}
                         />
                       </div>
