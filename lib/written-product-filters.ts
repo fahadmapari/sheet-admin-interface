@@ -83,6 +83,7 @@ export const WP_TRI_STATE_FILTERS: Array<{
 ];
 
 export function getWPActiveFilterCount(filters: WrittenProductFilters): number {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { search, ...rest } = filters;
   return Object.values(rest).reduce<number>((count, value) => {
     if (Array.isArray(value)) return count + value.length;
