@@ -24,10 +24,10 @@ export function PresenceAvatars({ page }: { page: string }) {
   const overflowCount = users.length - 4;
 
   return (
-    <div className="flex items-center">
-      {visibleUsers.map((user: PresenceUser, index: number) => (
-        <TooltipProvider key={user.email}>
-          <Tooltip>
+    <TooltipProvider>
+      <div className="flex items-center">
+        {visibleUsers.map((user: PresenceUser, index: number) => (
+          <Tooltip key={user.email}>
             <TooltipTrigger asChild>
               <Avatar
                 className={`h-7 w-7 ring-2 ring-[hsl(var(--background))]${index > 0 ? ' -ml-2' : ''}`}
@@ -38,13 +38,13 @@ export function PresenceAvatars({ page }: { page: string }) {
             </TooltipTrigger>
             <TooltipContent>{user.name}</TooltipContent>
           </Tooltip>
-        </TooltipProvider>
-      ))}
-      {overflowCount > 0 && (
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(var(--muted))] text-[10px] font-medium text-[hsl(var(--text-secondary))] -ml-2 ring-2 ring-[hsl(var(--background))]">
-          +{overflowCount}
-        </div>
-      )}
-    </div>
+        ))}
+        {overflowCount > 0 && (
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(var(--muted))] text-[10px] font-medium text-[hsl(var(--text-secondary))] -ml-2 ring-2 ring-[hsl(var(--background))] border border-[hsl(var(--border))]">
+            +{overflowCount}
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }
