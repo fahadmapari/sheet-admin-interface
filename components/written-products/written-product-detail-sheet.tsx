@@ -66,10 +66,10 @@ export function WrittenProductDetailSheet({
 
   return (
     <>
-      <Sheet open={product !== null} onOpenChange={(open) => !open && onClose()}>
+      <Sheet open={product !== null} onOpenChange={(open) => { if (!open) { setAddProductOpen(false); onClose(); } }}>
         <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="text-sm font-medium truncate pr-4">
+          <SheetHeader className="flex-row items-center justify-between gap-2">
+            <SheetTitle className="text-sm font-medium truncate min-w-0">
               {product?.textLink ? (() => {
                 const { text, url } = parseLinkField(product.textLink);
                 const displayName = text || url || product.textLink;
@@ -94,7 +94,7 @@ export function WrittenProductDetailSheet({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs gap-1 self-start"
+                className="h-7 text-xs gap-1 shrink-0"
                 onClick={() => setAddProductOpen(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
