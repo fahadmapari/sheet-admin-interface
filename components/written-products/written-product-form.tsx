@@ -50,6 +50,7 @@ interface WrittenProductFormProps {
   formId?: string;
   hideActions?: boolean;
   initialData?: FormData;
+  existingTitles?: Set<string>;
   onSubmit: (data: FormData) => Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
@@ -60,6 +61,7 @@ export function WrittenProductForm({
   formId,
   hideActions,
   initialData,
+  existingTitles,
   onSubmit,
   onCancel,
   onDelete,
@@ -68,13 +70,19 @@ export function WrittenProductForm({
   const [form, setForm] = useState<InternalForm>(
     initialData ? toInternalForm(initialData) : EMPTY
   );
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   function setField<K extends keyof InternalForm>(key: K, value: InternalForm[K]) {
+    if (key === 'textLink') setTitleError(null);
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (existingTitles && existingTitles.has(form.textLink.trim().toLowerCase())) {
+      setTitleError('A written product with this title already exists');
+      return;
+    }
     const { textLinkUrl, ...rest } = form;
     const textLink = textLinkUrl ? `${rest.textLink}||${textLinkUrl}` : rest.textLink;
     await onSubmit({ ...rest, textLink });
@@ -117,6 +125,9 @@ export function WrittenProductForm({
             className="h-8 text-sm"
             required
           />
+          {titleError && (
+            <p className="text-xs text-destructive">{titleError}</p>
+          )}
         </div>
         <div className="space-y-1">
           <Label htmlFor="textLinkUrl" className="text-sm">URL</Label>

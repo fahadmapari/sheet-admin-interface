@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { WrittenProduct } from '@/lib/types';
 import { fetcher } from '@/lib/fetcher';
+import { parseLinkField } from '@/lib/utils';
 import { WrittenProductTable } from '@/components/written-products/written-product-table';
 import { WrittenProductDetailSheet } from '@/components/written-products/written-product-detail-sheet';
 import {
@@ -109,6 +110,15 @@ export function WrittenProductsClient() {
       return true;
     });
   }, [products, filters]);
+
+  const existingTitles = useMemo(
+    () => new Set(
+      (products ?? [])
+        .map((p) => p.textLink ? parseLinkField(p.textLink).text.trim().toLowerCase() : null)
+        .filter((t): t is string => Boolean(t))
+    ),
+    [products],
+  );
 
   async function handleCreate(data: Omit<WrittenProduct, 'rowIndex'>) {
     setIsCreating(true);
@@ -230,6 +240,7 @@ export function WrittenProductsClient() {
             onSubmit={handleCreate}
             onCancel={() => setCreateOpen(false)}
             isSubmitting={isCreating}
+            existingTitles={existingTitles}
           />
         </DialogContent>
       </Dialog>
