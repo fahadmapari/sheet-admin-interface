@@ -4,6 +4,8 @@ import { useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { Layers } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StageSection } from '@/components/assembly/stage-section';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
 import { fetcher } from '@/lib/fetcher';
@@ -15,10 +17,17 @@ import {
   type TourProduct,
 } from '@/lib/types';
 
+interface ArchivedResponse {
+  batches: AssemblyBatch[];
+}
+
 export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   const { mutate } = useSWRConfig();
   const { data: assemblyData, error: assemblyError, isLoading: assemblyLoading } =
     useSWR<AssemblyResponse>('/api/assembly', fetcher, { dedupingInterval: 10_000 });
+
+  const { data: archivedData, isLoading: archivedLoading } =
+    useSWR<ArchivedResponse>('/api/assembly/archived', fetcher, { dedupingInterval: 60_000 });
 
   const { data: products } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
@@ -67,7 +76,6 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   const handleBatchMoveToNextStage = async (batch: AssemblyBatch) => {
     const nextStage = getNextStage(batch.stage);
     if (!nextStage) return;
-
     await moveBatchToStage(batch, nextStage);
   };
 
@@ -134,6 +142,8 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
     );
   }
 
+  const archivedCount = archivedData?.batches.length ?? 0;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -146,38 +156,86 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
         </p>
       </div>
 
-      {assemblyLoading ? (
-        <div className="space-y-3">
-          {ASSEMBLY_STAGES.map((stage) => (
-            <div
-              key={stage}
-              className="h-14 animate-pulse rounded-lg bg-[hsl(var(--surface))]"
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {ASSEMBLY_STAGES.map((stage) => (
-            <StageSection
-              key={stage}
-              stage={stage}
-              batches={assemblyData?.[stage]?.batches ?? []}
-              products={products ?? []}
-              movingBatchId={movingBatchId}
-              movingProductRowIndex={movingProductRowIndex}
-              isAdmin={isAdmin}
-              onBatchMoveToNextStage={handleBatchMoveToNextStage}
-              onBatchMoveToStage={handleBatchMoveToStage}
-              onMoveProductToNextStage={(product, batch) =>
-                handleProductMoveToNextStage(product, batch)
-              }
-              onProductClick={(product) => setSelectedProduct(product)}
-              onRemoveBatch={handleRemoveBatch}
-              onRemoveProduct={handleRemoveProduct}
-            />
-          ))}
-        </div>
-      )}
+      <Tabs defaultValue="current">
+        <TabsList>
+          <TabsTrigger value="current">Assembly Line</TabsTrigger>
+          <TabsTrigger value="archived" className="gap-1.5">
+            Archived
+            {archivedCount > 0 && (
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {archivedCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="current" className="mt-4">
+          {assemblyLoading ? (
+            <div className="space-y-3">
+              {ASSEMBLY_STAGES.map((stage) => (
+                <div
+                  key={stage}
+                  className="h-14 animate-pulse rounded-lg bg-[hsl(var(--surface))]"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ASSEMBLY_STAGES.map((stage) => (
+                <StageSection
+                  key={stage}
+                  stage={stage}
+                  batches={assemblyData?.[stage]?.batches ?? []}
+                  products={products ?? []}
+                  movingBatchId={movingBatchId}
+                  movingProductRowIndex={movingProductRowIndex}
+                  isAdmin={isAdmin}
+                  onBatchMoveToNextStage={handleBatchMoveToNextStage}
+                  onBatchMoveToStage={handleBatchMoveToStage}
+                  onMoveProductToNextStage={(product, batch) =>
+                    handleProductMoveToNextStage(product, batch)
+                  }
+                  onProductClick={(product) => setSelectedProduct(product)}
+                  onRemoveBatch={handleRemoveBatch}
+                  onRemoveProduct={handleRemoveProduct}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="archived" className="mt-4">
+          {archivedLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 animate-pulse rounded-lg bg-[hsl(var(--surface))]" />
+              ))}
+            </div>
+          ) : archivedCount === 0 ? (
+            <p className="py-6 text-center text-sm text-[hsl(var(--text-tertiary))]">
+              No archived batches yet. Batches move here after spending more than 7 days in Uploaded.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <StageSection
+                stage="Uploaded"
+                batches={archivedData?.batches ?? []}
+                products={[]}
+                movingBatchId={null}
+                movingProductRowIndex={null}
+                isAdmin={false}
+                readOnly={true}
+                onBatchMoveToNextStage={async () => {}}
+                onBatchMoveToStage={async () => {}}
+                onMoveProductToNextStage={async () => {}}
+                onProductClick={() => {}}
+                onRemoveBatch={async () => {}}
+                onRemoveProduct={async () => {}}
+              />
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <ProductDetailSheet
         product={selectedProduct}
