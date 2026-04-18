@@ -59,6 +59,9 @@ export function ComboboxInput({
         className="p-0 w-[var(--radix-popover-trigger-width)]"
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          if (inputRef.current?.contains(e.target as Node)) e.preventDefault();
+        }}
       >
         <Command shouldFilter={false}>
           <CommandList>
