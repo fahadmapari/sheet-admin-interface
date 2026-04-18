@@ -37,7 +37,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import { cn, parseLinkField } from '@/lib/utils';
 import { PRODUCT_STATUSES } from '@/lib/constants';
 import type { TourProduct } from '@/lib/types';
 
@@ -193,10 +193,20 @@ export function ProductFormContent({ defaultValues, written, onClose, cancelLabe
     [products],
   );
 
+  const existingTitles = useMemo(
+    () => new Set(
+      (products ?? [])
+        .map((p) => p.link ? parseLinkField(p.link).text.trim().toLowerCase() : null)
+        .filter((t): t is string => Boolean(t))
+    ),
+    [products],
+  );
+
   const {
     register,
     handleSubmit,
     control,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -205,6 +215,12 @@ export function ProductFormContent({ defaultValues, written, onClose, cancelLabe
 
   const onSubmit = async (data: FormData) => {
     const { linkTitle, linkUrl, ...rest } = data;
+
+    if (existingTitles.has(linkTitle.trim().toLowerCase())) {
+      setError('linkTitle', { message: 'A product with this title already exists' });
+      return;
+    }
+
     const link = `${linkTitle.trim()}||${linkUrl.trim()}`;
 
     const res = await fetch('/api/products', {
