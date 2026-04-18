@@ -6,7 +6,6 @@ import { Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Popover,
   PopoverContent,
@@ -14,7 +13,7 @@ import {
 } from '@/components/ui/popover';
 import type { EditRecord } from '@/lib/hooks/use-edit-history';
 
-function truncate(str: string, max = 30): string {
+function truncate(str: string, max = 20): string {
   return str.length > max ? str.slice(0, max) + '…' : str;
 }
 
@@ -62,7 +61,7 @@ export function EditHistoryPopover({ history, onRevert }: EditHistoryPopoverProp
             No edits this session
           </p>
         ) : (
-          <ScrollArea className="max-h-[min(400px,70vh)]">
+          <div className="max-h-[min(400px,70vh)] overflow-y-auto overflow-x-hidden">
             <div className="divide-y divide-[hsl(var(--border))]">
               {history.map((record) => {
                 const isReverting = revertingId === record.id;
@@ -73,7 +72,7 @@ export function EditHistoryPopover({ history, onRevert }: EditHistoryPopoverProp
                         <p className="truncate text-xs font-medium text-[hsl(var(--text-primary))]">
                           {record.rowLabel} · {record.fieldLabel}
                         </p>
-                        <p className="mt-0.5 text-xs text-[hsl(var(--text-secondary))]">
+                        <p className="mt-0.5 overflow-hidden text-xs text-[hsl(var(--text-secondary))] whitespace-nowrap text-ellipsis">
                           <span>{truncate(record.oldValueDisplay)}</span>
                           <span className="mx-1 text-[hsl(var(--text-tertiary))]">→</span>
                           <span>{truncate(record.newValueDisplay)}</span>
@@ -100,7 +99,7 @@ export function EditHistoryPopover({ history, onRevert }: EditHistoryPopoverProp
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </PopoverContent>
     </Popover>
