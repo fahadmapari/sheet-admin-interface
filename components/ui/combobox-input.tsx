@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 interface ComboboxInputProps {
   id?: string;
