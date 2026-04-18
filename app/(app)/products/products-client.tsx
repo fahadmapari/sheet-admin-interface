@@ -541,6 +541,10 @@ export function ProductsClient({
           setSelectedProduct(product);
           mutate("/api/products");
         }}
+        onDeleted={() => {
+          setSelectedProduct(null);
+          mutate("/api/products");
+        }}
       />
       <ProductForm open={addOpen} onClose={() => setAddOpen(false)} />
       <DeleteConfirmDialog
