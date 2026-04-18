@@ -49,7 +49,7 @@ export function ComboboxInput({
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
           className={className}
-          autoComplete="off"
+          autoComplete="new-password"
         />
       </PopoverAnchor>
       <PopoverContent
