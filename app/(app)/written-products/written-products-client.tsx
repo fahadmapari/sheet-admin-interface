@@ -283,7 +283,7 @@ export function WrittenProductsClient() {
       />
 
       <Sheet open={createOpen} onOpenChange={(open) => { if (!open) setCreateOpen(false); }}>
-        <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
+        <SheetContent className="w-full sm:max-w-lg flex flex-col p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
           <SheetHeader className="px-6 py-5 border-b">
             <SheetTitle>Add Written Product</SheetTitle>
           </SheetHeader>
