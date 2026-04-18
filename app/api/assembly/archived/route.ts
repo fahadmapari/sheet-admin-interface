@@ -12,8 +12,11 @@ export async function GET() {
 
     const allUploaded = await db
       .collection('assembly_batches')
-      .find({ stage: 'Uploaded' })
-      .sort({ createdAt: -1 })
+      .aggregate([
+        { $match: { stage: 'Uploaded' } },
+        { $addFields: { _ageRef: { $ifNull: ['$uploadedAt', '$createdAt'] } } },
+        { $sort: { _ageRef: -1 } },
+      ])
       .toArray();
 
     const batches: AssemblyBatch[] = allUploaded

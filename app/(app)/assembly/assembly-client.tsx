@@ -220,7 +220,7 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
               <StageSection
                 stage="Uploaded"
                 batches={archivedData?.batches ?? []}
-                products={[]}
+                products={products ?? []}
                 movingBatchId={null}
                 movingProductRowIndex={null}
                 isAdmin={false}
