@@ -42,6 +42,7 @@ interface InlineEditCellProps {
   product: TourProduct;
   field: keyof Omit<TourProduct, 'rowIndex'>;
   onSaved: (field: string, value: string) => void;
+  onSaveSuccess?: (field: string, oldValue: string, newValue: string) => void;
   readOnly?: boolean;
 }
 
@@ -62,7 +63,7 @@ function buildLinkField(text: string, url: string): string {
   return u || t;
 }
 
-function LinkEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
+function LinkEditCell({ product, field, onSaved, onSaveSuccess, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const strValue = rawValue ? String(rawValue) : '';
   const initial = parseLinkField(strValue);
@@ -114,6 +115,7 @@ function LinkEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps
           const data = await res.json().catch(() => ({}));
           throw new Error(data?.error ?? `HTTP ${res.status}`);
         }
+        onSaveSuccess?.(field, strValue, combined);
       } catch (err) {
         if (isMountedRef.current) {
           toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
@@ -127,7 +129,7 @@ function LinkEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps
         if (isMountedRef.current) setSaving(false);
       }
     },
-    [field, product.rowIndex, product.link, strValue, onSaved],
+    [field, product.rowIndex, product.link, strValue, onSaved, onSaveSuccess],
   );
 
   const commitAndExit = useCallback(
@@ -236,7 +238,7 @@ function serializeImageEntries(entries: ImageLinkEntry[]): string {
     .join('\n');
 }
 
-function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
+function ImageLinksCell({ product, field, onSaved, onSaveSuccess, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const strValue = rawValue ? String(rawValue) : '';
   const [editing, setEditing] = useState(false);
@@ -288,6 +290,7 @@ function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellPro
           const data = await res.json().catch(() => ({}));
           throw new Error(data?.error ?? `HTTP ${res.status}`);
         }
+        onSaveSuccess?.(field, strValue, valueToSave);
       } catch (err) {
         if (isMountedRef.current) {
           toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
@@ -298,7 +301,7 @@ function ImageLinksCell({ product, field, onSaved, readOnly }: InlineEditCellPro
         if (isMountedRef.current) setSaving(false);
       }
     },
-    [field, product.rowIndex, product.link, strValue, onSaved],
+    [field, product.rowIndex, product.link, strValue, onSaved, onSaveSuccess],
   );
 
   const commitAndExit = useCallback(
@@ -547,7 +550,7 @@ const COMBOBOX_FIELDS = new Set<keyof TourProduct>(['country', 'city', 'productT
 // ---------------------------------------------------------------------------
 // ComboboxCell — used for country and city fields
 // ---------------------------------------------------------------------------
-function ComboboxCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
+function ComboboxCell({ product, field, onSaved, onSaveSuccess, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const strValue = fieldValueToString(field, rawValue);
   const [editing, setEditing] = useState(false);
@@ -594,6 +597,7 @@ function ComboboxCell({ product, field, onSaved, readOnly }: InlineEditCellProps
           const data = await res.json().catch(() => ({}));
           throw new Error(data?.error ?? `HTTP ${res.status}`);
         }
+        onSaveSuccess?.(field, strValue, valueToSave);
       } catch (err) {
         if (isMountedRef.current) {
           toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
@@ -604,7 +608,7 @@ function ComboboxCell({ product, field, onSaved, readOnly }: InlineEditCellProps
         if (isMountedRef.current) setSaving(false);
       }
     },
-    [field, product.rowIndex, product.link, strValue, onSaved],
+    [field, product.rowIndex, product.link, strValue, onSaved, onSaveSuccess],
   );
 
   if (!editing) {
@@ -685,7 +689,7 @@ function fieldValueToString(
   return String(value);
 }
 
-export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEditCellProps) {
+export function InlineEditCell({ product, field, onSaved, onSaveSuccess, readOnly }: InlineEditCellProps) {
   const rawValue = product[field];
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState(() => fieldValueToString(field, rawValue));
@@ -719,6 +723,7 @@ export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEdit
       if (savingRef.current) return;
       savingRef.current = true;
       setSaving(true);
+      const oldValue = fieldValueToString(field, rawValue);
       onSaved(field, valueToSave);
       try {
         const res = await fetch(`/api/products/${product.rowIndex}`, {
@@ -735,6 +740,7 @@ export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEdit
           const data = await res.json().catch(() => ({}));
           throw new Error(data?.error ?? `HTTP ${res.status}`);
         }
+        onSaveSuccess?.(field, oldValue, valueToSave);
       } catch (err) {
         if (isMountedRef.current) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -747,7 +753,7 @@ export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEdit
         if (isMountedRef.current) setSaving(false);
       }
     },
-    [field, product.rowIndex, product.link, rawValue, onSaved],
+    [field, product.rowIndex, product.link, rawValue, onSaved, onSaveSuccess],
   );
 
   const commitAndExit = useCallback(
@@ -900,7 +906,7 @@ export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEdit
 
   // Combobox fields (country, city)
   if (COMBOBOX_FIELDS.has(field as keyof TourProduct)) {
-    return <ComboboxCell product={product} field={field} onSaved={onSaved} readOnly={readOnly} />;
+    return <ComboboxCell product={product} field={field} onSaved={onSaved} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />;
   }
 
   // Long text — Textarea
@@ -929,12 +935,12 @@ export function InlineEditCell({ product, field, onSaved, readOnly }: InlineEdit
 
   // Image links — multi-link display with textarea edit
   if (IMAGE_LINKS_FIELDS.has(field as keyof TourProduct)) {
-    return <ImageLinksCell product={product} field={field} onSaved={onSaved} readOnly={readOnly} />;
+    return <ImageLinksCell product={product} field={field} onSaved={onSaved} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />;
   }
 
   // Link fields — dual text+URL inputs
   if (LINK_FIELDS.has(field as keyof TourProduct)) {
-    return <LinkEditCell product={product} field={field} onSaved={onSaved} readOnly={readOnly} />;
+    return <LinkEditCell product={product} field={field} onSaved={onSaved} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />;
   }
 
   // Default — text Input
