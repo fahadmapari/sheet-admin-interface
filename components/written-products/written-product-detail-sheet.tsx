@@ -39,6 +39,7 @@ interface WrittenProductDetailSheetProps {
   };
   onClose: () => void;
   onSaved: (updated: WrittenProduct) => void;
+  onSaveComplete?: (old: WrittenProduct, updated: WrittenProduct) => void;
   onDelete: (product: WrittenProduct) => void;
 }
 
@@ -48,6 +49,7 @@ export function WrittenProductDetailSheet({
   suggestions,
   onClose,
   onSaved,
+  onSaveComplete,
   onDelete,
 }: WrittenProductDetailSheetProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,6 +58,7 @@ export function WrittenProductDetailSheet({
   async function handleSubmit(data: Omit<WrittenProduct, 'rowIndex'>) {
     if (!product) return;
     setIsSubmitting(true);
+    const oldSnapshot = product;
     try {
       const res = await fetch(`/api/written-products/${product.rowIndex}`, {
         method: 'PUT',
@@ -65,6 +68,7 @@ export function WrittenProductDetailSheet({
       if (!res.ok) throw new Error(await res.text());
       const updated: WrittenProduct = await res.json();
       onSaved(updated);
+      onSaveComplete?.(oldSnapshot, updated);
       toast.success('Saved');
       onClose();
     } catch (err) {
