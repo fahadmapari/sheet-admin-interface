@@ -122,6 +122,7 @@ export function WrittenProductForm({
                   value={form[key]}
                   onChange={(v) => setField(key, v)}
                   options={opts}
+                  className="h-8 text-sm"
                 />
               ) : (
                 <Input
