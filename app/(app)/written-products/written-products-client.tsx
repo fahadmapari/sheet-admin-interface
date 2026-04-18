@@ -190,6 +190,7 @@ export function WrittenProductsClient() {
       (k) => k !== 'rowIndex' && updated[k] !== old[k],
     );
     const n = changedFields.length;
+    if (n === 0) return;
     const oldRowIndex = old.rowIndex;
     const oldSnapshot = { ...old };
     push({

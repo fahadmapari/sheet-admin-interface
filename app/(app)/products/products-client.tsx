@@ -171,6 +171,7 @@ export function ProductsClient({
         `Row ${selectedProduct.rowIndex}`;
       const fieldLabel = FIELD_LABELS[field as keyof typeof FIELD_LABELS] ?? field;
       const rowIndex = selectedProduct.rowIndex;
+      const expectedLinkTitle = parseLinkField(selectedProduct.link ?? '').text;
       push({
         rowLabel,
         fieldLabel,
@@ -180,7 +181,7 @@ export function ProductsClient({
           const res = await fetch(`/api/products/${rowIndex}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ field, value: oldValue }),
+            body: JSON.stringify({ field, value: oldValue, expectedLinkTitle }),
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
