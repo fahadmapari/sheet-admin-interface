@@ -57,7 +57,29 @@ export function WrittenProductsClient() {
     { dedupingInterval: 60_000 },
   );
   const { mutate } = useSWRConfig();
-  const { history, push, revert } = useEditHistory();
+
+  type WrittenProductPayload = {
+    rowIndex: number;
+    snapshot: Omit<WrittenProduct, 'rowIndex'>;
+  };
+
+  const buildWrittenProductRevertFn = useCallback(
+    (payload: WrittenProductPayload) => async () => {
+      const res = await fetch(`/api/written-products/${payload.rowIndex}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload.snapshot),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await mutate('/api/written-products');
+    },
+    [mutate],
+  );
+
+  const { history, push, revert } = useEditHistory<WrittenProductPayload>({
+    storageKey: 'sheet-admin:edit-history:written-products',
+    buildRevertFn: buildWrittenProductRevertFn,
+  });
 
   const productTitlesSet = useMemo(
     () => new Set<string>(titlesData?.titles ?? []),
@@ -193,26 +215,17 @@ export function WrittenProductsClient() {
     if (n === 0) return;
     const oldRowIndex = old.rowIndex;
     const oldSnapshot = { ...old };
+    const { rowIndex: _rowIndex, ...snapshot } = oldSnapshot;
     push({
       rowLabel,
       fieldLabel: n === 1 ? String(changedFields[0]) : `${n} fields`,
       oldValueDisplay: 'Previous version',
       newValueDisplay: 'Updated',
-      revertFn: async () => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { rowIndex: _rowIndex, ...body } = oldSnapshot;
-        const res = await fetch(`/api/written-products/${oldRowIndex}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) throw new Error(await res.text());
-        await mutate('/api/written-products');
-      },
+      revertPayload: { rowIndex: oldRowIndex, snapshot },
     });
   }
 
-  async function handleRevert(record: EditRecord) {
+  async function handleRevert(record: EditRecord<WrittenProductPayload>) {
     try {
       await revert(record);
       toast.success('Reverted');
