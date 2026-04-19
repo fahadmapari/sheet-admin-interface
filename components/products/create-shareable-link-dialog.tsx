@@ -192,7 +192,7 @@ export function CreateShareableLinkDialog({
             <p className="text-sm text-[hsl(var(--text-secondary))]">
               Your link is ready. Anyone with this URL can view the data.
             </p>
-            <div className="flex items-center gap-2 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-2 overflow-hidden">
               <span className="flex-1 truncate text-sm font-mono">{shareUrl}</span>
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={handleCopy}>
                 {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
