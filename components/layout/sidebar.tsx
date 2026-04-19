@@ -13,6 +13,7 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  Database,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
@@ -31,6 +32,7 @@ const navItems = [
   { href: '/assembly', label: 'Assembly Line', icon: Layers },
   { href: '/sources', label: 'Sources', icon: BookOpen },
   { href: '/shareables', label: 'Shareables', icon: Share2 },
+  { href: '/sheet-links', label: 'Sheet Storage', icon: Database },
   { href: '/settings', label: 'Settings', icon: Settings },
 ] as const;
 
