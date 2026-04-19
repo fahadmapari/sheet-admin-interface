@@ -12,6 +12,7 @@ import { useSWRConfig } from 'swr';
 import type { TourProduct } from '@/lib/types';
 import {
   BOOLEAN_FIELDS,
+  DATE_FIELDS,
   FIELD_LABELS,
   PIC_VALUES,
   PRODUCT_STATUSES,
@@ -139,8 +140,6 @@ const LONG_TEXT_FIELDS = new Set<string>([
   'qualityRemarks',
   'componentsOfTour',
 ]);
-
-const DATE_FIELDS = new Set<string>(['dateOfDispatch', 'dateUploaded']);
 
 function buildDefaultValues(product: TourProduct): FormValues {
   return {
