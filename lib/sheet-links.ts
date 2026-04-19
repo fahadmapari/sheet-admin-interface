@@ -51,6 +51,7 @@ export async function createSheetLink(input: CreateSheetLinkInput): Promise<Shee
     createdAt: now,
     updatedAt: now,
   });
+  // Avoids a round-trip: all fields are known from input + local vars. Update if server-side defaults are added.
   return toSheetLink({
     _id: result.insertedId,
     name: input.name,
