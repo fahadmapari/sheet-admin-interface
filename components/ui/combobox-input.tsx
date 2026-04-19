@@ -67,7 +67,7 @@ export function ComboboxInput({
         }}
       >
         <Command shouldFilter={false}>
-          <CommandList>
+          <CommandList onWheel={(e) => e.stopPropagation()}>
             <CommandGroup>
               {filtered.map((opt) => (
                 <CommandItem key={opt} value={opt} onSelect={() => handleSelect(opt)}>
