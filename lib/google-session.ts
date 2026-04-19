@@ -1,6 +1,5 @@
 import 'server-only';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 export class GoogleAccessTokenError extends Error {
   status: number;
@@ -13,7 +12,7 @@ export class GoogleAccessTokenError extends Error {
 }
 
 export async function requireGoogleAccessToken(): Promise<string> {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.email) {
     throw new GoogleAccessTokenError('Unauthorized', 401);
