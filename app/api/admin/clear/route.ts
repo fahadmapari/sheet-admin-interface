@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
 import { getDb } from '@/lib/mongodb';
 
@@ -14,7 +13,7 @@ const ALLOWED_TARGETS = {
 type ClearTarget = keyof typeof ALLOWED_TARGETS;
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.email || !(await isAdmin(session.user.email))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

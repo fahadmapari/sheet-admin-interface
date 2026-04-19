@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { getAccessControl } from '@/lib/access-control';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StageSubscriptionSettings } from '@/components/notifications/stage-subscription-settings';
@@ -9,7 +8,7 @@ import { ColumnMappingSettings } from '@/components/settings/column-mapping-sett
 import { DataSettings } from '@/components/settings/data-settings';
 
 export default async function SettingsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const accessControl = await getAccessControl();
   const showAccessTab =
     !!session?.user?.email && accessControl.adminEmails.includes(session.user.email.toLowerCase());

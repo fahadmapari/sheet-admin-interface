@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
 import { type Document } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
@@ -43,7 +42,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ rowIndex: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.email || !(await isAdmin(session.user.email))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
