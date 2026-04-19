@@ -402,3 +402,5 @@ export const FIELD_LABELS: Record<keyof Omit<TourProduct, "rowIndex">, string> =
   };
 
 export const ARCHIVE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
+
+export const DATE_FIELDS = new Set<string>(['dateOfDispatch', 'dateUploaded']);
