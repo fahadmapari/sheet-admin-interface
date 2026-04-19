@@ -80,7 +80,7 @@ export function WrittenProductDetailSheet({
 
   return (
     <Sheet open={product !== null} onOpenChange={(open) => { if (!open) { setAddProductOpen(false); onClose(); } }}>
-      <SheetContent className="w-[600px] sm:max-w-[600px] p-0 flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <SheetContent className="w-full sm:w-[600px] sm:max-w-[600px] p-0 flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
         {addProductOpen ? (
           <>
             <div className="border-b border-[hsl(var(--border))] px-6 py-5 flex items-center gap-2">
