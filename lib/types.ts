@@ -218,6 +218,17 @@ export interface ShareableLink {
   filters: import('./product-filters').Filters;
 }
 
+export interface SheetLink {
+  _id: string;
+  name: string;
+  url: string;
+  tags: string[];
+  visibleToTeam: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface WrittenProduct {
   rowIndex: number;
   country: string;
