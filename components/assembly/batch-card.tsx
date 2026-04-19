@@ -20,11 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ASSEMBLY_STAGES, type AssemblyBatch, type AssemblyStage, type TourProduct } from '@/lib/types';
-
-function getDaysInStage(batch: AssemblyBatch): number {
-  const ref = batch.movedToStageAt ?? batch.createdAt;
-  return (Date.now() - new Date(ref).getTime()) / 86_400_000;
-}
+import { getDaysInStage, isProductReady } from './batch-helpers';
 
 interface BatchCardProps {
   batch: AssemblyBatch;
@@ -70,28 +66,6 @@ export function BatchCard({
   const stageIndex = ASSEMBLY_STAGES.indexOf(batch.stage);
   const nextStage = stageIndex >= 0 ? ASSEMBLY_STAGES[stageIndex + 1] : null;
 
-  function isProductReady(product: TourProduct): boolean {
-    switch (batch.stage) {
-      case 'In Review':
-        return !!product.isOk && product.isOk.trim() !== '';
-      case '2nd Review':
-        return !!product.ssOk;
-      case 'Buying Price':
-        return !!product.totalBuyingPrice && product.totalBuyingPrice.trim() !== '';
-      case 'Selling Price':
-        return (
-          !!product.b2bPriceOnRequest &&
-          product.b2bPriceOnRequest.trim() !== '' &&
-          !!product.b2cPriceOnRequest &&
-          product.b2cPriceOnRequest.trim() !== ''
-        );
-      case 'Ready for Upload':
-        return !!product.productLink && product.productLink.trim() !== '';
-      default:
-        return false;
-    }
-  }
-
   const showReadiness = batch.stage !== 'Uploaded';
 
   const daysInStage = getDaysInStage(batch);
@@ -109,7 +83,7 @@ export function BatchCard({
       return;
     }
 
-    const readyProducts = batchProducts.filter(isProductReady);
+    const readyProducts = batchProducts.filter((p) => isProductReady(p, batch.stage));
     const notReadyCount = batchProducts.length - readyProducts.length;
 
     if (notReadyCount === 0) {
@@ -131,7 +105,7 @@ export function BatchCard({
     e.stopPropagation();
     if (!nextStage) return;
 
-    if (isProductReady(product)) {
+    if (isProductReady(product, batch.stage)) {
       void onMoveProductToNextStage(product);
       return;
     }
@@ -347,7 +321,7 @@ export function BatchCard({
                           </td>
                           {showReadiness && (
                             <td className="py-2 pl-3">
-                              {isProductReady(product) ? (
+                              {isProductReady(product, batch.stage) ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                               ) : (
                                 <Circle className="h-4 w-4 text-[hsl(var(--text-tertiary))] opacity-40" />

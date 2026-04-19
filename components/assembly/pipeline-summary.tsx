@@ -2,25 +2,11 @@
 
 import { ASSEMBLY_STAGES, type AssemblyResponse, type AssemblyStage } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { getStageStaleness } from './batch-helpers';
 
 interface PipelineSummaryProps {
   assemblyData: AssemblyResponse;
   onStageClick: (stage: AssemblyStage) => void;
-}
-
-function getDaysInStage(batch: { movedToStageAt?: string; createdAt: string }): number {
-  const ref = batch.movedToStageAt ?? batch.createdAt;
-  return (Date.now() - new Date(ref).getTime()) / 86_400_000;
-}
-
-function getStageStaleness(batches: { movedToStageAt?: string; createdAt: string }[]): 'red' | 'yellow' | 'none' {
-  let worst: 'red' | 'yellow' | 'none' = 'none';
-  for (const b of batches) {
-    const days = getDaysInStage(b);
-    if (days > 7) return 'red';
-    if (days > 3) worst = 'yellow';
-  }
-  return worst;
 }
 
 export function PipelineSummary({ assemblyData, onStageClick }: PipelineSummaryProps) {
