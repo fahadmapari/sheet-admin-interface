@@ -13,25 +13,25 @@ const GOOGLE_SCOPES = [
 const refreshInflight = new Map<string, Promise<JWT>>();
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
-  const key = token.refreshToken ?? 'unknown';
+  if (!token.refreshToken) {
+    return { ...token, googleAuthError: 'RefreshAccessTokenError' };
+  }
+
+  const key = token.refreshToken;
 
   const inflight = refreshInflight.get(key);
   if (inflight) return inflight;
 
   const promise = (async (): Promise<JWT> => {
     try {
-      if (!token.refreshToken) {
-        throw new Error('Missing Google refresh token');
-      }
-
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          client_id: process.env.GOOGLE_CLIENT_ID ?? '',
-          client_secret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+          client_id: process.env.GOOGLE_CLIENT_ID!,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
           grant_type: 'refresh_token',
-          refresh_token: token.refreshToken,
+          refresh_token: key,
         }),
       });
 
@@ -47,7 +47,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
         refreshToken: refreshed.refresh_token ?? token.refreshToken,
         googleAuthError: undefined,
       };
-    } catch {
+    } catch (err) {
+      console.error('[auth] refreshAccessToken failed:', err);
       return {
         ...token,
         googleAuthError: 'RefreshAccessTokenError',
