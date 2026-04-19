@@ -16,7 +16,7 @@ export type EditRecord<P = unknown> = {
 
 type StoredRecord<P> = Omit<EditRecord<P>, 'revertFn'>;
 
-const MAX_HISTORY = 10;
+export const MAX_HISTORY = 10;
 
 export function useEditHistory<P>(options: {
   storageKey: string;
@@ -35,8 +35,7 @@ export function useEditHistory<P>(options: {
     (records: EditRecord<P>[]) => {
       try {
         const stored: StoredRecord<P>[] = records.map(
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          ({ revertFn, ...rest }) => rest,
+          ({ revertFn: _revertFn, ...rest }) => rest,
         );
         sessionStorage.setItem(storageKey, JSON.stringify(stored));
       } catch {
