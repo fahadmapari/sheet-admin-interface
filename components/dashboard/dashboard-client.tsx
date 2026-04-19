@@ -16,8 +16,6 @@ import {
   ProductsByType,
   ProductsByStatus,
   UploadProgress,
-  PicWorkload,
-  OtaCoverage,
 } from './charts';
 
 interface DashboardClientProps {
@@ -98,8 +96,6 @@ export function DashboardClient({ products }: DashboardClientProps) {
         <ProductsByType products={products} />
         <ProductsByStatus products={products} />
         <UploadProgress products={products} />
-        <PicWorkload products={products} />
-        <OtaCoverage products={products} />
       </section>
     </div>
   );
