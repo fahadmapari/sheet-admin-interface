@@ -210,7 +210,7 @@ export function ProductsClient({
         revertPayload: { rowIndex, field, oldValue, expectedLinkTitle },
       });
     },
-    [selectedProduct, push, mutate],
+    [selectedProduct, push],
   );
 
   const handleRevert = useCallback(
