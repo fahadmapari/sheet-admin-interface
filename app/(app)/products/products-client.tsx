@@ -160,7 +160,37 @@ export function ProductsClient({
   }, [filters, globalSearch, updateUrl]);
 
   const { mutate } = useSWRConfig();
-  const { history, push, revert } = useEditHistory();
+  type ProductFieldPayload = {
+    rowIndex: number;
+    field: string;
+    oldValue: string;
+    expectedLinkTitle: string;
+  };
+
+  const buildProductRevertFn = useCallback(
+    (payload: ProductFieldPayload) => async () => {
+      const res = await fetch(`/api/products/${payload.rowIndex}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field: payload.field,
+          value: payload.oldValue,
+          expectedLinkTitle: payload.expectedLinkTitle,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? `HTTP ${res.status}`);
+      }
+      mutate('/api/products');
+    },
+    [mutate],
+  );
+
+  const { history, push, revert } = useEditHistory<ProductFieldPayload>({
+    storageKey: 'sheet-admin:edit-history:products',
+    buildRevertFn: buildProductRevertFn,
+  });
 
   const handleProductSaveSuccess = useCallback(
     (field: string, oldValue: string, newValue: string) => {
@@ -177,25 +207,14 @@ export function ProductsClient({
         fieldLabel,
         oldValueDisplay: oldValue,
         newValueDisplay: newValue,
-        revertFn: async () => {
-          const res = await fetch(`/api/products/${rowIndex}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ field, value: oldValue, expectedLinkTitle }),
-          });
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data?.error ?? `HTTP ${res.status}`);
-          }
-          mutate('/api/products');
-        },
+        revertPayload: { rowIndex, field, oldValue, expectedLinkTitle },
       });
     },
     [selectedProduct, push, mutate],
   );
 
   const handleRevert = useCallback(
-    async (record: EditRecord) => {
+    async (record: EditRecord<ProductFieldPayload>) => {
       try {
         await revert(record);
         toast.success('Reverted');
