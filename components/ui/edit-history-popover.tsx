@@ -17,15 +17,15 @@ function truncate(str: string, max = 20): string {
   return str.length > max ? str.slice(0, max) + '…' : str;
 }
 
-interface EditHistoryPopoverProps {
-  history: EditRecord[];
-  onRevert: (record: EditRecord) => Promise<void>;
+interface EditHistoryPopoverProps<P = unknown> {
+  history: EditRecord<P>[];
+  onRevert: (record: EditRecord<P>) => Promise<void>;
 }
 
-export function EditHistoryPopover({ history, onRevert }: EditHistoryPopoverProps) {
+export function EditHistoryPopover<P>({ history, onRevert }: EditHistoryPopoverProps<P>) {
   const [revertingId, setRevertingId] = useState<string | null>(null);
 
-  async function handleRevert(record: EditRecord) {
+  async function handleRevert(record: EditRecord<P>) {
     setRevertingId(record.id);
     try {
       await onRevert(record);
