@@ -21,6 +21,11 @@ import {
 } from '@/components/ui/dialog';
 import { ASSEMBLY_STAGES, type AssemblyBatch, type AssemblyStage, type TourProduct } from '@/lib/types';
 
+function getDaysInStage(batch: AssemblyBatch): number {
+  const ref = batch.movedToStageAt ?? batch.createdAt;
+  return (Date.now() - new Date(ref).getTime()) / 86_400_000;
+}
+
 interface BatchCardProps {
   batch: AssemblyBatch;
   products: TourProduct[];
@@ -89,11 +94,8 @@ export function BatchCard({
 
   const showReadiness = batch.stage !== 'Uploaded';
 
-  const dateLabel = new Date(batch.createdAt).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const daysInStage = getDaysInStage(batch);
+  const showStaleness = batch.stage !== 'Uploaded';
 
   const isForwardMove = (targetStage: AssemblyStage) =>
     ASSEMBLY_STAGES.indexOf(targetStage) > stageIndex;
@@ -188,7 +190,21 @@ export function BatchCard({
               {batch.name}
             </span>
           </button>
-          <span className="hidden text-xs text-[hsl(var(--text-tertiary))] sm:inline">{dateLabel}</span>
+          {showStaleness && daysInStage >= 3 && (
+            <span
+              className={cn(
+                'hidden text-xs font-medium sm:inline',
+                daysInStage > 7 ? 'text-red-500' : 'text-yellow-600 dark:text-yellow-400',
+              )}
+            >
+              {Math.floor(daysInStage)}d in stage
+            </span>
+          )}
+          {(!showStaleness || daysInStage < 3) && (
+            <span className="hidden text-xs text-[hsl(var(--text-tertiary))] sm:inline">
+              {new Date(batch.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+            </span>
+          )}
           <Badge variant="secondary" className="text-xs">
             {batch.productRowIndexes.length}
           </Badge>
