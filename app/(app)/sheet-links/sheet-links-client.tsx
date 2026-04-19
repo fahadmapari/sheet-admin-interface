@@ -331,10 +331,13 @@ export function SheetLinksClient() {
   }
 
   async function handleDelete(id: string) {
+    const currentMyKey = myKey;
+    const currentTeamKey = teamKey;
     const res = await fetch(`/api/sheet-links/${id}`, { method: 'DELETE' });
     if (res.ok) {
       toast.success('Link deleted');
-      mutate(myKey);
+      mutate(currentMyKey);
+      mutate(currentTeamKey);
     } else {
       const data = await res.json();
       if (res.status === 403) {
