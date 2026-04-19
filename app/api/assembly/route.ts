@@ -34,6 +34,7 @@ export async function GET() {
               productRowIndexes: b.productRowIndexes as number[],
               createdAt: (b.createdAt as Date).toISOString(),
               ...(b.uploadedAt && { uploadedAt: (b.uploadedAt as Date).toISOString() }),
+              ...(b.movedToStageAt && { movedToStageAt: (b.movedToStageAt as Date).toISOString() }),
             })),
         },
       ]),
