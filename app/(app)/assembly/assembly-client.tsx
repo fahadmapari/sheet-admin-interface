@@ -78,11 +78,15 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   }, []);
 
   const handleOwnersChange = useCallback(async (stage: AssemblyStage, emails: string[]) => {
-    await fetch('/api/assembly/stage-config', {
+    const res = await fetch('/api/assembly/stage-config', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stage, emails }),
     });
+    if (!res.ok) {
+      toast.error('Failed to update stage owners');
+      return;
+    }
     await mutateStageConfig();
   }, [mutateStageConfig]);
 
