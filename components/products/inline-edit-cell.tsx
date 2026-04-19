@@ -32,6 +32,7 @@ import {
   BOOLEAN_FIELDS,
   PRODUCT_STATUSES,
   PIC_VALUES,
+  DATE_FIELDS,
 } from '@/lib/constants';
 import { getProductStatusClasses } from '@/lib/design-system';
 import type { TourProduct } from '@/lib/types';
@@ -941,6 +942,31 @@ export function InlineEditCell({ product, field, onSaved, onSaveSuccess, readOnl
   // Link fields — dual text+URL inputs
   if (LINK_FIELDS.has(field as keyof TourProduct)) {
     return <LinkEditCell product={product} field={field} onSaved={onSaved} onSaveSuccess={onSaveSuccess} readOnly={readOnly} />;
+  }
+
+  // Date fields — native date picker
+  if (DATE_FIELDS.has(field as keyof TourProduct)) {
+    if (!editing) {
+      return (
+        <button
+          className={cn("w-full rounded p-0.5 text-left transition-colors", readOnly ? "cursor-default" : "cursor-pointer hover:bg-[hsl(var(--surface))]")}
+          onClick={() => { if (!readOnly) setEditing(true); }}
+        >
+          {getDisplayValue(field, rawValue)}
+        </button>
+      );
+    }
+    return (
+      <Input
+        ref={inputRef as RefObject<HTMLInputElement>}
+        type="date"
+        className="h-7 text-xs px-1"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+      />
+    );
   }
 
   // Default — text Input
