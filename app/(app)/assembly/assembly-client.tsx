@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StageSection } from '@/components/assembly/stage-section';
+import { PipelineSummary } from '@/components/assembly/pipeline-summary';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
 import { fetcher } from '@/lib/fetcher';
 import {
@@ -14,6 +15,7 @@ import {
   type AssemblyBatch,
   type AssemblyResponse,
   type AssemblyStage,
+  type StageConfig,
   type TourProduct,
 } from '@/lib/types';
 
@@ -21,8 +23,15 @@ interface ArchivedResponse {
   batches: AssemblyBatch[];
 }
 
+interface AccessControlDoc {
+  allowAll: boolean;
+  allowedEmails: string[];
+  adminEmails: string[];
+}
+
 export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   const { mutate } = useSWRConfig();
+
   const { data: assemblyData, error: assemblyError, isLoading: assemblyLoading } =
     useSWR<AssemblyResponse>('/api/assembly', fetcher, { dedupingInterval: 10_000 });
 
@@ -33,15 +42,53 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
     dedupingInterval: 60_000,
   });
 
+  const { data: stageConfig, mutate: mutateStageConfig } = useSWR<StageConfig>(
+    '/api/assembly/stage-config',
+    fetcher,
+    { dedupingInterval: 60_000 },
+  );
+
+  const { data: accessControl } = useSWR<AccessControlDoc>(
+    isAdmin ? '/api/access-control' : null,
+    fetcher,
+    { dedupingInterval: 300_000 },
+  );
+
+  const allEmails = isAdmin && accessControl
+    ? [...new Set([...accessControl.allowedEmails, ...accessControl.adminEmails])]
+    : [];
+
   const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
   const [movingBatchId, setMovingBatchId] = useState<string | null>(null);
   const [movingProductRowIndex, setMovingProductRowIndex] = useState<number | null>(null);
 
+  const [collapsedStages, setCollapsedStages] = useState<Record<AssemblyStage, boolean>>(
+    () => Object.fromEntries(ASSEMBLY_STAGES.map((s) => [s, false])) as Record<AssemblyStage, boolean>,
+  );
+
+  const handleStageCollapsedChange = useCallback((stage: AssemblyStage, collapsed: boolean) => {
+    setCollapsedStages((prev) => ({ ...prev, [stage]: collapsed }));
+  }, []);
+
+  const handlePipelineStageTileClick = useCallback((stage: AssemblyStage) => {
+    setCollapsedStages((prev) => ({ ...prev, [stage]: false }));
+    setTimeout(() => {
+      document.getElementById(`stage-${stage}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, []);
+
+  const handleOwnersChange = useCallback(async (stage: AssemblyStage, emails: string[]) => {
+    await fetch('/api/assembly/stage-config', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage, emails }),
+    });
+    await mutateStageConfig();
+  }, [mutateStageConfig]);
+
   const getNextStage = (stage: AssemblyStage): AssemblyStage | null => {
     const currentIndex = ASSEMBLY_STAGES.indexOf(stage);
-    if (currentIndex === -1 || currentIndex >= ASSEMBLY_STAGES.length - 1) {
-      return null;
-    }
+    if (currentIndex === -1 || currentIndex >= ASSEMBLY_STAGES.length - 1) return null;
     return ASSEMBLY_STAGES[currentIndex + 1];
   };
 
@@ -57,17 +104,10 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
           batchStrategy: { type: 'new', name: batch.name },
         }),
       });
-
-      if (!moveRes.ok) {
-        toast.error('Batch move failed');
-        return;
-      }
-
+      if (!moveRes.ok) { toast.error('Batch move failed'); return; }
       toast.success(`Moved batch "${batch.name}" to "${targetStage}"`);
       mutate('/api/assembly');
-      if (targetStage === 'Ready for Upload') {
-        mutate('/api/products');
-      }
+      if (targetStage === 'Ready for Upload') mutate('/api/products');
     } finally {
       setMovingBatchId(null);
     }
@@ -86,7 +126,6 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   const handleProductMoveToNextStage = async (product: TourProduct, batch: AssemblyBatch) => {
     const nextStage = getNextStage(batch.stage);
     if (!nextStage) return;
-
     setMovingProductRowIndex(product.rowIndex);
     try {
       const moveRes = await fetch('/api/assembly/move', {
@@ -98,17 +137,10 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
           batchStrategy: { type: 'new', name: batch.name },
         }),
       });
-
-      if (!moveRes.ok) {
-        toast.error('Move failed');
-        return;
-      }
-
+      if (!moveRes.ok) { toast.error('Move failed'); return; }
       toast.success(`Moved product to "${nextStage}"`);
       mutate('/api/assembly');
-      if (nextStage === 'Ready for Upload') {
-        mutate('/api/products');
-      }
+      if (nextStage === 'Ready for Upload') mutate('/api/products');
     } finally {
       setMovingProductRowIndex(null);
     }
@@ -116,20 +148,14 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
 
   const handleRemoveBatch = async (batchId: string) => {
     const res = await fetch(`/api/assembly/${batchId}`, { method: 'DELETE' });
-    if (!res.ok) {
-      toast.error('Failed to remove batch');
-      return;
-    }
+    if (!res.ok) { toast.error('Failed to remove batch'); return; }
     toast.success('Batch removed from assembly');
     mutate('/api/assembly');
   };
 
   const handleRemoveProduct = async (rowIndex: number) => {
     const res = await fetch(`/api/assembly/product/${rowIndex}`, { method: 'DELETE' });
-    if (!res.ok) {
-      toast.error('Failed to remove product');
-      return;
-    }
+    if (!res.ok) { toast.error('Failed to remove product'); return; }
     toast.success('Product removed from assembly');
     mutate('/api/assembly');
   };
@@ -143,6 +169,7 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   }
 
   const archivedCount = archivedData?.batches.length ?? 0;
+  const owners = stageConfig?.owners ?? {};
 
   return (
     <div className="flex flex-col gap-6">
@@ -156,15 +183,20 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
         </p>
       </div>
 
+      {assemblyData && (
+        <PipelineSummary
+          assemblyData={assemblyData}
+          onStageClick={handlePipelineStageTileClick}
+        />
+      )}
+
       <Tabs defaultValue="current">
         <TabsList>
           <TabsTrigger value="current">Assembly Line</TabsTrigger>
           <TabsTrigger value="archived" className="gap-1.5">
             Archived
             {archivedCount > 0 && (
-              <Badge variant="secondary" className="ml-1 text-xs">
-                {archivedCount}
-              </Badge>
+              <Badge variant="secondary" className="ml-1 text-xs">{archivedCount}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -173,10 +205,7 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
           {assemblyLoading ? (
             <div className="space-y-3">
               {ASSEMBLY_STAGES.map((stage) => (
-                <div
-                  key={stage}
-                  className="h-14 animate-pulse rounded-lg bg-[hsl(var(--surface))]"
-                />
+                <div key={stage} className="h-14 animate-pulse rounded-lg bg-[hsl(var(--surface))]" />
               ))}
             </div>
           ) : (
@@ -190,6 +219,11 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
                   movingBatchId={movingBatchId}
                   movingProductRowIndex={movingProductRowIndex}
                   isAdmin={isAdmin}
+                  collapsed={collapsedStages[stage]}
+                  onCollapsedChange={(c) => handleStageCollapsedChange(stage, c)}
+                  stageOwners={owners[stage] ?? []}
+                  allEmails={allEmails}
+                  onOwnersChange={(emails) => handleOwnersChange(stage, emails)}
                   onBatchMoveToNextStage={handleBatchMoveToNextStage}
                   onBatchMoveToStage={handleBatchMoveToStage}
                   onMoveProductToNextStage={(product, batch) =>
@@ -225,6 +259,11 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
                 movingProductRowIndex={null}
                 isAdmin={false}
                 readOnly={true}
+                collapsed={false}
+                onCollapsedChange={() => {}}
+                stageOwners={[]}
+                allEmails={[]}
+                onOwnersChange={async () => {}}
                 onBatchMoveToNextStage={async () => {}}
                 onBatchMoveToStage={async () => {}}
                 onMoveProductToNextStage={async () => {}}
@@ -240,9 +279,7 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
       <ProductDetailSheet
         product={selectedProduct}
         open={selectedProduct !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedProduct(null);
-        }}
+        onOpenChange={(open) => { if (!open) setSelectedProduct(null); }}
         onSaved={(product) => {
           setSelectedProduct(product);
           mutate('/api/products');
