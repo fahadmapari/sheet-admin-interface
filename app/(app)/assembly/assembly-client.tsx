@@ -1,12 +1,15 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StageSection } from '@/components/assembly/stage-section';
+import { BoardView } from '@/components/assembly/board-view';
+import { AssemblyViewToggle } from '@/components/assembly/assembly-view-toggle';
+import { useAssemblyView } from '@/lib/hooks/use-assembly-view';
 import { PipelineSummary } from '@/components/assembly/pipeline-summary';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
 import { fetcher } from '@/lib/fetcher';
@@ -62,6 +65,8 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   const [movingBatchId, setMovingBatchId] = useState<string | null>(null);
   const [movingProductRowIndex, setMovingProductRowIndex] = useState<number | null>(null);
 
+  const { view, storedView, boardAvailable, setView } = useAssemblyView();
+
   const [collapsedStages, setCollapsedStages] = useState<Record<AssemblyStage, boolean>>(
     () => Object.fromEntries(ASSEMBLY_STAGES.map((s) => [s, false])) as Record<AssemblyStage, boolean>,
   );
@@ -70,12 +75,58 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
     setCollapsedStages((prev) => ({ ...prev, [stage]: collapsed }));
   }, []);
 
-  const handlePipelineStageTileClick = useCallback((stage: AssemblyStage) => {
-    setCollapsedStages((prev) => ({ ...prev, [stage]: false }));
-    setTimeout(() => {
-      document.getElementById(`stage-${stage}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
+  const [boardCollapsed, setBoardCollapsed] = useState<Record<AssemblyStage, boolean>>(
+    () => Object.fromEntries(ASSEMBLY_STAGES.map((s) => [s, false])) as Record<AssemblyStage, boolean>,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem('assembly:board:collapsed');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<Record<AssemblyStage, boolean>>;
+      setBoardCollapsed((prev) => {
+        const next = { ...prev };
+        for (const stage of ASSEMBLY_STAGES) {
+          if (typeof parsed[stage] === 'boolean') next[stage] = parsed[stage] as boolean;
+        }
+        return next;
+      });
+    } catch {
+      // Ignore quota / parse errors; fall back to defaults.
+    }
   }, []);
+
+  const handleBoardCollapsedChange = useCallback((stage: AssemblyStage, value: boolean) => {
+    setBoardCollapsed((prev) => {
+      const next = { ...prev, [stage]: value };
+      try {
+        window.localStorage.setItem('assembly:board:collapsed', JSON.stringify(next));
+      } catch {
+        // Ignore.
+      }
+      return next;
+    });
+  }, []);
+
+  const handlePipelineStageTileClick = useCallback(
+    (stage: AssemblyStage) => {
+      if (view === 'board') {
+        handleBoardCollapsedChange(stage, false);
+        setTimeout(() => {
+          document
+            .getElementById(`board-col-${stage}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }, 80);
+        return;
+      }
+      setCollapsedStages((prev) => ({ ...prev, [stage]: false }));
+      setTimeout(() => {
+        document.getElementById(`stage-${stage}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    },
+    [view, handleBoardCollapsedChange],
+  );
 
   const handleOwnersChange = useCallback(async (stage: AssemblyStage, emails: string[]) => {
     const res = await fetch('/api/assembly/stage-config', {
@@ -195,15 +246,20 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
       )}
 
       <Tabs defaultValue="current">
-        <TabsList>
-          <TabsTrigger value="current">Assembly Line</TabsTrigger>
-          <TabsTrigger value="archived" className="gap-1.5">
-            Archived
-            {archivedCount > 0 && (
-              <Badge variant="secondary" className="ml-1 text-xs">{archivedCount}</Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger value="current">Assembly Line</TabsTrigger>
+            <TabsTrigger value="archived" className="gap-1.5">
+              Archived
+              {archivedCount > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs">{archivedCount}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          {boardAvailable && (
+            <AssemblyViewToggle view={storedView} onChange={setView} />
+          )}
+        </div>
 
         <TabsContent value="current" className="mt-4">
           {assemblyLoading ? (
@@ -212,6 +268,24 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
                 <div key={stage} className="h-14 animate-pulse rounded-lg bg-[hsl(var(--surface))]" />
               ))}
             </div>
+          ) : view === 'board' && assemblyData ? (
+            <BoardView
+              assemblyData={assemblyData}
+              products={products ?? []}
+              movingBatchId={movingBatchId}
+              movingProductRowIndex={movingProductRowIndex}
+              isAdmin={isAdmin}
+              owners={owners}
+              allEmails={allEmails}
+              collapsed={boardCollapsed}
+              onCollapsedChange={handleBoardCollapsedChange}
+              onOwnersChange={handleOwnersChange}
+              onBatchMoveToStage={handleBatchMoveToStage}
+              onMoveProductToNextStage={(product, batch) => handleProductMoveToNextStage(product, batch)}
+              onProductClick={(product) => setSelectedProduct(product)}
+              onRemoveBatch={handleRemoveBatch}
+              onRemoveProduct={handleRemoveProduct}
+            />
           ) : (
             <div className="space-y-3">
               {ASSEMBLY_STAGES.map((stage) => (
