@@ -119,7 +119,7 @@ function buildColumns(
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
           onClick={(e) => e.stopPropagation()}
-          className="opacity-0 transition-opacity group-hover/row:opacity-100 data-[state=checked]:opacity-100"
+          className="opacity-100 md:opacity-0 transition-opacity md:group-hover/row:opacity-100 data-[state=checked]:opacity-100"
         />
       ),
       enableSorting: false,
@@ -221,7 +221,7 @@ function RowActionsMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="opacity-0 transition-opacity group-hover/row:opacity-100"
+          className="opacity-100 md:opacity-0 transition-opacity md:group-hover/row:opacity-100"
           onClick={(e) => e.stopPropagation()}
           aria-label="Row actions"
         >
