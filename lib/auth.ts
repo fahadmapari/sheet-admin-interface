@@ -1,5 +1,5 @@
-import GoogleProvider from "next-auth/providers/google";
-import type { NextAuthOptions } from "next-auth";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
 import type { JWT } from "next-auth/jwt";
 
 const GOOGLE_SCOPES = [
@@ -63,10 +63,10 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 }
 
-export const authOptions: NextAuthOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
-    GoogleProvider({
+    Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
@@ -117,9 +117,9 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24 * 365, // 1 year
+    maxAge: 60 * 60 * 24 * 365,
   },
   jwt: {
-    maxAge: 60 * 60 * 24 * 365, // 1 year
+    maxAge: 60 * 60 * 24 * 365,
   },
-};
+});
