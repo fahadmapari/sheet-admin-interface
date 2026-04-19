@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import {
   Tooltip,
   TooltipContent,
@@ -139,6 +140,7 @@ export function MobileSidebar({ children }: { children: ReactNode }) {
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent side="left" className="w-60 p-0">
+        <VisuallyHidden><SheetTitle>Navigation</SheetTitle></VisuallyHidden>
         <div className="flex h-full flex-col">
           <SidebarLogo />
           <SidebarNav />
