@@ -25,6 +25,8 @@ export function NotificationBell() {
   const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
+    if (!data) return;
+
     const currentIds = new Set(notifications.map((n) => n._id));
 
     if (isInitialLoadRef.current) {
@@ -44,7 +46,7 @@ export function NotificationBell() {
     }
 
     prevIdsRef.current = currentIds;
-  }, [notifications]);
+  }, [notifications, data]);
 
   const handleMarkAllRead = async () => {
     try {
