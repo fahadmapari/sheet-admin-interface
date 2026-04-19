@@ -171,6 +171,11 @@ export interface AssemblyBatch {
   productRowIndexes: number[];
   createdAt: string;
   uploadedAt?: string;
+  movedToStageAt?: string; // ISO timestamp — when batch last entered its current stage
+}
+
+export interface StageConfig {
+  owners: Partial<Record<AssemblyStage, string[]>>;
 }
 
 export type AssemblyStageData = {
