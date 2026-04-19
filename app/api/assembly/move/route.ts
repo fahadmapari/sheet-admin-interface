@@ -42,8 +42,6 @@ export async function POST(req: NextRequest) {
     // 2. Delete empty batches
     await col.deleteMany({ productRowIndexes: { $size: 0 } });
 
-    const uploadedAtUpdate = targetStage === 'Uploaded' ? { $set: { uploadedAt: new Date() } } : {};
-
     // 3. Resolve target batch
     let targetBatchId: ObjectId = new ObjectId();
 
@@ -53,7 +51,7 @@ export async function POST(req: NextRequest) {
         { _id: targetBatchId },
         {
           $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document,
-          ...uploadedAtUpdate,
+          $set: { movedToStageAt: new Date(), ...(targetStage === 'Uploaded' ? { uploadedAt: new Date() } : {}) },
         },
       );
     } else {
@@ -65,7 +63,7 @@ export async function POST(req: NextRequest) {
           { _id: existing._id },
           {
             $addToSet: { productRowIndexes: { $each: rowIndexes } } as Document,
-            ...uploadedAtUpdate,
+            $set: { movedToStageAt: new Date(), ...(targetStage === 'Uploaded' ? { uploadedAt: new Date() } : {}) },
           },
         );
         targetBatchId = existing._id;
@@ -75,6 +73,7 @@ export async function POST(req: NextRequest) {
           stage: targetStage,
           productRowIndexes: rowIndexes,
           createdAt: new Date(),
+          movedToStageAt: new Date(),
           ...(targetStage === 'Uploaded' && { uploadedAt: new Date() }),
         });
         targetBatchId = res.insertedId;
