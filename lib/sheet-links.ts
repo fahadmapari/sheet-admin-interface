@@ -51,8 +51,16 @@ export async function createSheetLink(input: CreateSheetLinkInput): Promise<Shee
     createdAt: now,
     updatedAt: now,
   });
-  const doc = await db.collection(COLLECTION).findOne({ _id: result.insertedId });
-  return toSheetLink(doc as Record<string, unknown>);
+  return toSheetLink({
+    _id: result.insertedId,
+    name: input.name,
+    url: input.url,
+    tags: input.tags,
+    visibleToTeam: input.visibleToTeam,
+    createdBy: input.createdBy,
+    createdAt: now,
+    updatedAt: now,
+  } as Record<string, unknown>);
 }
 
 export async function listSheetLinksMine(email: string, query?: string): Promise<SheetLink[]> {
