@@ -88,6 +88,7 @@ components/
 
 **MongoDB** (`sheet-admin` database):
 - `assemblybatches` — `AssemblyBatch` documents (stages: In Review → 2nd Review → Buying Price → Selling Price → Ready for Upload → Uploaded)
+- `stageconfig` — singleton document storing per-stage team owner assignments (`StageConfig`)
 - `notifications` — `AppNotification` documents
 - `notificationsubscriptions` — per-email stage subscriptions
 

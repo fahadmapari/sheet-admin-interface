@@ -105,12 +105,7 @@ export function BatchCard({
     e.stopPropagation();
 
     if (!isForwardMove(targetStage)) {
-      // Moving backward — no readiness check
-      if (targetStage === nextStage) {
-        void onMoveToNextStage(batch);
-      } else {
-        void onMoveToStage(batch, targetStage);
-      }
+      void onMoveToStage(batch, targetStage);
       return;
     }
 
