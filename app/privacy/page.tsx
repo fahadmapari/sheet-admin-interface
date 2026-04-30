@@ -41,7 +41,7 @@ export default function PrivacyPolicyPage() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Contents
           </h2>
-          <ol className="space-y-1 text-sm">
+          <ul className="space-y-1 text-sm">
             {sections.map((s) => (
               <li key={s.id}>
                 <a
@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
                 </a>
               </li>
             ))}
-          </ol>
+          </ul>
         </nav>
 
         <article className="space-y-10 text-sm leading-relaxed text-foreground">
@@ -208,7 +208,7 @@ export default function PrivacyPolicyPage() {
 
           <section id="cookies" className="scroll-mt-8">
             <h2 className="mb-3 text-lg font-semibold">
-              6. Cookies &amp; local storage
+              6. Cookies & local storage
             </h2>
             <p>
               We set one session cookie (managed by NextAuth) used solely to
@@ -250,7 +250,7 @@ export default function PrivacyPolicyPage() {
 
           <section id="retention" className="scroll-mt-8">
             <h2 className="mb-3 text-lg font-semibold">
-              8. Retention &amp; deletion
+              8. Retention & deletion
             </h2>
             <p>
               Data tied to your account is retained for as long as your email
