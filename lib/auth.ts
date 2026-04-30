@@ -82,9 +82,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user }) {
       const { getAccessControl } = await import('./access-control');
-      const { allowAll, allowedEmails } = await getAccessControl();
+      const { allowAll, allowedEmails, adminEmails } = await getAccessControl();
       if (allowAll) return true;
-      return allowedEmails.includes((user.email ?? '').toLowerCase());
+      const email = (user.email ?? '').toLowerCase();
+      return allowedEmails.includes(email) || adminEmails.includes(email);
     },
     async jwt({ token, account }) {
       if (account?.access_token) {
