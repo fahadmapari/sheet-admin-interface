@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { WrittenProduct } from '@/lib/types';
-import { fetcher } from '@/lib/fetcher';
+import { fetcher, isSheetAccessDeniedError } from '@/lib/fetcher';
+import { SheetAccessDenied } from '@/components/sheet-access-denied';
 import { cn, parseLinkField } from '@/lib/utils';
 import { WrittenProductTable } from '@/components/written-products/written-product-table';
 import { WrittenProductDetailSheet } from '@/components/written-products/written-product-detail-sheet';
@@ -282,6 +283,10 @@ export function WrittenProductsClient() {
 
   const totalCount = products?.length ?? 0;
   const filteredCount = filteredProducts.length;
+
+  if (isSheetAccessDeniedError(error)) {
+    return <SheetAccessDenied />;
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">

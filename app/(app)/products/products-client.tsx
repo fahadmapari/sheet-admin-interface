@@ -30,7 +30,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ASSEMBLY_STAGES } from "@/lib/types";
 import type { TourProduct, AssemblyStage } from "@/lib/types";
-import { fetcher } from "@/lib/fetcher";
+import { fetcher, isSheetAccessDeniedError } from "@/lib/fetcher";
+import { SheetAccessDenied } from "@/components/sheet-access-denied";
 import { cn, parseLinkField } from "@/lib/utils";
 import { useEditHistory, type EditRecord } from '@/lib/hooks/use-edit-history';
 import { EditHistoryPopover } from '@/components/ui/edit-history-popover';
@@ -451,6 +452,10 @@ export function ProductsClient({
       toast.error("Delete failed");
     }
   };
+
+  if (isSheetAccessDeniedError(error)) {
+    return <SheetAccessDenied />;
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">

@@ -12,7 +12,8 @@ import { AssemblyViewToggle } from '@/components/assembly/assembly-view-toggle';
 import { useAssemblyView } from '@/lib/hooks/use-assembly-view';
 import { PipelineSummary } from '@/components/assembly/pipeline-summary';
 import { ProductDetailSheet } from '@/components/products/product-detail-sheet';
-import { fetcher } from '@/lib/fetcher';
+import { fetcher, isSheetAccessDeniedError } from '@/lib/fetcher';
+import { SheetAccessDenied } from '@/components/sheet-access-denied';
 import {
   ASSEMBLY_STAGES,
   type AssemblyBatch,
@@ -41,7 +42,7 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
   const { data: archivedData, isLoading: archivedLoading } =
     useSWR<ArchivedResponse>('/api/assembly/archived', fetcher, { dedupingInterval: 60_000 });
 
-  const { data: products } = useSWR<TourProduct[]>('/api/products', fetcher, {
+  const { data: products, error: productsError } = useSWR<TourProduct[]>('/api/products', fetcher, {
     dedupingInterval: 60_000,
   });
 
@@ -214,6 +215,10 @@ export function AssemblyClient({ isAdmin }: { isAdmin: boolean }) {
     toast.success('Product removed from assembly');
     mutate('/api/assembly');
   };
+
+  if (isSheetAccessDeniedError(assemblyError) || isSheetAccessDeniedError(productsError)) {
+    return <SheetAccessDenied />;
+  }
 
   if (assemblyError) {
     return (
