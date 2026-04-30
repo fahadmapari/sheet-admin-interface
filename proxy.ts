@@ -14,6 +14,6 @@ export default auth((req: NextAuthRequest) => {
 // (e.g. a future /api/authority route would not be excluded by /api/auth alone).
 export const config = {
   matcher: [
-    '/((?!api/auth$|api/auth/|_next/|login$|login/|share$|share/|favicon\\.ico$).*)',
+    '/((?!api/auth$|api/auth/|_next/|login$|login/|share$|share/|privacy$|privacy/|favicon\\.ico$).*)',
   ],
 };
