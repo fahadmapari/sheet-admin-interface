@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SignInButton } from "./sign-in-button";
 
 const errorMessages: Record<string, string> = {
@@ -31,6 +32,13 @@ export default async function LoginPage({
       )}
 
       <SignInButton />
+
+      <Link
+        href="/privacy"
+        className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+      >
+        Privacy Policy
+      </Link>
     </div>
   );
 }
