@@ -78,20 +78,33 @@ function exportCsv(products: TourProduct[], visibleFields: Array<keyof Omit<Tour
 }
 
 async function exportXlsx(products: TourProduct[], visibleFields: Array<keyof Omit<TourProduct, 'rowIndex'>>) {
-  const XLSX = await import('xlsx');
+  const ExcelJS = (await import('exceljs')).default;
   const headers = visibleFields.map((f) => FIELD_LABELS[f] ?? f);
-  const rows = products.map((p) =>
-    visibleFields.map((f) => {
-      const val = p[f];
-      if (val === null || val === undefined) return '';
-      if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
-      return val;
-    })
-  );
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Products');
-  XLSX.writeFile(wb, `products-${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Products');
+  worksheet.addRow(headers);
+  for (const p of products) {
+    worksheet.addRow(
+      visibleFields.map((f) => {
+        const val = p[f];
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+        return val;
+      }),
+    );
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `products-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function ExportButton({ products, columnVisibility, filters }: ExportButtonProps) {
