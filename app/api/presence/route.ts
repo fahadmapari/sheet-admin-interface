@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { type PresenceUser } from '@/lib/types';
@@ -53,8 +54,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }
 
@@ -94,7 +94,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ users });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

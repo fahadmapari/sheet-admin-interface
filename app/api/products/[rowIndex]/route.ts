@@ -1,9 +1,11 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { updateRow, updateCell, updateCellHyperlink, deleteRow, findRowByProductName, fetchRow } from '@/lib/sheets';
-import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
+import { requireGoogleAccessToken } from '@/lib/google-session';
+import { errorResponse } from '@/lib/api-errors';
 import { productToRow, parseLinkField } from '@/lib/utils';
 import { getEffectiveColumnMap } from '@/lib/column-mapping';
+import { parseRowIndexParam } from '@/lib/validation';
 import type { TourProduct } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -12,8 +14,8 @@ type Params = { params: Promise<{ rowIndex: string }> };
 
 export async function PUT(req: NextRequest, { params }: Params) {
   const { rowIndex: rowIndexStr } = await params;
-  const rowIndex = parseInt(rowIndexStr, 10);
-  if (isNaN(rowIndex) || rowIndex < 2) {
+  const rowIndex = parseRowIndexParam(rowIndexStr);
+  if (rowIndex === null) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
@@ -52,16 +54,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const { rowIndex: rowIndexStr } = await params;
-  const rowIndex = parseInt(rowIndexStr, 10);
-  if (isNaN(rowIndex) || rowIndex < 2) {
+  const rowIndex = parseRowIndexParam(rowIndexStr);
+  if (rowIndex === null) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
@@ -95,16 +95,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const { rowIndex: rowIndexStr } = await params;
-  const rowIndex = parseInt(rowIndexStr, 10);
-  if (isNaN(rowIndex) || rowIndex < 2) {
+  const rowIndex = parseRowIndexParam(rowIndexStr);
+  if (rowIndex === null) {
     return NextResponse.json({ error: 'Invalid rowIndex' }, { status: 400 });
   }
   try {
@@ -112,8 +110,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     await deleteRow({ auth: 'user', accessToken }, rowIndex);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }

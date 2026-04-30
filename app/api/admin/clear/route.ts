@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
 import { getDb } from '@/lib/mongodb';
@@ -36,7 +37,6 @@ export async function POST(req: NextRequest) {
     const result = await db.collection(collectionName).deleteMany({});
     return NextResponse.json({ ok: true, deletedCount: result.deletedCount });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

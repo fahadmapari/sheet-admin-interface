@@ -35,14 +35,27 @@ export function toRequiredText(raw: string | undefined): string {
   return toText(raw) ?? '';
 }
 
+// Reject anything that isn't an http(s) URL — blocks javascript:, data:, vbscript:, etc.
+export function isSafeHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 // Parse a link field value that may be stored as "Display Text||https://url"
 // or as a bare URL, or as plain text with no URL.
+// Any URL that is not http(s) is dropped to prevent stored XSS via javascript: URIs.
 export function parseLinkField(value: string): { text: string; url: string } {
   const idx = value.indexOf('||');
   if (idx !== -1) {
-    return { text: value.substring(0, idx), url: value.substring(idx + 2) };
+    const text = value.substring(0, idx);
+    const url = value.substring(idx + 2);
+    return { text, url: isSafeHttpUrl(url) ? url : '' };
   }
-  if (value.startsWith('http://') || value.startsWith('https://')) {
+  if (isSafeHttpUrl(value)) {
     return { text: '', url: value };
   }
   return { text: value, url: '' };

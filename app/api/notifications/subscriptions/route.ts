@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { ASSEMBLY_STAGES, type AssemblyStage } from '@/lib/types';
@@ -19,8 +20,7 @@ export async function GET() {
 
     return NextResponse.json({ stages: (sub?.stages ?? []) as AssemblyStage[] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }
 
@@ -49,7 +49,6 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

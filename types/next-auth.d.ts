@@ -2,9 +2,7 @@ import 'next-auth';
 
 declare module 'next-auth' {
   interface Session {
-    accessToken?: string;
-    accessTokenExpires?: number;
-    googleAuthError?: 'RefreshAccessTokenError';
+    googleAuthError?: 'RefreshAccessTokenError' | 'AccessRevoked';
   }
 }
 
@@ -13,6 +11,7 @@ declare module 'next-auth/jwt' {
     accessToken?: string;
     refreshToken?: string;
     accessTokenExpires?: number;
-    googleAuthError?: 'RefreshAccessTokenError';
+    googleAuthError?: 'RefreshAccessTokenError' | 'AccessRevoked';
+    allowlistCheckedAt?: number;
   }
 }

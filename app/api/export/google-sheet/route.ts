@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
+import { requireGoogleAccessToken } from '@/lib/google-session';
 import { createSpreadsheetAsUser } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
@@ -28,8 +29,6 @@ export async function POST(req: NextRequest) {
     const url = await createSpreadsheetAsUser(accessToken, title, fields, rows);
     return NextResponse.json({ url });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchAllRows, fetchColumnHyperlinks, fetchColumnRichTextLinks, appendRow, updateCellHyperlink } from '@/lib/sheets';
-import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
+import { requireGoogleAccessToken } from '@/lib/google-session';
+import { errorResponse } from '@/lib/api-errors';
 import { rowToProduct, productToRow, parseLinkField } from '@/lib/utils';
 import { getEffectiveColumnMap } from '@/lib/column-mapping';
 import type { TourProduct } from '@/lib/types';
@@ -39,9 +40,7 @@ export async function GET() {
 
     return NextResponse.json(products);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }
 
@@ -66,8 +65,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }

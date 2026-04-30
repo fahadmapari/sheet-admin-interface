@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
 import {
@@ -41,8 +42,7 @@ export async function GET() {
 
     return NextResponse.json(entries);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }
 
@@ -71,7 +71,7 @@ export async function PUT(req: NextRequest) {
         continue;
       }
       if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx > 69) {
-        errors.push(`Field "${field}": colIndex must be an integer 0–69, got ${idx}`);
+        errors.push(`Field "${field}": colIndex must be an integer 0â€“69, got ${idx}`);
         continue;
       }
       if (seenIndices.has(idx)) {
@@ -88,8 +88,7 @@ export async function PUT(req: NextRequest) {
     await saveWrittenColumnMappingOverrides(body.overrides);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }
 
@@ -106,7 +105,6 @@ export async function DELETE() {
     await clearWrittenColumnMappingOverrides();
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

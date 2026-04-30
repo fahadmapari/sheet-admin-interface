@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
 import { getDb } from '@/lib/mongodb';
+import { errorResponse } from '@/lib/api-errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,6 @@ export async function DELETE(
     await db.collection('assembly_batches').deleteOne({ _id: new ObjectId(batchId) });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

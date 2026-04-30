@@ -8,7 +8,7 @@ export interface AccessControlDoc {
 }
 
 const COLLECTION = 'accesscontrol';
-const DEFAULT_ADMIN = 'btechy4@gmail.com';
+const DEFAULT_ADMIN = (process.env.DEFAULT_ADMIN_EMAIL ?? 'btechy4@gmail.com').toLowerCase();
 const SINGLETON_ID = 'singleton';
 
 let cache: { doc: AccessControlDoc; expiresAt: number } | null = null;
@@ -19,15 +19,28 @@ export async function getAccessControl(): Promise<AccessControlDoc> {
   }
 
   const db = await getDb();
-  const raw = await (db.collection(COLLECTION) as any).findOne({ _id: SINGLETON_ID }) as (AccessControlDoc & { _id: string }) | null;
+  const defaults: AccessControlDoc = {
+    allowAll: false,
+    allowedEmails: [],
+    adminEmails: [DEFAULT_ADMIN],
+  };
 
-  let doc: AccessControlDoc;
-  if (!raw) {
-    doc = { allowAll: false, allowedEmails: [], adminEmails: [DEFAULT_ADMIN] };
-    await (db.collection(COLLECTION) as any).insertOne({ _id: SINGLETON_ID, ...doc });
-  } else {
-    doc = { allowAll: raw.allowAll, allowedEmails: raw.allowedEmails, adminEmails: raw.adminEmails };
-  }
+  // Atomic upsert avoids the read-then-insert race when two requests hit the
+  // empty collection concurrently.
+  const result = await (db.collection(COLLECTION) as any).findOneAndUpdate(
+    { _id: SINGLETON_ID },
+    { $setOnInsert: { _id: SINGLETON_ID, ...defaults } },
+    { upsert: true, returnDocument: 'after' },
+  );
+  const raw = (result?.value ?? result) as (AccessControlDoc & { _id: string }) | null;
+
+  const doc: AccessControlDoc = raw
+    ? {
+        allowAll: raw.allowAll ?? defaults.allowAll,
+        allowedEmails: raw.allowedEmails ?? defaults.allowedEmails,
+        adminEmails: raw.adminEmails ?? defaults.adminEmails,
+      }
+    : defaults;
 
   cache = { doc, expiresAt: Date.now() + 30_000 };
   return doc;

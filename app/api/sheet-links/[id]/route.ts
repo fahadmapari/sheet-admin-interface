@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { updateSheetLink, deleteSheetLink } from '@/lib/sheet-links';
+import { errorResponse } from '@/lib/api-errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +28,7 @@ export async function PATCH(
     if (result === 'forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }
 
@@ -49,7 +49,6 @@ export async function DELETE(
     if (result === 'forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

@@ -1,8 +1,10 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { batchUpdateRows, deleteRow, fetchAllRows } from '@/lib/sheets';
-import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
+import { requireGoogleAccessToken } from '@/lib/google-session';
+import { errorResponse } from '@/lib/api-errors';
 import { getEffectiveColumnMap } from '@/lib/column-mapping';
+import { isValidRowIndex } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,8 +31,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: `Unknown field: ${field}` }, { status: 400 });
     }
 
-    if (rowIndexes.some((r) => r < 2)) {
-      return NextResponse.json({ error: 'All rowIndexes must be >= 2' }, { status: 400 });
+    if (!rowIndexes.every(isValidRowIndex)) {
+      return NextResponse.json({ error: 'All rowIndexes must be integers >= 2' }, { status: 400 });
     }
 
     const allRows = await fetchAllRows(sheetsAuth);
@@ -46,9 +48,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ ok: true, updated: rowIndexes.length });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }
 
@@ -61,6 +61,9 @@ export async function DELETE(req: NextRequest) {
     if (!Array.isArray(body.rowIndexes) || body.rowIndexes.length === 0) {
       return NextResponse.json({ error: 'rowIndexes must be a non-empty array' }, { status: 400 });
     }
+    if (!body.rowIndexes.every(isValidRowIndex)) {
+      return NextResponse.json({ error: 'All rowIndexes must be integers >= 2' }, { status: 400 });
+    }
 
     const sorted = [...body.rowIndexes].sort((a, b) => b - a);
     for (const rowIndex of sorted) {
@@ -69,8 +72,6 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ ok: true, deleted: sorted.length });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }

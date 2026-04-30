@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
-import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
+import { requireGoogleAccessToken } from '@/lib/google-session';
 import { getSpreadsheetCapabilities, shareSpreadsheetWithUser } from '@/lib/sheets';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,8 +37,6 @@ export async function POST(req: NextRequest) {
     const status = await shareSpreadsheetWithUser(accessToken, email);
     return NextResponse.json({ ok: true, status });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }

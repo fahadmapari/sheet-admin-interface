@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
+import { auth } from '@/lib/auth';
 import { fanOutNotifications } from '@/lib/notifications';
 import { ObjectId, type Document } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import { ASSEMBLY_STAGES, type AssemblyStage } from '@/lib/types';
+import { isValidRowIndex } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,14 +23,28 @@ function todayIso(): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = (await req.json()) as MoveBody;
     const { rowIndexes, targetStage, batchStrategy } = body;
 
     if (!Array.isArray(rowIndexes) || rowIndexes.length === 0) {
       return NextResponse.json({ error: 'rowIndexes must be a non-empty array' }, { status: 400 });
     }
+    if (!rowIndexes.every(isValidRowIndex)) {
+      return NextResponse.json({ error: 'rowIndexes must be integers >= 2' }, { status: 400 });
+    }
     if (!ASSEMBLY_STAGES.includes(targetStage)) {
       return NextResponse.json({ error: 'Invalid targetStage' }, { status: 400 });
+    }
+    if (batchStrategy?.type !== 'new' && batchStrategy?.type !== 'existing') {
+      return NextResponse.json({ error: 'Invalid batchStrategy' }, { status: 400 });
+    }
+    if (batchStrategy.type === 'existing' && !ObjectId.isValid(batchStrategy.batchId)) {
+      return NextResponse.json({ error: 'Invalid batchId' }, { status: 400 });
     }
 
     const db = await getDb();
@@ -108,7 +125,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, batchId: targetBatchId.toString() });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

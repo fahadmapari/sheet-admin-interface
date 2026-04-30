@@ -1,5 +1,6 @@
 import 'server-only';
-import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { getToken } from 'next-auth/jwt';
 
 export class GoogleAccessTokenError extends Error {
   status: number;
@@ -12,19 +13,31 @@ export class GoogleAccessTokenError extends Error {
 }
 
 export async function requireGoogleAccessToken(): Promise<string> {
-  const session = await auth();
+  const isProd = process.env.NODE_ENV === 'production';
+  const cookieName = isProd ? '__Secure-authjs.session-token' : 'authjs.session-token';
 
-  if (!session?.user?.email) {
+  const token = await getToken({
+    req: { headers: await headers() },
+    secret: process.env.NEXTAUTH_SECRET,
+    cookieName,
+    secureCookie: isProd,
+  });
+
+  if (!token?.email) {
     throw new GoogleAccessTokenError('Unauthorized', 401);
   }
 
-  if (session.googleAuthError === 'RefreshAccessTokenError') {
+  if (token.googleAuthError === 'RefreshAccessTokenError') {
     throw new GoogleAccessTokenError('Google access expired. Please sign out and sign back in.', 401);
   }
 
-  if (!session.accessToken) {
+  if (token.googleAuthError === 'AccessRevoked') {
+    throw new GoogleAccessTokenError('Access has been revoked. Please contact an administrator.', 403);
+  }
+
+  if (!token.accessToken) {
     throw new GoogleAccessTokenError('Missing Google access. Please sign out and sign back in.', 401);
   }
 
-  return session.accessToken;
+  return token.accessToken;
 }

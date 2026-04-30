@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { type AppNotification, type AssemblyStage } from '@/lib/types';
@@ -33,7 +34,6 @@ export async function GET() {
 
     return NextResponse.json({ notifications });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

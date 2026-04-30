@@ -10,8 +10,10 @@ export default auth((req: NextAuthRequest) => {
   return NextResponse.next();
 });
 
+// Trailing slash / end anchors prevent prefix-collision bypasses
+// (e.g. a future /api/authority route would not be excluded by /api/auth alone).
 export const config = {
   matcher: [
-    '/((?!api/auth|_next|login|share|favicon\\.ico).*)',
+    '/((?!api/auth$|api/auth/|_next/|login$|login/|share$|share/|favicon\\.ico$).*)',
   ],
 };

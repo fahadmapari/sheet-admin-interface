@@ -12,6 +12,17 @@ const GOOGLE_SCOPES = [
 
 const refreshInflight = new Map<string, Promise<JWT>>();
 
+const ALLOWLIST_RECHECK_MS = 5 * 60 * 1000; // 5 minutes
+
+async function isStillAllowed(email: string | undefined): Promise<boolean> {
+  if (!email) return false;
+  const { getAccessControl } = await import('./access-control');
+  const { allowAll, allowedEmails, adminEmails } = await getAccessControl();
+  if (allowAll) return true;
+  const e = email.toLowerCase();
+  return allowedEmails.includes(e) || adminEmails.includes(e);
+}
+
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   if (!token.refreshToken) {
     return { ...token, googleAuthError: 'RefreshAccessTokenError' };
@@ -95,6 +106,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ? account.expires_at * 1000
           : Date.now() + Number(account.expires_in ?? 3600) * 1000;
         token.googleAuthError = undefined;
+        token.allowlistCheckedAt = Date.now();
+      }
+
+      // Re-check allowlist periodically so admin removals take effect within 5 min.
+      const lastChecked = token.allowlistCheckedAt ?? 0;
+      if (Date.now() - lastChecked > ALLOWLIST_RECHECK_MS) {
+        const allowed = await isStillAllowed(token.email ?? undefined);
+        if (!allowed) {
+          return { ...token, googleAuthError: 'AccessRevoked' };
+        }
+        token.allowlistCheckedAt = Date.now();
+        if (token.googleAuthError === 'AccessRevoked') {
+          token.googleAuthError = undefined;
+        }
       }
 
       if (!token.accessToken) {
@@ -108,8 +133,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return refreshAccessToken(token);
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken;
-      session.accessTokenExpires = token.accessTokenExpires;
       session.googleAuthError = token.googleAuthError;
       return session;
     },
@@ -119,9 +142,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge: 60 * 60 * 24 * 7, // 7 days
   },
   jwt: {
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge: 60 * 60 * 24 * 7,
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-authjs.session-token'
+        : 'authjs.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
 });

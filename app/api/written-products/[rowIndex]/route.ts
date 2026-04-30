@@ -1,6 +1,6 @@
 // app/api/written-products/[rowIndex]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
+import { requireGoogleAccessToken } from '@/lib/google-session';
 import {
   fetchAllWrittenProductRows,
   updateWrittenProductRow,
@@ -12,14 +12,15 @@ import { parseLinkField } from '@/lib/utils';
 import type { WrittenProduct } from '@/lib/types';
 import { invalidateWrittenProductsCache } from '@/lib/written-products-cache';
 import { getEffectiveWrittenColumnMap } from '@/lib/written-column-mapping';
+import { parseRowIndexParam } from '@/lib/validation';
+import { errorResponse } from '@/lib/api-errors';
 
 export const dynamic = 'force-dynamic';
 
 type RouteContext = { params: Promise<{ rowIndex: string }> };
 
 function parseRowIndex(str: string): number | null {
-  const n = parseInt(str, 10);
-  return isNaN(n) || n < 2 ? null : n;
+  return parseRowIndexParam(str);
 }
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
@@ -37,9 +38,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     if (!row) return NextResponse.json({ error: 'Row not found' }, { status: 404 });
     return NextResponse.json(rowToWrittenProduct(row, rowIndex, undefined, colMap));
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }
 
@@ -63,9 +62,7 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     invalidateWrittenProductsCache();
     return NextResponse.json({ ...body, rowIndex });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }
 
@@ -80,8 +77,6 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     invalidateWrittenProductsCache();
     return new NextResponse(null, { status: 204 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }

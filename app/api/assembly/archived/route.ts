@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
+import { auth } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { ARCHIVE_THRESHOLD_MS } from '@/lib/constants';
 import type { AssemblyBatch } from '@/lib/types';
@@ -7,6 +9,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const db = await getDb();
     const cutoff = new Date(Date.now() - ARCHIVE_THRESHOLD_MS);
 
@@ -35,7 +41,6 @@ export async function GET() {
 
     return NextResponse.json({ batches });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

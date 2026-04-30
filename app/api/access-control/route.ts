@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { getAccessControl, updateAccessControl, isAdmin, type AccessControlDoc } from '@/lib/access-control';
 
@@ -17,8 +18,7 @@ export async function GET() {
     const doc = await getAccessControl();
     return NextResponse.json(doc);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }
 
@@ -41,7 +41,6 @@ export async function PUT(req: NextRequest) {
     const updated = await updateAccessControl(body);
     return NextResponse.json(updated);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return errorResponse(err);
   }
 }

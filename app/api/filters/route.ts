@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { fetchAllRows } from '@/lib/sheets';
-import { GoogleAccessTokenError, requireGoogleAccessToken } from '@/lib/google-session';
+import { requireGoogleAccessToken } from '@/lib/google-session';
+import { errorResponse } from '@/lib/api-errors';
 import { getEffectiveColumnMap } from '@/lib/column-mapping';
 import { toText } from '@/lib/utils';
 import type { FiltersResponse } from '@/lib/types';
@@ -62,8 +63,6 @@ export async function GET() {
 
     return NextResponse.json(filters);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = err instanceof GoogleAccessTokenError ? err.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    return errorResponse(err);
   }
 }
