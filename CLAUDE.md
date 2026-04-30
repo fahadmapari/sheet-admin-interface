@@ -96,11 +96,12 @@ components/
 
 - **GOOGLE_PRIVATE_KEY**: Store with literal `\n` in env; `lib/sheets.ts` calls `.replace(/\\n/g, '\n')` at runtime.
 - **User OAuth for Sheet UI**: Product reads/writes, filters, stats, dashboard reads, and exports use the signed-in user's Google OAuth token. Each allowed UI user must have access to `SPREADSHEET_ID`.
-- **Service account**: Reserved for automation-only work such as scheduled jobs or recovery scripts. User-facing API routes should not silently fall back to it.
-- **Google consent**: Scope changes require existing users/admins to sign out and sign back in once. The app requests full Drive access so admins can share the configured spreadsheet from Settings.
-- **Export to Google Sheets**: Uses the user's OAuth access token so the exported spreadsheet lands in the user's own Drive.
-- **Auth allowlist**: Stored in the `accesscontrol` MongoDB collection (single document). On first sign-in attempt, auto-seeded with `adminEmails: ["btechy4@gmail.com"]`. Use the Access tab in Settings (admin-only) to manage allowed emails and admins.
-- **Middleware**: All routes except `/api/auth/**`, `/_next/**`, `/login` require an active session (`middleware.ts`).
+- **Service account**: Used for automation jobs, recovery scripts, AND for sharing the configured spreadsheet with new users (Settings → Access). It must have Editor role on `SPREADSHEET_ID` with "Editors can share" enabled (default). Other user-facing API routes should not silently fall back to it.
+- **Google OAuth scopes** (lib/auth.ts): `openid email profile spreadsheets drive.file`. We deliberately request `drive.file` (only files the app creates) instead of full `drive` — sharing the configured spreadsheet runs through the service account so users are never asked to grant access to their whole Drive. Scope changes require existing users/admins to sign out and sign back in once.
+- **Export to Google Sheets**: Uses the user's OAuth access token so the exported spreadsheet lands in the user's own Drive (works under `drive.file` because the app itself creates the file).
+- **Auth allowlist**: Stored in the `accesscontrol` MongoDB collection (single document). On first sign-in attempt, auto-seeded with `adminEmails: [DEFAULT_ADMIN_EMAIL ?? "btechy4@gmail.com"]`. Allowlist is re-checked in the JWT callback every 5 min, so removing a user takes effect within that window. Use the Access tab in Settings (admin-only) to manage allowed emails and admins.
+- **Middleware**: Lives in `proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`). All routes except `/api/auth/**`, `/_next/**`, `/login`, `/share/**` require an active session.
+- **Default admin**: `DEFAULT_ADMIN_EMAIL` env var (optional, defaults to `btechy4@gmail.com`).
 - **Sheet row deletion**: Uses `batchUpdate` with `deleteDimension` (requires numeric sheet ID, not name) — `getSheetId()` caches the lookup.
 - **SWR + server components**: Client pages use SWR for data fetching; server-only code imports are guarded with `import 'server-only'`.
 - **Next.js 16 async params/searchParams**: In route handlers and page components, `params` and `searchParams` must be `await`ed before accessing properties (e.g. `const { id } = await params`). Forgetting this causes runtime errors.

@@ -22,6 +22,7 @@ export type SheetsAuthContext =
   | { auth: 'service' };
 
 let _serviceAccountSheetsClient: sheets_v4.Sheets | null = null;
+let _serviceAccountDriveClient: drive_v3.Drive | null = null;
 
 export function getUserSheetsClient(accessToken: string): sheets_v4.Sheets {
   const auth = new google.auth.OAuth2();
@@ -35,19 +36,31 @@ export function getUserDriveClient(accessToken: string): drive_v3.Drive {
   return google.drive({ version: 'v3', auth });
 }
 
-export function getServiceAccountSheetsClient(): sheets_v4.Sheets {
-  if (_serviceAccountSheetsClient) return _serviceAccountSheetsClient;
-
-  const auth = new google.auth.GoogleAuth({
+function buildServiceAccountAuth(scopes: string[]) {
+  return new google.auth.GoogleAuth({
     credentials: {
       client_email: requireEnv('GOOGLE_SERVICE_ACCOUNT_EMAIL'),
       private_key: requireEnv('GOOGLE_PRIVATE_KEY').replace(/\\n/g, '\n'),
     },
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    scopes,
   });
+}
 
+export function getServiceAccountSheetsClient(): sheets_v4.Sheets {
+  if (_serviceAccountSheetsClient) return _serviceAccountSheetsClient;
+  const auth = buildServiceAccountAuth(['https://www.googleapis.com/auth/spreadsheets']);
   _serviceAccountSheetsClient = google.sheets({ version: 'v4', auth });
   return _serviceAccountSheetsClient;
+}
+
+// Used only for sharing the configured spreadsheet with new users (via Settings → Access).
+// The service account must be an Editor on the spreadsheet, with "Editors can share" enabled
+// (the default). Keeping this in the service account avoids requesting full Drive scope from users.
+export function getServiceAccountDriveClient(): drive_v3.Drive {
+  if (_serviceAccountDriveClient) return _serviceAccountDriveClient;
+  const auth = buildServiceAccountAuth(['https://www.googleapis.com/auth/drive']);
+  _serviceAccountDriveClient = google.drive({ version: 'v3', auth });
+  return _serviceAccountDriveClient;
 }
 
 function getSheetsClient(context: SheetsAuthContext): sheets_v4.Sheets {
@@ -500,8 +513,10 @@ export async function createSpreadsheetAsUser(
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 }
 
-export async function getSpreadsheetCapabilities(accessToken: string): Promise<drive_v3.Schema$File['capabilities']> {
-  const drive = getUserDriveClient(accessToken);
+// Reads metadata of the configured spreadsheet using the service account
+// (which is granted access to the file). Returns the file's capabilities object.
+export async function getSpreadsheetCapabilities(): Promise<drive_v3.Schema$File['capabilities']> {
+  const drive = getServiceAccountDriveClient();
   const response = await drive.files.get({
     fileId: getSpreadsheetId(),
     fields: 'capabilities',
@@ -510,8 +525,10 @@ export async function getSpreadsheetCapabilities(accessToken: string): Promise<d
   return response.data.capabilities;
 }
 
-export async function shareSpreadsheetWithUser(accessToken: string, email: string): Promise<'created' | 'updated' | 'already_has_access'> {
-  const drive = getUserDriveClient(accessToken);
+// Shares the configured spreadsheet with the given user. Uses the service account so we
+// don't have to ask the signed-in user for full Drive scope.
+export async function shareSpreadsheetWithUser(email: string): Promise<'created' | 'updated' | 'already_has_access'> {
+  const drive = getServiceAccountDriveClient();
   const spreadsheetId = getSpreadsheetId();
   const normalizedEmail = email.trim().toLowerCase();
 

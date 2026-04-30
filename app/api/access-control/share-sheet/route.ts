@@ -2,7 +2,6 @@
 import { errorResponse } from '@/lib/api-errors';
 import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
-import { requireGoogleAccessToken } from '@/lib/google-session';
 import { getSpreadsheetCapabilities, shareSpreadsheetWithUser } from '@/lib/sheets';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,16 +24,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
 
-    const accessToken = await requireGoogleAccessToken();
-    const capabilities = await getSpreadsheetCapabilities(accessToken);
+    // Sharing is performed by the service account. Verify the service account itself
+    // has share permission on the configured spreadsheet before attempting to share.
+    const capabilities = await getSpreadsheetCapabilities();
     if (!capabilities?.canShare) {
       return NextResponse.json(
-        { error: 'Your Google account does not have permission to share this spreadsheet.' },
+        { error: 'The configured service account is not allowed to share this spreadsheet. Grant it Editor access with "Editors can share" enabled.' },
         { status: 403 },
       );
     }
 
-    const status = await shareSpreadsheetWithUser(accessToken, email);
+    const status = await shareSpreadsheetWithUser(email);
     return NextResponse.json({ ok: true, status });
   } catch (err) {
     return errorResponse(err);

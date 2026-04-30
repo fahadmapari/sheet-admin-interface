@@ -2,12 +2,21 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import type { JWT } from "next-auth/jwt";
 
+// Minimum scopes:
+// - openid/email/profile: identity
+// - spreadsheets: read/write the configured SPREADSHEET_ID (the user is invited to it as Editor)
+// - drive.file: needed only by the "Export to Google Sheet" feature, which creates a new
+//   spreadsheet in the user's own Drive. drive.file restricts the app to files it created
+//   or files the user explicitly opened with the app — NOT the user's whole Drive.
+//
+// Sharing the configured spreadsheet with new users is performed by the service account,
+// which is the file's editor; that path does not require Drive scope on the signed-in user.
 const GOOGLE_SCOPES = [
   'openid',
   'email',
   'profile',
   'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/drive.file',
 ].join(' ');
 
 const refreshInflight = new Map<string, Promise<JWT>>();
