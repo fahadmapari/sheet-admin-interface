@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { isAdmin } from '@/lib/access-control';
 import { errorResponse } from '@/lib/api-errors';
 import { getCrawlJob, updateCrawlJob } from '@/lib/sources/crawl-jobs';
+import { tryAcquireGlobalCrawlLock, releaseGlobalCrawlLock } from '@/lib/sources/crawl-lock';
 import type { CrawlJobStatus } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -45,7 +46,28 @@ export async function POST(
       return NextResponse.json({ error: 'Only failed jobs can be retried' }, { status: 409 });
     }
     const next = nextStatusForRetry(job);
-    await updateCrawlJob(id, { status: next, error: null });
+
+    // scraping and classifying both require the global crawl lock — markFailed
+    // released it on the original failure, so we must re-acquire here.
+    const needsLock = next === 'scraping' || next === 'classifying';
+    if (needsLock) {
+      const lock = await tryAcquireGlobalCrawlLock(id);
+      if (!lock.ok) {
+        return NextResponse.json(
+          { error: 'Another crawl is in progress', heldBy: lock.heldBy },
+          { status: 409 },
+        );
+      }
+    }
+
+    try {
+      await updateCrawlJob(id, { status: next, error: null });
+    } catch (err) {
+      // If we acquired the lock and the status update failed, release it.
+      if (needsLock) await releaseGlobalCrawlLock(id);
+      throw err;
+    }
+
     return NextResponse.json({ success: true, status: next });
   } catch (err) {
     return errorResponse(err);
