@@ -8,10 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCrawlJob } from '@/lib/hooks/use-crawl-job';
 import { InProgressCard } from './in-progress-card';
-// Stubs until tasks 22 and 23 land:
-function UrlSelectionStub() {
-  return <p className="text-sm text-[hsl(var(--text-tertiary))]">URL selection (task 22)</p>;
-}
+import { UrlSelection } from './url-selection';
+// Stub until task 23 lands:
 function CandidatesTableStub() {
   return <p className="text-sm text-[hsl(var(--text-tertiary))]">Candidates table (task 23)</p>;
 }
@@ -67,7 +65,13 @@ export function CrawlDetailClient({ id, isAdmin }: { id: string; isAdmin: boolea
         job.status === 'scraping' ||
         job.status === 'classifying') && <InProgressCard status={job.status} />}
 
-      {job.status === 'awaiting_url_selection' && <UrlSelectionStub />}
+      {job.status === 'awaiting_url_selection' && (
+        <UrlSelection
+          jobId={id}
+          urls={job.mapResult?.urls ?? []}
+          onStarted={() => mutate()}
+        />
+      )}
       {job.status === 'ready_for_review' && <CandidatesTableStub />}
 
       {job.status === 'failed' && (
