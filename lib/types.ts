@@ -251,3 +251,77 @@ export interface PresenceUser {
   name: string;
   image: string | null;
 }
+
+// ─── Sources / Crawl ─────────────────────────────────────────────────────────
+
+export type CrawlJobStatus =
+  | 'mapping'
+  | 'awaiting_url_selection'
+  | 'scraping'
+  | 'classifying'
+  | 'ready_for_review'
+  | 'failed'
+  | 'archived';
+
+export interface ScrapedPage {
+  url: string;
+  title: string | null;
+  metaDescription: string | null;
+  markdownExcerpt: string;
+}
+
+export interface ClassificationResult {
+  url: string;
+  title: string | null;
+  suggestedTourName: string | null;
+  suggestedCity: string | null;
+  suggestedCountry: string | null;
+  confidence: number; // 0–100
+  isTourPage: boolean;
+  geminiNotes: string | null;
+}
+
+export interface CrawlJob {
+  _id: string;
+  submittedBy: string;
+  submittedAt: string; // ISO
+  rootUrl: string;
+  providerName: string;
+  defaultCountry: string;
+  defaultCity: string;
+  status: CrawlJobStatus;
+  mapResult: { urls: string[]; totalCount: number } | null;
+  selectedUrls: string[] | null;
+  scrapeResult: ScrapedPage[] | null;
+  classifications: ClassificationResult[] | null;
+  error: string | null;
+  firecrawlMapJobId: string | null;
+  firecrawlCrawlJobId: string | null;
+  processingLockedUntil: string | null; // ISO
+  costEstimate: { pagesScraped: number; geminiTokens: number } | null;
+}
+
+export interface CrawlJobSummary {
+  _id: string;
+  rootUrl: string;
+  providerName: string;
+  status: CrawlJobStatus;
+  submittedAt: string;
+  submittedBy: string;
+  candidateCount: number;
+  importedCount: number;
+}
+
+export interface Source {
+  _id: string;
+  crawlJobId: string;
+  tourName: string;
+  url: string;
+  country: string;
+  city: string;
+  providerName: string;
+  category: string | null;
+  geminiConfidence: number;
+  importedBy: string;
+  importedAt: string; // ISO
+}
