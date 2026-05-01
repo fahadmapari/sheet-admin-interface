@@ -9,10 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useCrawlJob } from '@/lib/hooks/use-crawl-job';
 import { InProgressCard } from './in-progress-card';
 import { UrlSelection } from './url-selection';
-// Stub until task 23 lands:
-function CandidatesTableStub() {
-  return <p className="text-sm text-[hsl(var(--text-tertiary))]">Candidates table (task 23)</p>;
-}
+import { CandidatesTable } from './candidates-table';
 
 export function CrawlDetailClient({ id, isAdmin }: { id: string; isAdmin: boolean }) {
   const { data: job, error, isLoading, mutate } = useCrawlJob(id);
@@ -72,7 +69,9 @@ export function CrawlDetailClient({ id, isAdmin }: { id: string; isAdmin: boolea
           onStarted={() => mutate()}
         />
       )}
-      {job.status === 'ready_for_review' && <CandidatesTableStub />}
+      {job.status === 'ready_for_review' && (
+        <CandidatesTable job={job} onImported={() => mutate()} />
+      )}
 
       {job.status === 'failed' && (
         <div className="flex flex-col items-start gap-2 rounded-md border border-red-500/30 bg-red-500/5 p-4">
