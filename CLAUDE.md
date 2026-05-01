@@ -22,6 +22,8 @@ GOOGLE_CLIENT_SECRET=
 SPREADSHEET_ID=                            # Shared Google Sheets document ID
 GOOGLE_SERVICE_ACCOUNT_EMAIL=              # Automation-only service account
 GOOGLE_PRIVATE_KEY=                        # Must include literal \n; lib/sheets.ts replaces them
+FIRECRAWL_API_KEY=                         # Sources page: Firecrawl /map + /crawl
+GEMINI_API_KEY=                            # Sources page: Gemini 2.5 Flash classification
 ```
 
 ## Architecture
