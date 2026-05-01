@@ -135,9 +135,15 @@ export async function updateCrawlJob(
     costEstimate: { pagesScraped: number; geminiTokens: number };
   }>,
 ): Promise<void> {
+  let oid: ObjectId;
+  try {
+    oid = new ObjectId(id);
+  } catch {
+    return;
+  }
   const db = await getDb();
   await db.collection(COLLECTIONS.crawlJobs).updateOne(
-    { _id: new ObjectId(id) },
+    { _id: oid },
     { $set: patch },
   );
 }
@@ -163,12 +169,18 @@ export async function tryClaimProcessingLock(
   id: string,
   ttlMs: number,
 ): Promise<boolean> {
+  let oid: ObjectId;
+  try {
+    oid = new ObjectId(id);
+  } catch {
+    return false;
+  }
   const db = await getDb();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + ttlMs);
   const result = await db.collection(COLLECTIONS.crawlJobs).updateOne(
     {
-      _id: new ObjectId(id),
+      _id: oid,
       $or: [
         { processingLockedUntil: null },
         { processingLockedUntil: { $lte: now } },
@@ -180,9 +192,15 @@ export async function tryClaimProcessingLock(
 }
 
 export async function releaseProcessingLock(id: string): Promise<void> {
+  let oid: ObjectId;
+  try {
+    oid = new ObjectId(id);
+  } catch {
+    return;
+  }
   const db = await getDb();
   await db.collection(COLLECTIONS.crawlJobs).updateOne(
-    { _id: new ObjectId(id) },
+    { _id: oid },
     { $set: { processingLockedUntil: null } },
   );
 }
